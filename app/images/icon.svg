@@ -3,7 +3,7 @@
     height="24"
     viewBox="0 -960 960 960">
 
-    <circle fill="#43A047" cx="50%" cy="-50%" r="50%" />
+    <circle fill="#474347" cx="50%" cy="-50%" r="50%" />
 
     <!--
         Make this map the Android icon exactly. Android adaptive icons take the inner (centered)
