@@ -9,8 +9,9 @@
 
 ### Unreleased
 
+* Fork as Pixel Updater
+* Drop custom ota tool and certs
 * Update dependencies ([PR #17 @chenxiaolong])
-* Fix non-UTF-8 paths not being accepted by custota-tool's `--cert` option on Linux ([PR #18 @chenxiaolong])
 
 ### Version 2.2
 
