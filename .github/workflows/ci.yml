@@ -30,64 +30,14 @@ jobs:
         # Debug build only since release builds require a signing key
         run: ./gradlew --no-daemon build zipDebug -x assembleRelease
 
-  # build-tool:
-  #   name: Build pixelupdater-tool
-  #   runs-on: ${{ matrix.os }}
-  #   env:
-  #     CARGO_TERM_COLOR: always
-  #     RUSTFLAGS: -C strip=symbols
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       os: [windows-latest, ubuntu-latest, macos-latest]
-  #   steps:
-  #     - name: Check out repository
-  #       uses: actions/checkout@v3
-  #       with:
-  #         # For git describe
-  #         fetch-depth: 0
+      - name: List files in the workspace
+        run: ls -R
 
-  #     - name: Get version
-  #       id: get_version
-  #       shell: bash
-  #       run: |
-  #         echo -n 'version=' >> "${GITHUB_OUTPUT}"
-  #         git describe --always \
-  #             | sed -E "s/^v//g;s/([^-]*-g)/r\1/;s/-/./g" \
-  #             >> "${GITHUB_OUTPUT}"
+      - name: Archive artifacts
+        run: mv app/build/outputs /github/workspace/artifacts
 
-  #     - name: Get Rust LLVM target triple
-  #       id: get_target
-  #       shell: bash
-  #       env:
-  #         RUSTC_BOOTSTRAP: '1'
-  #       run: |
-  #         echo -n 'name=' >> "${GITHUB_OUTPUT}"
-  #         rustc -Z unstable-options --print target-spec-json \
-  #             | jq -r '."llvm-target"' \
-  #             >> "${GITHUB_OUTPUT}"
-
-  #     - name: Cache Rust dependencies
-  #       uses: Swatinem/rust-cache@v2
-  #       with:
-  #         workspaces: pixelupdater-tool
-
-  #     - name: Clippy
-  #       working-directory: pixelupdater-tool
-  #       run: cargo clippy --release
-
-  #     - name: Formatting
-  #       working-directory: pixelupdater-tool
-  #       run: cargo fmt -- --check
-
-  #     - name: Build
-  #       working-directory: pixelupdater-tool
-  #       run: cargo build --release
-
-  #     - name: Archive artifacts
-  #       uses: actions/upload-artifact@v3
-  #       with:
-  #         name: pixelupdater-tool-${{ steps.get_version.outputs.version }}-${{ steps.get_target.outputs.name }}
-  #         path: |
-  #           pixelupdater-tool/target/release/pixelupdater-tool
-  #           pixelupdater-tool/target/release/pixelupdater-tool.exe
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: app-artifacts
+          path: artifacts
