@@ -34,7 +34,9 @@ jobs:
         run: ls -R
 
       - name: Archive artifacts
-        run: mv app/build/outputs /github/workspace/artifacts
+        run: |
+          cp -r app/build/outputs /github/workspace/artifacts
+          cp -r app/build/distributions /github/workspace/artifacts
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v2
