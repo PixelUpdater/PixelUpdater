@@ -33,6 +33,9 @@ jobs:
       - name: List files in the workspace
         run: ls -R
 
+      - name: Create artifacts directory
+        run: mkdir -p /github/workspace/artifacts
+
       - name: Archive artifacts
         run: |
           cp -r app/build/outputs /github/workspace/artifacts
