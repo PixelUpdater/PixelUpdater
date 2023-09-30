@@ -30,16 +30,16 @@ jobs:
         # Debug build only since release builds require a signing key
         run: ./gradlew --no-daemon build zipDebug -x assembleRelease
 
-      - name: List files in the workspace
-        run: ls -R
+      # - name: List files in the workspace
+      #   run: ls -R
 
       - name: Create artifacts directory
-        run: mkdir -p /github/workspace/artifacts
+        run: mkdir artifacts
 
       - name: Archive artifacts
         run: |
-          cp -r app/build/outputs /github/workspace/artifacts
-          cp -r app/build/distributions /github/workspace/artifacts
+          cp -r app/build/outputs artifacts/
+          cp -r app/build/distributions artifacts/
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v2
