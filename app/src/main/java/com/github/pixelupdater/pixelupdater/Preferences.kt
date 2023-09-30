@@ -9,7 +9,6 @@ package com.github.pixelupdater.pixelupdater
 import android.content.Context
 import androidx.core.content.edit
 import androidx.preference.PreferenceManager
-import java.net.URL
 
 class Preferences(context: Context) {
     companion object {
@@ -17,7 +16,6 @@ class Preferences(context: Context) {
         const val CATEGORY_DEBUG = "debug"
 
         const val PREF_CHECK_FOR_UPDATES = "check_for_updates"
-        const val PREF_OTA_SERVER_URL = "ota_server_url"
         const val PREF_AUTOMATIC_CHECK = "automatic_check"
         const val PREF_AUTOMATIC_INSTALL = "automatic_install"
         const val PREF_UNMETERED_ONLY = "unmetered_only"
@@ -34,6 +32,9 @@ class Preferences(context: Context) {
         const val PREF_REVERT_COMPLETED = "revert_completed"
 
         // Not associated with a UI preference
+        private const val PREF_OTA_CACHE = "ota_cache"
+        private const val PREF_TARGET_OTA = "target_ota"
+        private const val PREF_ALERT_CACHE = "alert_cache"
         private const val PREF_DEBUG_MODE = "debug_mode"
     }
 
@@ -43,16 +44,17 @@ class Preferences(context: Context) {
         get() = prefs.getBoolean(PREF_DEBUG_MODE, false)
         set(enabled) = prefs.edit { putBoolean(PREF_DEBUG_MODE, enabled) }
 
-    /** Base URL to fetch OTA updates. */
-    var otaServerUrl: URL?
-        get() = prefs.getString(PREF_OTA_SERVER_URL, null)?.let { URL(it) }
-        set(url) = prefs.edit {
-            if (url == null) {
-                remove(PREF_OTA_SERVER_URL)
-            } else {
-                putString(PREF_OTA_SERVER_URL, url.toString())
-            }
-        }
+    var otaCache: String
+        get() = prefs.getString(PREF_OTA_CACHE, "")!!
+        set(cache) = prefs.edit { putString(PREF_OTA_CACHE, cache) }
+
+    var targetOta: String
+        get() = prefs.getString(PREF_TARGET_OTA, "")!!
+        set(cache) = prefs.edit { putString(PREF_TARGET_OTA, cache) }
+
+    var alertCache: String
+        get() = prefs.getString(PREF_ALERT_CACHE, "")!!
+        set(cache) = prefs.edit { putString(PREF_ALERT_CACHE, cache) }
 
     /** Whether to check for updates periodically. */
     var automaticCheck: Boolean

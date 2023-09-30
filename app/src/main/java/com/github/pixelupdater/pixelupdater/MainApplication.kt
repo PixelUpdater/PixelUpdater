@@ -11,11 +11,19 @@ import android.app.Application
 import android.util.Log
 import com.github.pixelupdater.pixelupdater.updater.UpdaterJob
 import com.google.android.material.color.DynamicColors
+import com.topjohnwu.superuser.Shell
 import java.io.File
 
 class MainApplication : Application() {
     override fun onCreate() {
         super.onCreate()
+
+        // Shell.getShell()
+        // if (Shell.isAppGrantedRoot()!!) {
+        //     println("got root")
+        // } else {
+        //     println("no root")
+        // }
 
         val oldCrashHandler = Thread.getDefaultUncaughtExceptionHandler()
 

@@ -12,6 +12,8 @@
 
 * Fork as Pixel Updater
 * Drop custom ota tool and certs
+* Drop csig
+* Add scraper
 
 ## Custota
 ### Version 2.3

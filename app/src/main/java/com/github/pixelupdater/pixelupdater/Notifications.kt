@@ -26,10 +26,13 @@ class Notifications(
         const val CHANNEL_ID_FAILURE = "failure"
         const val CHANNEL_ID_SUCCESS = "success"
 
+        const val GROUP_KEY_UPDATES = "UPDATES"
+
         private val LEGACY_CHANNEL_IDS = arrayOf<String>()
 
         const val ID_PERSISTENT = 1
         const val ID_ALERT = 2
+        const val ID_INDEXED = 3
     }
 
     private val notificationManager = context.getSystemService(NotificationManager::class.java)
@@ -157,6 +160,7 @@ class Notifications(
         @DrawableRes icon: Int,
         errorMsg: String?,
         actions: List<Pair<Int, Intent>>,
+        id: Int?,
     ) {
         val notification = Notification.Builder(context, channel).run {
             val text = buildString {
@@ -177,7 +181,7 @@ class Notifications(
             for ((actionTextResId, actionIntent) in actions) {
                 val actionPendingIntent = PendingIntent.getService(
                     context,
-                    0,
+                    id ?: 0,
                     actionIntent,
                     PendingIntent.FLAG_IMMUTABLE or
                             PendingIntent.FLAG_UPDATE_CURRENT or
@@ -191,13 +195,21 @@ class Notifications(
                 ).build())
             }
 
+            if (id != null && id >= ID_INDEXED) {
+                setGroup(GROUP_KEY_UPDATES)
+            }
+
             build()
         }
 
-        notificationManager.notify(ID_ALERT, notification)
+        notificationManager.notify(id ?: ID_ALERT, notification)
     }
 
     fun dismissAlert() {
         notificationManager.cancel(ID_ALERT)
+    }
+
+    fun dismissIndexedAlert(index: Int) {
+        notificationManager.cancel(index)
     }
 }
