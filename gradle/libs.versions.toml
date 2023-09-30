@@ -8,7 +8,9 @@ androidx-preference = "1.2.0"
 bouncycastle = "1.76"
 jgit = "6.6.0.202305301015-r"
 json = "20230618"
+jsoup = "1.16.1"
 kotlin = "1.9.0"
+libsu = "5.2.1"
 kotlinx-serialization = "1.5.1"
 material = "1.9.0"
 protobuf = "3.24.0"
@@ -22,7 +24,11 @@ androidx-fragment-ktx = { group = "androidx.fragment", name = "fragment-ktx", ve
 androidx-preference-ktx = { group = "androidx.preference", name = "preference-ktx", version.ref = "androidx-preference" }
 bouncycastle-pkix = { group = "org.bouncycastle", name = "bcpkix-jdk18on", version.ref = "bouncycastle" }
 bouncycastle-prov = { group = "org.bouncycastle", name = "bcprov-jdk18on", version.ref = "bouncycastle" }
+jsoup = { group = "org.jsoup", name = "jsoup", version.ref = "jsoup" }
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
+libsu-core = { group = "com.github.topjohnwu.libsu", name = "core", version.ref = "libsu" }
+# libsu-service = { group = "com.github.topjohnwu.libsu", name = "service", version.ref = "libsu" }
+# libsu-nio = { group = "com.github.topjohnwu.libsu", name = "nio", version.ref = "libsu" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 protoc = { group = "com.google.protobuf", name = "protoc", version.ref = "protobuf" }
 protobuf-javalite = { group = "com.google.protobuf", name = "protobuf-javalite", version.ref = "protobuf" }

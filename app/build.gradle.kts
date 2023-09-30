@@ -1,4 +1,5 @@
 /*
+ * SPDX-FileCopyrightText: 2023 Pixel Updater contributors
  * SPDX-FileCopyrightText: 2022-2023 Andrew Gunnerson
  * SPDX-FileContributor: Modified by Pixel Updater contributors
  * SPDX-License-Identifier: GPL-3.0-only
@@ -215,7 +216,9 @@ dependencies {
     implementation(libs.androidx.preference.ktx)
     implementation(libs.bouncycastle.pkix)
     implementation(libs.bouncycastle.prov)
+    implementation(libs.jsoup)
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.libsu.core)
     implementation(libs.material)
     implementation(libs.protobuf.javalite)
 }
@@ -363,6 +366,56 @@ android.applicationVariants.all {
         from(File(rootDir, "LICENSE"))
         from(File(rootDir, "README.md"))
     }
+
+    tasks.register("push${capitalized}App") {
+        dependsOn.add(variant.assembleProvider)
+
+        val output = variant.outputs.map { it.outputFile }[0]
+        doLast {
+            exec {
+                commandLine(android.adbExecutable, "push", output, "/data/local/tmp")
+            }
+            exec {
+                commandLine(android.adbExecutable, "shell", "su", "-c", "cp", "/data/local/tmp/${output.name}", "/data/adb/modules/${variant.applicationId}/system/priv-app/${variant.applicationId}")
+            }
+            exec {
+                commandLine(android.adbExecutable, "shell", "am", "force-stop", variant.applicationId)
+            }
+            exec {
+                commandLine(android.adbExecutable, "shell", "am", "start", "-n", "${variant.applicationId}/${variant.applicationId}.settings.SettingsActivity")
+            }
+        }
+    }
+
+    tasks.register("push${capitalized}Zip") {
+        dependsOn.add("zip${capitalized}")
+        val output = tasks.named("zip${capitalized}").get().outputs.files.singleFile
+        doLast {
+            exec {
+                println(output.name)
+                commandLine(android.adbExecutable, "push", output, "/data/local/tmp")
+            }
+        }
+    }
+
+    tasks.register("flash${capitalized}") {
+        dependsOn.add("push${capitalized}Zip")
+        val output = tasks.named("zip${capitalized}").get().outputs.files.singleFile
+        doLast {
+            exec {
+                println(output.name)
+                commandLine(android.adbExecutable, "shell", "su", "-c", "magisk --install-module /data/local/tmp/${output.name}")
+            }
+            exec {
+                println(output.name)
+                commandLine(android.adbExecutable, "reboot")
+            }
+        }
+    }
+
+    // tasks.register<Exec>("push${capitalized}Zip") {
+    //     commandLine(android.adbExecutable, "push", "${rootProject.name}-${variant.versionName}-${variant.name}.zip", "/data/local/tmp")
+    // }
 
     tasks.register("updateJson${capitalized}") {
         inputs.property("gitVersionTriple.first", gitVersionTriple.first)

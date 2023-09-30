@@ -10,7 +10,6 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
-import android.content.pm.ServiceInfo
 import android.net.Network
 import android.os.Handler
 import android.os.IBinder
@@ -21,9 +20,13 @@ import android.util.Log
 import androidx.annotation.UiThread
 import androidx.core.content.IntentCompat
 import com.github.pixelupdater.pixelupdater.Notifications
+import com.github.pixelupdater.pixelupdater.Notifications.Companion.ID_INDEXED
 import com.github.pixelupdater.pixelupdater.Preferences
 import com.github.pixelupdater.pixelupdater.R
 import com.github.pixelupdater.pixelupdater.extension.toSingleLineString
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.json.Json
 
 class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
     private val handler = Handler(Looper.getMainLooper())
@@ -55,13 +58,11 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
                     // We're launched by startForegroundService(). Android requires the foreground
                     // notification to be shown, even if stopService() is called before this method
                     // returns.
-                    updateForegroundNotification(false)
+                    println("clearing cache")
+                    prefs.otaCache = ""
 
-                    if (prefs.otaServerUrl != null) {
-                        startUpdate(intent)
-                    } else {
-                        Log.w(TAG, "Not starting thread because no URL is configured")
-                    }
+                    updateForegroundNotification(false)
+                    startUpdate(intent)
                 }
                 ACTION_PAUSE, ACTION_RESUME -> {
                     updaterThread?.isPaused = action == ACTION_PAUSE
@@ -74,8 +75,13 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
                     getSystemService(PowerManager::class.java).reboot(null)
                 }
                 ACTION_SCHEDULE -> {
-                    UpdaterJob.scheduleImmediate(this, IntentCompat.getParcelableExtra(
-                        intent, EXTRA_ACTION, UpdaterThread.Action::class.java)!!)
+                    val action = IntentCompat.getParcelableExtra(intent, EXTRA_ACTION, UpdaterThread.Action::class.java)!!
+                    val target = intent.extras?.getString("target")
+                    if (action == UpdaterThread.Action.INSTALL && target != null) {
+                        prefs.targetOta = target
+                    }
+
+                    UpdaterJob.scheduleImmediate(this, action)
                 }
             }
         } catch (e: Exception) {
@@ -104,6 +110,15 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
             // new status without re-alerting the user when onlySendOnce is true.
             if (!silent) {
                 notifications.dismissAlert()
+                if (prefs.alertCache.isNotEmpty()) {
+                    val alerts = Json.decodeFromString(ListSerializer(IndexedAlert.serializer()), prefs.alertCache)
+                    for (alert in alerts) {
+                        notifications.dismissIndexedAlert(alert.index)
+                    }
+                    prefs.alertCache = ""
+                }
+            } else {
+                // TODO: Verify indexed alerts are properly updated
             }
 
             updateForegroundNotification(true)
@@ -192,6 +207,7 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
         val showInstall: Boolean
         val showRetry: Boolean
         val showReboot: Boolean
+        var id: Int? = null
 
         when (result) {
             is UpdaterThread.UpdateAvailable -> {
@@ -199,10 +215,11 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
                 // Only bug the user once while the notification is still shown
                 onlyAlertOnce = true
                 titleResId = R.string.notification_update_available
-                message = result.fingerprint
+                message = result.version
                 showInstall = true
                 showRetry = false
                 showReboot = false
+                id = ID_INDEXED + result.index
             }
             UpdaterThread.UpdateUnnecessary -> {
                 if (silenceForPeriodic) {
@@ -263,13 +280,21 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
 
         if (showInstall) {
             actionResIds.add(R.string.notification_action_install)
-            actionIntents.add(createScheduleIntent(this, UpdaterThread.Action.INSTALL))
+            actionIntents.add(createScheduleIntent(this, UpdaterThread.Action.INSTALL, message))
+
+            val alerts = mutableListOf<IndexedAlert>()
+            if (prefs.alertCache.isNotEmpty()) {
+                alerts.addAll(Json.decodeFromString(ListSerializer(IndexedAlert.serializer()), prefs.alertCache))
+            }
+            alerts.add(IndexedAlert(message!!, id!!))
+            val cache = Json.encodeToString(ListSerializer(IndexedAlert.serializer()), alerts)
+            prefs.alertCache = cache
         }
         if (showRetry) {
             actionResIds.add(R.string.notification_action_retry)
             // Go through job scheduler because we might need a new network
             updaterAction?.let { action ->
-                actionIntents.add(createScheduleIntent(this, action))
+                actionIntents.add(createScheduleIntent(this, action, null))
             }
         }
         if (showReboot) {
@@ -284,13 +309,26 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
             R.drawable.ic_notifications,
             message,
             actionResIds.zip(actionIntents),
+            // style,
+            id,
         )
     }
 
     override fun onUpdateResult(thread: UpdaterThread, result: UpdaterThread.Result) {
         handler.post {
+            println(result)
             require(thread === updaterThread) { "Bad thread ($thread != $updaterThread)" }
             notifyAlert(result)
+            threadExited()
+        }
+    }
+
+    override fun onUpdateResults(thread: UpdaterThread, results: List<UpdaterThread.Result>) {
+        handler.post {
+            require(thread === updaterThread) { "Bad thread ($thread != $updaterThread)" }
+            for (result in results) {
+                notifyAlert(result)
+            }
             threadExited()
         }
     }
@@ -314,6 +352,12 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
         val max: Int,
     )
 
+    @Serializable
+    private data class IndexedAlert(
+        val version: String,
+        val index: Int
+    )
+
     companion object {
         private val TAG = UpdaterService::class.java.simpleName
 
@@ -326,6 +370,7 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
 
         private const val EXTRA_NETWORK = "network"
         private const val EXTRA_ACTION = "action"
+        private const val EXTRA_TARGET = "target"
         private const val EXTRA_SILENT = "silent"
 
         fun createStartIntent(
@@ -346,11 +391,13 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
         private fun createScheduleIntent(
             context: Context,
             action: UpdaterThread.Action,
+            target: String?,
         ) = Intent(context, UpdaterService::class.java).apply {
             this.action = ACTION_SCHEDULE
 
             val parcelableAction: Parcelable = action
             putExtra(EXTRA_ACTION, parcelableAction)
+            putExtra(EXTRA_TARGET, target)
         }
     }
 }

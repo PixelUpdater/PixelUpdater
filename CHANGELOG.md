@@ -11,6 +11,8 @@
 
 * Fork as Pixel Updater
 * Drop custom ota tool and certs
+* Drop csig
+* Add scraper
 * Update dependencies ([PR #17 @chenxiaolong])
 
 ### Version 2.2

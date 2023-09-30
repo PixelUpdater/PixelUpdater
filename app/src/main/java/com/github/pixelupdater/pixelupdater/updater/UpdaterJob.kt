@@ -18,6 +18,7 @@ import com.github.pixelupdater.pixelupdater.Preferences
 
 class UpdaterJob: JobService() {
     override fun onStartJob(params: JobParameters): Boolean {
+        println("onStartJob")
         val prefs = Preferences(this)
 
         val actionIndex = params.extras.getInt(EXTRA_ACTION, -1)
@@ -35,6 +36,7 @@ class UpdaterJob: JobService() {
         }
 
         val action = if (!isPeriodic) {
+            // TODO: Why isn't this just UpdaterThread.Action.CHECK?
             UpdaterThread.Action.values()[actionIndex]
         } else if (prefs.automaticInstall) {
             UpdaterThread.Action.INSTALL
@@ -123,6 +125,7 @@ class UpdaterJob: JobService() {
         fun scheduleImmediate(context: Context, action: UpdaterThread.Action) {
             val jobInfo = createJobBuilder(context, ID_IMMEDIATE, action).build()
 
+            println(jobInfo)
             scheduleIfUnchanged(context, jobInfo)
         }
 

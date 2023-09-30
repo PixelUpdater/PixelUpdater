@@ -28,7 +28,6 @@ import com.github.pixelupdater.pixelupdater.BuildConfig
 import com.github.pixelupdater.pixelupdater.Permissions
 import com.github.pixelupdater.pixelupdater.Preferences
 import com.github.pixelupdater.pixelupdater.R
-import com.github.pixelupdater.pixelupdater.dialog.OtaServerUrlDialogFragment
 import com.github.pixelupdater.pixelupdater.updater.OtaPaths
 import com.github.pixelupdater.pixelupdater.updater.UpdaterJob
 import com.github.pixelupdater.pixelupdater.updater.UpdaterThread
@@ -52,7 +51,6 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceClic
     private lateinit var categoryCertificates: PreferenceCategory
     private lateinit var categoryDebug: PreferenceCategory
     private lateinit var prefCheckForUpdates: Preference
-    private lateinit var prefOtaServerUrl: Preference
     private lateinit var prefAndroidVersion: Preference
     private lateinit var prefFingerprint: Preference
     private lateinit var prefBootSlot: Preference
@@ -86,9 +84,6 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceClic
         prefCheckForUpdates = findPreference(Preferences.PREF_CHECK_FOR_UPDATES)!!
         prefCheckForUpdates.onPreferenceClickListener = this
 
-        prefOtaServerUrl = findPreference(Preferences.PREF_OTA_SERVER_URL)!!
-        prefOtaServerUrl.onPreferenceClickListener = this
-
         prefAndroidVersion = findPreference(Preferences.PREF_ANDROID_VERSION)!!
         prefAndroidVersion.summary = Build.VERSION.RELEASE
 
@@ -115,8 +110,6 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceClic
         prefRevertCompleted = findPreference(Preferences.PREF_REVERT_COMPLETED)!!
         prefRevertCompleted.onPreferenceClickListener = this
 
-        refreshCheckForUpdates()
-        refreshOtaServerUrl()
         refreshVersion()
         refreshDebugPrefs()
 
@@ -152,15 +145,6 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceClic
         super.onStop()
 
         preferenceScreen.sharedPreferences!!.unregisterOnSharedPreferenceChangeListener(this)
-    }
-
-    private fun refreshCheckForUpdates() {
-        prefCheckForUpdates.isEnabled = prefs.otaServerUrl != null
-    }
-
-    private fun refreshOtaServerUrl() {
-        prefOtaServerUrl.summary = prefs.otaServerUrl?.toString()
-            ?: getString(R.string.pref_ota_server_url_desc_none)
     }
 
     private fun refreshVersion() {
@@ -211,8 +195,10 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceClic
         val context = requireContext()
 
         if (Permissions.haveRequired(context)) {
+            println("performing action")
             UpdaterJob.scheduleImmediate(requireContext(), scheduledAction)
         } else {
+            println("not performing action")
             requestPermissionRequired.launch(Permissions.REQUIRED)
         }
     }
@@ -220,13 +206,9 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceClic
     override fun onPreferenceClick(preference: Preference): Boolean {
         when (preference) {
             prefCheckForUpdates -> {
+                println("onPreferenceClick(prefCheckForUpdates)")
                 scheduledAction = UpdaterThread.Action.CHECK
                 performAction()
-                return true
-            }
-            prefOtaServerUrl -> {
-                OtaServerUrlDialogFragment().show(parentFragmentManager.beginTransaction(),
-                    OtaServerUrlDialogFragment.TAG)
                 return true
             }
             prefVersion -> {
@@ -271,10 +253,6 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceClic
 
     override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
         when (key) {
-            Preferences.PREF_OTA_SERVER_URL -> {
-                refreshCheckForUpdates()
-                refreshOtaServerUrl()
-            }
             Preferences.PREF_UNMETERED_ONLY, Preferences.PREF_BATTERY_NOT_LOW -> {
                 UpdaterJob.schedulePeriodic(requireContext(), true)
             }
