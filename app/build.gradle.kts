@@ -13,6 +13,8 @@ import org.eclipse.jgit.archive.TarFormat
 import org.eclipse.jgit.lib.ObjectId
 import org.jetbrains.kotlin.backend.common.pop
 import org.json.JSONObject
+import java.io.BufferedReader
+import java.io.InputStreamReader
 
 plugins {
     alias(libs.plugins.android.application)
@@ -104,6 +106,34 @@ fun getVersionName(git: Git, triple: VersionTriple): String {
             }
         }
     }
+}
+
+fun getSelectedDevice(): String {
+    val adbExecutable = android.adbExecutable
+
+    // Retrieve the target device serial number from the command line
+    val targetDeviceSerialFromCommandLine = project.findProperty("s") as String?
+
+    // Retrieve the target device serial number from the environment variable
+    val targetDeviceSerialFromEnv = System.getenv("s")
+
+    // Determine the selected device based on priority
+    val selectedDevice = targetDeviceSerialFromCommandLine ?: targetDeviceSerialFromEnv
+        ?: run {
+            // If no target device is specified, determine the selected device
+            // by listing available devices and selecting the first one
+            val commandDevices = "${adbExecutable.absolutePath} devices"
+            val processDevices = Runtime.getRuntime().exec(commandDevices)
+            processDevices.waitFor()
+            val readerDevices = BufferedReader(InputStreamReader(processDevices.inputStream))
+            val devices = readerDevices.lines()
+                .filter { it.endsWith("device") }
+                .map { it.split('\t')[0] }
+                .toList()
+            devices.firstOrNull() ?: ""
+        }
+
+    return selectedDevice
 }
 
 val git = Git.open(File(rootDir, ".git"))!!
@@ -373,17 +403,18 @@ android.applicationVariants.all {
 
         val output = variant.outputs.map { it.outputFile }[0]
         doLast {
+            val selectedDevice = getSelectedDevice()
             exec {
-                commandLine(android.adbExecutable, "push", output, "/data/local/tmp")
+                commandLine(android.adbExecutable, "-s", selectedDevice, "push", output, "/data/local/tmp")
             }
             exec {
-                commandLine(android.adbExecutable, "shell", "su", "-c", "cp", "/data/local/tmp/${output.name}", "/data/adb/modules/${variant.applicationId}/system/priv-app/${variant.applicationId}")
+                commandLine(android.adbExecutable, "-s", selectedDevice, "shell", "su", "-c", "cp", "/data/local/tmp/${output.name}", "/data/adb/modules/${variant.applicationId}/system/priv-app/${variant.applicationId}")
             }
             exec {
-                commandLine(android.adbExecutable, "shell", "am", "force-stop", variant.applicationId)
+                commandLine(android.adbExecutable, "-s", selectedDevice, "shell", "am", "force-stop", variant.applicationId)
             }
             exec {
-                commandLine(android.adbExecutable, "shell", "am", "start", "-n", "${variant.applicationId}/${variant.applicationId}.settings.SettingsActivity")
+                commandLine(android.adbExecutable, "-s", selectedDevice, "shell", "am", "start", "-n", "${variant.applicationId}/${variant.applicationId}.settings.SettingsActivity")
             }
         }
     }
@@ -392,9 +423,10 @@ android.applicationVariants.all {
         dependsOn.add("zip${capitalized}")
         val output = tasks.named("zip${capitalized}").get().outputs.files.singleFile
         doLast {
+            val selectedDevice = getSelectedDevice()
             exec {
-                println(output.name)
-                commandLine(android.adbExecutable, "push", output, "/data/local/tmp")
+                println("Pushing ${output.name} to device $selectedDevice into /data/local/tmp ...")
+                commandLine(android.adbExecutable, "-s", selectedDevice, "push", output, "/data/local/tmp")
             }
         }
     }
@@ -403,13 +435,14 @@ android.applicationVariants.all {
         dependsOn.add("push${capitalized}Zip")
         val output = tasks.named("zip${capitalized}").get().outputs.files.singleFile
         doLast {
+            val selectedDevice = getSelectedDevice()
             exec {
-                println(output.name)
-                commandLine(android.adbExecutable, "shell", "su", "-c", "magisk --install-module /data/local/tmp/${output.name}")
+                println("Flashing ${output.name} to device $selectedDevice ...")
+                commandLine(android.adbExecutable, "-s", selectedDevice, "shell", "su", "-c", "magisk --install-module /data/local/tmp/${output.name}")
             }
             exec {
-                println(output.name)
-                commandLine(android.adbExecutable, "reboot")
+                println("Rebooting device $selectedDevice ...")
+                commandLine(android.adbExecutable, "-s", selectedDevice, "reboot")
             }
         }
     }
