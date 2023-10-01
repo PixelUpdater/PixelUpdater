@@ -1,21 +1,97 @@
-<svg xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
-    viewBox="0 -960 960 960">
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Generator: Adobe Illustrator 26.2.1, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
 
-    <circle fill="#474347" cx="50%" cy="-50%" r="50%" />
-
-    <!--
-        Make this map the Android icon exactly. Android adaptive icons take the inner (centered)
-        2/3rds of the foreground's viewport and crop out the rest [1]. Our foreground drawable is
-        scaled to 50% of its 960px viewport. So in this SVG viewport, it'll take up 50% of 150%.
-
-        [1] https://cs.android.com/android/platform/superproject/+/android-13.0.0_r31:frameworks/base/graphics/java/android/graphics/drawable/AdaptiveIconDrawable.java;l=106
-    -->
-
-    <g transform-origin="50% -50%" transform="scale(0.75 0.75)">
-        <path
-            fill="#ffffff"
-            d="M260-40q-24 0-42-18t-18-42v-760q0-24 18-42t42-18h440q24 0 42 18t18 42v760q0 24-18 42t-42 18H260Zm0-90v30h440v-30H260Zm0-60h440v-580H260v580Zm220-128L325-473l43-43 82 82v-194h60v194l82-82 43 43-155 155ZM260-830h440v-30H260v30Zm0 0v-30 30Zm0 700v30-30Z" />
-    </g>
-</svg>
+<svg
+   version="1.1"
+   x="0px"
+   y="0px"
+   width="2048px"
+   height="2048px"
+   viewBox="0 0 2048 2048"
+   enable-background="new 0 0 2048 2048"
+   xml:space="preserve"
+   id="svg9"
+   sodipodi:docname="pixel-updater.svg"
+   inkscape:version="1.3 (0e150ed6c4, 2023-07-21)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"><defs
+   id="defs9" /><sodipodi:namedview
+   id="namedview9"
+   pagecolor="#ffffff"
+   bordercolor="#666666"
+   borderopacity="1.0"
+   inkscape:showpageshadow="2"
+   inkscape:pageopacity="0.0"
+   inkscape:pagecheckerboard="0"
+   inkscape:deskcolor="#d1d1d1"
+   inkscape:zoom="0.15606068"
+   inkscape:cx="-938.73744"
+   inkscape:cy="3646.0178"
+   inkscape:window-width="3840"
+   inkscape:window-height="2054"
+   inkscape:window-x="8629"
+   inkscape:window-y="-11"
+   inkscape:window-maximized="1"
+   inkscape:current-layer="svg9" />&#10;<g
+   id="Ebene_1">&#10;	<g
+   id="g4">&#10;		&#10;			<linearGradient
+   id="SVGID_1_"
+   gradientUnits="userSpaceOnUse"
+   x1="41.5"
+   y1="1026"
+   x2="2034.5"
+   y2="1026"
+   gradientTransform="matrix(6.123234e-17 -1 1 6.123234e-17 0 2062)">&#10;			<stop
+   offset="2.258983e-06"
+   style="stop-color:#F5F5F5"
+   id="stop1" />&#10;			<stop
+   offset="1"
+   style="stop-color:#FFFFFF"
+   id="stop2" />&#10;		</linearGradient>&#10;		<path
+   fill="url(#SVGID_1_)"
+   d="M440,2020.5c-55.4,0-109.2-10.9-159.8-32.3c-48.9-20.7-92.8-50.3-130.5-88    c-37.7-37.7-67.3-81.6-88-130.5c-21.4-50.6-32.3-104.4-32.3-159.8V438c0-55.4,10.9-109.2,32.3-159.8c20.7-48.9,50.3-92.8,88-130.5    c37.7-37.7,81.6-67.3,130.5-88C330.8,38.4,384.6,27.5,440,27.5h1172c55.4,0,109.2,10.9,159.8,32.3c48.9,20.7,92.8,50.3,130.5,88    c37.7,37.7,67.3,81.6,88,130.5c21.4,50.6,32.3,104.4,32.3,159.8v1172c0,55.4-10.9,109.2-32.3,159.8c-20.7,48.9-50.3,92.8-88,130.5    c-37.7,37.7-81.6,67.3-130.5,88c-50.6,21.4-104.4,32.3-159.8,32.3H440z"
+   id="path2"
+   style="fill:#474347;fill-opacity:1" />&#10;		&#10;			<linearGradient
+   id="SVGID_00000152227879191663349620000001270517770507662240_"
+   gradientUnits="userSpaceOnUse"
+   x1="1024"
+   y1="2024"
+   x2="1024"
+   y2="24">&#10;			<stop
+   offset="2.258983e-06"
+   style="stop-color:#E0E0E0"
+   id="stop3" />&#10;			<stop
+   offset="1"
+   style="stop-color:#F5F5F5"
+   id="stop4" />&#10;		</linearGradient>&#10;		<path
+   fill="url(#SVGID_00000152227879191663349620000001270517770507662240_)"
+   d="M1610,31c54.9,0,108.2,10.8,158.4,32    c48.5,20.5,92,49.8,129.4,87.2c37.4,37.4,66.7,80.9,87.2,129.4c21.2,50.2,32,103.5,33,158.4v1172c-1,54.9-11.8,108.2-33,158.4    c-20.5,48.5-49.8,92-87.2,129.4c-37.4,37.4-80.9,66.7-129.4,87.2c-50.2,21.2-103.5,32-158.4,32H438c-54.9,0-108.2-10.8-158.4-32    c-48.5-20.5-92-49.8-129.4-87.2c-37.4-37.4-66.7-80.9-87.2-129.4c-21.2-50.2-32-103.5-32-158.4V438c0-54.9,10.8-108.2,32-158.4    c20.5-48.5,49.8-92,87.2-129.4c37.4-37.4,80.9-66.7,129.4-87.2C329.8,41.8,383.1,31,438,31H1610 M1610,24H438    C209.4,24,24,209.4,24,438v1172c0,228.6,185.4,414,414,414h1172c228.6,0,414-185.4,414-414V438C2024,209.4,1838.6,24,1610,24    L1610,24z"
+   id="path4" />&#10;	</g>&#10;</g>&#10;<g
+   id="Ebene_2">&#10;	<g
+   id="g9">&#10;		<g
+   id="g7">&#10;			<path
+   fill="#4184F4"
+   d="M1185.8,804c-0.7,64.1-22.3,110.6-64.9,139.5c-43.3,29.4-101.8,44.1-175.7,44.1h-86.5v214.7h112.5     c120,0,214.9-19,284.8-57.1c69.8-38.1,119.7-88.6,149.7-151.5c28.3-59.4,43.3-122.6,44.9-189.7H1185.8z"
+   id="path5" />&#10;			<path
+   fill="#EA4335"
+   d="M1185.8,800.7c0,1.1,0,2.2,0,3.3h264.7c0.1-4,0.1-8,0.1-12c0-120-36.7-214.4-109.9-283     c-73.3-68.6-189.5-103-348.8-103H858.7v214.6h119.4C1116.6,620.6,1185.8,680.7,1185.8,800.7z"
+   id="path6" />&#10;			<rect
+   x="597.3"
+   y="406"
+   fill="#FBBC05"
+   width="261.4"
+   height="473"
+   id="rect6" />&#10;			<rect
+   x="597.3"
+   y="879"
+   fill="#34A853"
+   width="261.4"
+   height="763"
+   id="rect7" />&#10;		</g>&#10;		<g
+   id="g8">&#10;			&#10;		<path
+   fill="#ffffff"
+   d="m 3069.8615,-1812.3742 q -24,0 -42,-18 -18,-18 -18,-42 v -760 q 0,-24 18,-42 18,-18 42,-18 h 440 q 24,0 42,18 18,18 18,42 v 760 q 0,24 -18,42 -18,18 -42,18 z m 0,-90 v 30 h 440 v -30 z m 0,-60 h 440 v -580 h -440 z m 220,-128 -155,-155 43,-43 82,82 v -194 h 60 v 194 l 82,-82 43,43 z m -220,-512 h 440 v -30 h -440 z m 0,0 v -30 z m 0,700 v 30 z"
+   id="path1"
+   transform="matrix(0.91510462,0,0,0.91510462,-1488.5793,3609.6253)" /></g>&#10;	</g>&#10;</g>&#10;</svg>
