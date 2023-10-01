@@ -13,10 +13,10 @@ Pixel Updater is installed via a Magisk module so that it can run as a system ap
 
 ## Features
 
-* Supports Android 13 and newer
-* Supports pausing, resuming, and cancelling updates
-* Supports skipping optional post-install scripts to speed up updates
-* Never communicates with any server besides Google's OTA server
+* Supports Android 13 and newer.
+* Supports pausing, resuming, and cancelling updates.
+* Supports skipping optional post-install scripts to speed up updates.
+* Never communicates with any server besides Google's OTA server.
 
 ## Limitations
 
@@ -58,7 +58,7 @@ To reduce battery usage, the scheduling of the update checks is controlled by An
 * `REBOOT` (**automatically granted by system app permissions**)
   * Needed to reboot the device when the user explicitly presses the reboot button in Pixel Updater's notification after an update is installed.
 * `RECEIVE_BOOT_COMPLETED` (**automatically granted at install time**)
-  * Needed to schedule periodic update checks
+  * Needed to schedule periodic update checks.
 * `WAKE_LOCK` (**automatically granted at install time**)
   * Needed to keep the CPU awake while an update is being installed.
 
