@@ -698,8 +698,11 @@ class UpdaterThread(
                 val errorStr = UpdateEngineError.toString(error)
                 Log.d(TAG, "Update engine result: $errorStr")
 
-                if (UpdateEngineError.isUpdateSucceeded(error)) {
+                if (error == UpdateEngineError.SUCCESS) {
                     Log.d(TAG, "Successfully completed upgrade")
+                    listener.onUpdateResult(this, UpdateSucceeded)
+                } else if (error == UpdateEngineError.UPDATED_BUT_NOT_ACTIVE) {
+                    Log.d(TAG, "Successfully completed upgrade, but not active")
                     listener.onUpdateResult(this, UpdateSucceeded)
                 } else if (error == UpdateEngineError.USER_CANCELED) {
                     Log.w(TAG, "User cancelled upgrade")
@@ -780,6 +783,10 @@ class UpdaterThread(
     }
 
     data object UpdateSucceeded : Result {
+        override val isError = false
+    }
+
+    data object UpdateNeedSwitchSlots : Result {
         override val isError = false
     }
 
