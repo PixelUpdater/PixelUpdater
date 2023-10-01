@@ -1,21 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
-    viewBox="0 -960 960 960">
-
-    <circle fill="#474347" cx="50%" cy="-50%" r="50%" />
-
-    <!--
-        Make this map the Android icon exactly. Android adaptive icons take the inner (centered)
-        2/3rds of the foreground's viewport and crop out the rest [1]. Our foreground drawable is
-        scaled to 50% of its 960px viewport. So in this SVG viewport, it'll take up 50% of 150%.
-
-        [1] https://cs.android.com/android/platform/superproject/+/android-13.0.0_r31:frameworks/base/graphics/java/android/graphics/drawable/AdaptiveIconDrawable.java;l=106
-    -->
-
-    <g transform-origin="50% -50%" transform="scale(0.75 0.75)">
-        <path
-            fill="#ffffff"
-            d="M260-40q-24 0-42-18t-18-42v-760q0-24 18-42t42-18h440q24 0 42 18t18 42v760q0 24-18 42t-42 18H260Zm0-90v30h440v-30H260Zm0-60h440v-580H260v580Zm220-128L325-473l43-43 82 82v-194h60v194l82-82 43 43-155 155ZM260-830h440v-30H260v30Zm0 0v-30 30Zm0 700v30-30Z" />
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 960 960">
+    <rect fill="#474347" width="960" height="960" rx="96" />
+    <g transform="scale(0.46875)">
+        <path fill="#4184f4" d="M1185.8,804c-0.7,64.1-22.3,110.6-64.9,139.5c-43.3,29.4-101.8,44.1-175.7,44.1h-86.5v214.7h112.5     c120,0,214.9-19,284.8-57.1c69.8-38.1,119.7-88.6,149.7-151.5c28.3-59.4,43.3-122.6,44.9-189.7H1185.8z" />
+        <path fill="#ea4335" d="M1185.8,800.7c0,1.1,0,2.2,0,3.3h264.7c0.1-4,0.1-8,0.1-12c0-120-36.7-214.4-109.9-283     c-73.3-68.6-189.5-103-348.8-103H858.7v214.6h119.4C1116.6,620.6,1185.8,680.7,1185.8,800.7z" />
+        <rect x="597.3" y="406" fill="#fbbc05" width="261.4" height="473" />
+        <rect x="597.3" y="879" fill="#34a853" width="261.4" height="763" />
+    </g>
+    <g transform="translate(487.96875, 769.6875)">
+        <path fill="#ffffff" d="M260-40q-24 0-42-18t-18-42v-760q0-24 18-42t42-18h440q24 0 42 18t18 42v760q0 24-18 42t-42 18H260Zm0-90v30h440v-30H260Zm0-60h440v-580H260v580Zm220-128L325-473l43-43 82 82v-194h60v194l82-82 43 43-155 155ZM260-830h440v-30H260v30Zm0 0v-30 30Zm0 700v30-30Z" transform="scale(0.2)" />
     </g>
 </svg>

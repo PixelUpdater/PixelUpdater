@@ -268,7 +268,7 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
                 message = null
                 showInstall = false
                 showRetry = false
-                showReboot = true
+                showReboot = false
                 showSwitchSlots = true
             }
             UpdaterThread.UpdateReverted -> {
