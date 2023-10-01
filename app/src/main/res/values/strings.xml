@@ -87,6 +87,7 @@
     <string name="notification_update_available">OTA update is available</string>
     <string name="notification_update_unnecessary">OS is already up to date</string>
     <string name="notification_update_succeeded">Successfully installed OTA update</string>
+    <string name="notification_update_needs_switch_slots">Successfully installed OTA update, but the slot is not active</string>
     <string name="notification_update_cancelled">OTA update process was cancelled</string>
     <string name="notification_update_reverted">Successfully reverted OTA update</string>
     <string name="notification_update_failed">Failed to install OTA update</string>
@@ -95,5 +96,6 @@
     <string name="notification_action_resume">Resume</string>
     <string name="notification_action_cancel">Cancel</string>
     <string name="notification_action_reboot">Reboot</string>
+    <string name="notification_action_switch_slots">Switch Slots</string>
     <string name="notification_action_retry">Retry</string>
 </resources>
