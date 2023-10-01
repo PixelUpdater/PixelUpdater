@@ -502,22 +502,23 @@ class UpdaterThread(
             // return Json.decodeFromString(ListSerializer(CheckUpdateResult.serializer()), prefs.otaCache)
         }
 
-        // val downloads = try {
-        //     downloadOtaPage()
-        // } catch (e: Exception) {
-        //     throw IOException("Failed to download update info", e)
-        // }
+        val downloads = try {
+            downloadOtaPage()
+        } catch (e: Exception) {
+            throw IOException("Failed to download update info", e)
+        }
 
 
 
         val updates = mutableListOf<CheckUpdateResult>()
-        // for (ota in downloads) {
+        for (ota in downloads) {
             // val ota = pickOta(downloads)!!
 
+            // TODO: Add textbox for custom OTA url
             // val url = "https://dl.google.com/dl/android/aosp/bluejay-ota-tq3a.230805.001-fb877f31.zip"
-            val url = "https://dl.google.com/dl/android/aosp/bluejay-ota-tq3a.230901.001-1f1f0abe.zip"
-            val uri = Uri.parse(url)
-            val ota = DownloadInfo(uri.lastPathSegment!!, URL(url), "")
+            // val url = "https://dl.google.com/dl/android/aosp/bluejay-ota-tq3a.230901.001-1f1f0abe.zip"
+            // val uri = Uri.parse(url)
+            // val ota = DownloadInfo(uri.lastPathSegment!!, URL(url), "")
             Log.d(TAG, "OTA URL: ${ota.url}")
             val cd = downloadCd(ota)
             val pfMetadata = cd[OtaPaths.METADATA_NAME]!!
@@ -535,7 +536,7 @@ class UpdaterThread(
                 ota.url.toString(),
                 cd,
             ))
-        // }
+        }
         val cache = Json.encodeToString(ListSerializer(CheckUpdateResult.serializer()), updates)
         prefs.otaCache = cache
         println("to cache: $cache")
@@ -579,6 +580,8 @@ class UpdaterThread(
             if (prefs.skipPostInstall) {
                 put("RUN_POST_INSTALL", "0")
             }
+
+            // TODO: Make this configurable
             put("SWITCH_SLOT_ON_REBOOT", "0")
         }
 
@@ -588,6 +591,25 @@ class UpdaterThread(
             pfPayload.size,
             engineProperties.map { "${it.key}=${it.value}" }.toTypedArray(),
         )
+    }
+
+    private fun switchSlot(otaUrl: URL, cd: Map<String, PropertyFile>) {
+        // https://android.googlesource.com/platform/bootable/recovery/+/refs/tags/android-13.0.0_r82/updater_sample/src/com/example/android/systemupdatersample/UpdateManager.java#406
+        val pfPayload = cd[OtaPaths.PAYLOAD_NAME]!!
+
+        val engineProperties = mutableMapOf<String, String>().apply {
+            // https://android.googlesource.com/platform/bootable/recovery/+/refs/tags/android-13.0.0_r82/updater_sample/src/com/example/android/systemupdatersample/UpdateManager.java#408
+            put("RUN_POST_INSTALL", "0")
+            put("SWITCH_SLOT_ON_REBOOT", "1")
+        }
+
+        updateEngine.applyPayload(
+            otaUrl.toString(),
+            pfPayload.offset,
+            pfPayload.size,
+            engineProperties.map { "${it.key}=${it.value}" }.toTypedArray(),
+        )
+
     }
 
     private fun startLogcat() {
@@ -703,7 +725,7 @@ class UpdaterThread(
                     listener.onUpdateResult(this, UpdateSucceeded)
                 } else if (error == UpdateEngineError.UPDATED_BUT_NOT_ACTIVE) {
                     Log.d(TAG, "Successfully completed upgrade, but not active")
-                    listener.onUpdateResult(this, UpdateSucceeded)
+                    listener.onUpdateResult(this, UpdateNeedSwitchSlots)
                 } else if (error == UpdateEngineError.USER_CANCELED) {
                     Log.w(TAG, "User cancelled upgrade")
                     listener.onUpdateResult(this, UpdateCancelled)
@@ -752,6 +774,7 @@ class UpdaterThread(
         CHECK,
         INSTALL,
         REVERT,
+        SWITCH_SLOT,
     }
 
     private fun List<CheckUpdateResult>.available() = filter { it.fingerprint != Build.FINGERPRINT || prefs.allowReinstall }

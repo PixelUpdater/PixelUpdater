@@ -61,6 +61,7 @@ class UpdaterJob: JobService() {
 
         private const val EXTRA_ACTION = "action"
 
+        // TODO: Make this configurable
         private const val PERIODIC_INTERVAL_MS = 6L * 60 * 60 * 1000
 
         // Scheduling a periodic job usually makes the first iteration run immediately. We'll
