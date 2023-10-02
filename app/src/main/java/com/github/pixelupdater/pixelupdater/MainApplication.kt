@@ -18,12 +18,12 @@ class MainApplication : Application() {
     override fun onCreate() {
         super.onCreate()
 
-        // Shell.getShell()
-        // if (Shell.isAppGrantedRoot()!!) {
-        //     println("got root")
-        // } else {
-        //     println("no root")
-        // }
+        Shell.getShell()
+        if (Shell.isAppGrantedRoot()!!) {
+            println("got root")
+        } else {
+            println("no root")
+        }
 
         val oldCrashHandler = Thread.getDefaultUncaughtExceptionHandler()
 
@@ -53,5 +53,9 @@ class MainApplication : Application() {
 
     companion object {
         private val TAG = MainApplication::class.java.simpleName
+
+        init {
+            Shell.setDefaultBuilder(Shell.Builder.create().setFlags(Shell.FLAG_MOUNT_MASTER or Shell.FLAG_REDIRECT_STDERR))
+        }
     }
 }

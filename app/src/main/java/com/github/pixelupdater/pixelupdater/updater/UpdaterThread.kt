@@ -10,7 +10,6 @@ package com.github.pixelupdater.pixelupdater.updater
 import android.annotation.SuppressLint
 import android.content.Context
 import android.net.Network
-import android.net.Uri
 import android.os.Build
 import android.os.IUpdateEngine
 import android.os.IUpdateEngineCallback
@@ -22,9 +21,10 @@ import com.github.pixelupdater.pixelupdater.BuildConfig
 import com.github.pixelupdater.pixelupdater.Preferences
 import com.github.pixelupdater.pixelupdater.extension.toSingleLineString
 import com.github.pixelupdater.pixelupdater.wrapper.ServiceManagerProxy
+import com.topjohnwu.superuser.Shell
 import kotlinx.parcelize.Parcelize
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
@@ -499,7 +499,7 @@ class UpdaterThread(
     private fun checkForUpdates(): List<CheckUpdateResult> {
         println("from cache: ${prefs.otaCache}")
         if (prefs.otaCache.isNotEmpty()) {
-            return Json.decodeFromString(ListSerializer(CheckUpdateResult.serializer()), prefs.otaCache)
+            return Json.decodeFromString(prefs.otaCache)
         }
 
         val downloads = try {
@@ -537,7 +537,7 @@ class UpdaterThread(
                 cd,
             ))
         }
-        val cache = Json.encodeToString(ListSerializer(CheckUpdateResult.serializer()), updates)
+        val cache = Json.encodeToString(updates)
         prefs.otaCache = cache
         println("to cache: $cache")
         return updates
@@ -565,6 +565,7 @@ class UpdaterThread(
         Log.i(TAG, "Downloading payload properties file")
 
         val payloadProperties = downloadKeyValueFile(otaUrl, pfPayloadProperties)
+        prefs.payloadPropertiesCache = Json.encodeToString(payloadProperties)
 
         Log.i(TAG, "Passing payload information to update_engine")
 
@@ -585,6 +586,13 @@ class UpdaterThread(
             put("SWITCH_SLOT_ON_REBOOT", "0")
         }
 
+
+        println("url:      $otaUrl")
+        println("offset:   ${pfPayload.offset}")
+        println("size:     ${pfPayload.size}")
+        for (property in engineProperties) {
+            println("property: $property")
+        }
         updateEngine.applyPayload(
             otaUrl.toString(),
             pfPayload.offset,
@@ -596,13 +604,22 @@ class UpdaterThread(
     private fun switchSlot(otaUrl: URL, cd: Map<String, PropertyFile>) {
         // https://android.googlesource.com/platform/bootable/recovery/+/refs/tags/android-13.0.0_r82/updater_sample/src/com/example/android/systemupdatersample/UpdateManager.java#406
         val pfPayload = cd[OtaPaths.PAYLOAD_NAME]!!
+        val payloadProperties = Json.decodeFromString<Map<String, String>>(prefs.payloadPropertiesCache)
 
-        val engineProperties = mutableMapOf<String, String>().apply {
+        Log.i(TAG, "Passing payload information to update_engine")
+
+        val engineProperties = HashMap(payloadProperties).apply {
             // https://android.googlesource.com/platform/bootable/recovery/+/refs/tags/android-13.0.0_r82/updater_sample/src/com/example/android/systemupdatersample/UpdateManager.java#408
             put("RUN_POST_INSTALL", "0")
             put("SWITCH_SLOT_ON_REBOOT", "1")
         }
 
+        println("url:      $otaUrl")
+        println("offset:   ${pfPayload.offset}")
+        println("size:     ${pfPayload.size}")
+        for (property in engineProperties) {
+            println("property: $property")
+        }
         updateEngine.applyPayload(
             otaUrl.toString(),
             pfPayload.offset,
@@ -661,12 +678,12 @@ class UpdaterThread(
             Log.d(TAG, "Initial status: $statusStr")
 
             if (action == Action.REVERT) {
-                if (status == UpdateEngineStatus.UPDATED_NEED_REBOOT) {
-                    Log.d(TAG, "Reverting new update because engine is pending reboot")
+                // if (status == UpdateEngineStatus.UPDATED_NEED_REBOOT) {
+                //     Log.d(TAG, "Reverting new update because engine is pending reboot")
                     updateEngine.resetStatus()
-                } else {
-                    throw IllegalStateException("Cannot revert while in state: $statusStr")
-                }
+                // } else {
+                //     throw IllegalStateException("Cannot revert while in state: $statusStr")
+                // }
 
                 val newStatus = waitForStatus { it != UpdateEngineStatus.UPDATED_NEED_REBOOT }
                 val newStatusStr = UpdateEngineStatus.toString(newStatus)
@@ -728,6 +745,18 @@ class UpdaterThread(
                                 URL(targetUpdate.otaUrl),
                                 targetUpdate.cd,
                             )
+
+                            // TODO: Make this configurable (stock, root-only, root and disable verity/verification, etc)
+                            val dest = File(context.filesDir, "flash_inactive.sh")
+                            context.assets.open(dest.name).use { inputStream ->
+                                dest.outputStream().use { outputStream ->
+                                    inputStream.copyTo(outputStream)
+                                }
+                            }
+                            Shell.cmd(
+                                "chmod +x $dest",
+                                "$dest"
+                            ).exec()
                         }
                     }
                 } else {
