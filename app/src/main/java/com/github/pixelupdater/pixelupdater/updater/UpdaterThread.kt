@@ -499,7 +499,7 @@ class UpdaterThread(
     private fun checkForUpdates(): List<CheckUpdateResult> {
         println("from cache: ${prefs.otaCache}")
         if (prefs.otaCache.isNotEmpty()) {
-            // return Json.decodeFromString(ListSerializer(CheckUpdateResult.serializer()), prefs.otaCache)
+            return Json.decodeFromString(ListSerializer(CheckUpdateResult.serializer()), prefs.otaCache)
         }
 
         val downloads = try {
@@ -687,19 +687,30 @@ class UpdaterThread(
 
                     listener.onUpdateProgress(this, ProgressType.CHECK, 0, 0)
 
+                    if (action == Action.CHECK) {
+                        println("clearing cache")
+                        prefs.otaCache = ""
+                    }
+
                     val checkUpdateResult = checkForUpdates()
 
-                    if (checkUpdateResult.isEmpty() || (action != Action.INSTALL && checkUpdateResult.available().isEmpty())) {
+                    if (checkUpdateResult.isEmpty()) {
                         // Update not needed
                         listener.onUpdateResult(this, UpdateUnnecessary)
                         return
                     } else if (action == Action.CHECK) {
-                        val versions = mutableListOf<Result>()
-                        for ((index, update) in checkUpdateResult.available().withIndex()) {
-                            versions.add(UpdateAvailable(update.version, index))
+                        if (checkUpdateResult.available().isEmpty()) {
+                            listener.onUpdateResult(this, UpdateUnnecessary)
+                            return
+                        } else {
+                            val versions = mutableListOf<Result>()
+                            for ((index, update) in checkUpdateResult.available().withIndex()) {
+                                println("")
+                                versions.add(UpdateAvailable(update.version, index))
+                            }
+                            listener.onUpdateResults(this, versions)
+                            return
                         }
-                        listener.onUpdateResults(this, versions)
-                        return
                     }
 
                     val targetUpdate = checkUpdateResult.get(prefs.targetOta)
@@ -707,10 +718,17 @@ class UpdaterThread(
                         listener.onUpdateResult(this, UpdateFailed("OTA is missing"))
                         return
                     } else {
-                        startInstallation(
-                            URL(targetUpdate.otaUrl),
-                            targetUpdate.cd,
-                        )
+                        if (action == Action.INSTALL) {
+                            startInstallation(
+                                URL(targetUpdate.otaUrl),
+                                targetUpdate.cd,
+                            )
+                        } else if (action == Action.SWITCH_SLOT) {
+                            switchSlot(
+                                URL(targetUpdate.otaUrl),
+                                targetUpdate.cd,
+                            )
+                        }
                     }
                 } else {
                     Log.w(TAG, "Monitoring existing update because engine is not idle")
