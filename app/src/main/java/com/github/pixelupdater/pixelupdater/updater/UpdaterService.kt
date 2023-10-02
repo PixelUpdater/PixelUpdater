@@ -26,7 +26,7 @@ import com.github.pixelupdater.pixelupdater.Preferences
 import com.github.pixelupdater.pixelupdater.R
 import com.github.pixelupdater.pixelupdater.extension.toSingleLineString
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
@@ -114,7 +114,7 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
             if (!silent) {
                 notifications.dismissAlert()
                 if (prefs.alertCache.isNotEmpty()) {
-                    val alerts = Json.decodeFromString(ListSerializer(IndexedAlert.serializer()), prefs.alertCache)
+                    val alerts = Json.decodeFromString<List<IndexedAlert>>(prefs.alertCache)
                     for (alert in alerts) {
                         notifications.dismissIndexedAlert(alert.index)
                     }
@@ -259,6 +259,7 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
                 showSwitchSlots = false
             }
             UpdaterThread.UpdateNeedSwitchSlots -> {
+                // TODO: Add option to switch slot automatically
                 channel = Notifications.CHANNEL_ID_SUCCESS
                 // Only bug the user once while the notification is still shown
                 onlyAlertOnce = result is UpdaterThread.UpdateNeedSwitchSlots
@@ -310,10 +311,10 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
 
             val alerts = mutableListOf<IndexedAlert>()
             if (prefs.alertCache.isNotEmpty()) {
-                alerts.addAll(Json.decodeFromString(ListSerializer(IndexedAlert.serializer()), prefs.alertCache))
+                alerts.addAll(Json.decodeFromString<List<IndexedAlert>>(prefs.alertCache))
             }
             alerts.add(IndexedAlert(message!!, id!!))
-            val cache = Json.encodeToString(ListSerializer(IndexedAlert.serializer()), alerts)
+            val cache = Json.encodeToString<List<IndexedAlert>>(alerts)
             prefs.alertCache = cache
         }
         if (showRetry) {

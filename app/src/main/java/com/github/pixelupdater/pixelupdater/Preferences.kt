@@ -34,6 +34,7 @@ class Preferences(context: Context) {
         // Not associated with a UI preference
         private const val PREF_OTA_CACHE = "ota_cache"
         private const val PREF_TARGET_OTA = "target_ota"
+        private const val PREF_PAYLOAD_PROPERTIES_CACHE = "payload_properties_cache"
         private const val PREF_ALERT_CACHE = "alert_cache"
         private const val PREF_DEBUG_MODE = "debug_mode"
     }
@@ -44,14 +45,22 @@ class Preferences(context: Context) {
         get() = prefs.getBoolean(PREF_DEBUG_MODE, false)
         set(enabled) = prefs.edit { putBoolean(PREF_DEBUG_MODE, enabled) }
 
+    // TODO: Use Jetpack DataStore instead of SharedPreferences?
     var otaCache: String
         get() = prefs.getString(PREF_OTA_CACHE, "")!!
         set(cache) = prefs.edit { putString(PREF_OTA_CACHE, cache) }
 
+    // TODO: Clear this somewhere
     var targetOta: String
         get() = prefs.getString(PREF_TARGET_OTA, "")!!
-        set(cache) = prefs.edit { putString(PREF_TARGET_OTA, cache) }
+        set(target) = prefs.edit { putString(PREF_TARGET_OTA, target) }
 
+    // TODO: Clear this somewhere
+    var payloadPropertiesCache: String
+        get() = prefs.getString(PREF_PAYLOAD_PROPERTIES_CACHE, "")!!
+        set(cache) = prefs.edit { putString(PREF_PAYLOAD_PROPERTIES_CACHE, cache) }
+
+    // TODO: Clear this somewhere
     var alertCache: String
         get() = prefs.getString(PREF_ALERT_CACHE, "")!!
         set(cache) = prefs.edit { putString(PREF_ALERT_CACHE, cache) }
