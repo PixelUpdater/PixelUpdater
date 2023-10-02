@@ -58,9 +58,6 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
                     // We're launched by startForegroundService(). Android requires the foreground
                     // notification to be shown, even if stopService() is called before this method
                     // returns.
-                    println("clearing cache")
-                    prefs.otaCache = ""
-
                     updateForegroundNotification(false)
                     startUpdate(intent)
                 }
@@ -75,8 +72,9 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
                     getSystemService(PowerManager::class.java).reboot(null)
                 }
                 ACTION_SWITCH_SLOTS -> {
-                    // TODO: switch slots here
-                    println("// switch slots")
+                    println("switch slots")
+                    updateForegroundNotification(true)
+                    startUpdate(intent)
                 }
                 ACTION_SCHEDULE -> {
                     val action = IntentCompat.getParcelableExtra(intent, EXTRA_ACTION, UpdaterThread.Action::class.java)!!
@@ -316,7 +314,7 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
             actionResIds.add(R.string.notification_action_retry)
             // Go through job scheduler because we might need a new network
             updaterAction?.let { action ->
-                actionIntents.add(createScheduleIntent(this, action, null))
+                actionIntents.add(createScheduleIntent(this, action))
             }
         }
         if (showReboot) {
@@ -325,7 +323,7 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
         }
         if (showSwitchSlots) {
             actionResIds.add(R.string.notification_action_switch_slots)
-            actionIntents.add(createActionIntent(ACTION_SWITCH_SLOTS))
+            actionIntents.add(createScheduleIntent(this, UpdaterThread.Action.SWITCH_SLOT))
         }
 
         notifications.sendAlertNotification(
@@ -418,7 +416,7 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
         private fun createScheduleIntent(
             context: Context,
             action: UpdaterThread.Action,
-            target: String?,
+            target: String? = null,
         ) = Intent(context, UpdaterService::class.java).apply {
             this.action = ACTION_SCHEDULE
 

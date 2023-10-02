@@ -199,6 +199,7 @@ class Notifications(
                 setGroup(GROUP_KEY_UPDATES)
             }
 
+            println("notification ${id ?: ID_ALERT}: ${context.getString(title)}, $text")
             build()
         }
 
