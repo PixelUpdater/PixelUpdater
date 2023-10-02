@@ -263,7 +263,7 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
                 channel = Notifications.CHANNEL_ID_SUCCESS
                 // Only bug the user once while the notification is still shown
                 onlyAlertOnce = result is UpdaterThread.UpdateNeedSwitchSlots
-                titleResId = R.string.notification_update_succeeded
+                titleResId = R.string.notification_update_needs_switch_slots
                 message = null
                 showInstall = false
                 showRetry = false
