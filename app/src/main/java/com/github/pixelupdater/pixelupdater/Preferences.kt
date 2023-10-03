@@ -17,19 +17,23 @@ class Preferences(context: Context) {
 
         const val PREF_CHECK_FOR_UPDATES = "check_for_updates"
         const val PREF_AUTOMATIC_CHECK = "automatic_check"
-        const val PREF_AUTOMATIC_INSTALL = "automatic_install"
         const val PREF_UNMETERED_ONLY = "unmetered_only"
         const val PREF_BATTERY_NOT_LOW = "battery_not_low"
         const val PREF_SKIP_POSTINSTALL = "skip_postinstall"
+        const val PREF_MAGISK_PATCH = "magisk_patch"
+        const val PREF_VBMETA_PATCH = "vbmeta_patch"
         const val PREF_ANDROID_VERSION = "android_version"
         const val PREF_FINGERPRINT = "fingerprint"
         const val PREF_BOOT_SLOT = "boot_slot"
         const val PREF_BOOTLOADER_STATUS = "bootloader_status"
+        const val PREF_MAGISK_STATUS = "magisk_status"
+        const val PREF_VBMETA_STATUS = "vbmeta_status"
         const val PREF_NO_CERTIFICATES = "no_certificates"
         const val PREF_VERSION = "version"
         const val PREF_OPEN_LOG_DIR = "open_log_dir"
         const val PREF_ALLOW_REINSTALL = "allow_reinstall"
         const val PREF_REVERT_COMPLETED = "revert_completed"
+        const val PREF_VERITY_ONLY = "verity_only"
 
         // Not associated with a UI preference
         private const val PREF_OTA_CACHE = "ota_cache"
@@ -70,11 +74,6 @@ class Preferences(context: Context) {
         get() = prefs.getBoolean(PREF_AUTOMATIC_CHECK, true)
         set(enabled) = prefs.edit { putBoolean(PREF_AUTOMATIC_CHECK, enabled) }
 
-    /** Whether to install updates in the periodic job or just check for them. */
-    var automaticInstall: Boolean
-        get() = prefs.getBoolean(PREF_AUTOMATIC_INSTALL, false)
-        set(enabled) = prefs.edit { putBoolean(PREF_AUTOMATIC_INSTALL, enabled) }
-
     /** Whether to only allow running when connected to an unmetered network. */
     var requireUnmetered: Boolean
         get() = prefs.getBoolean(PREF_UNMETERED_ONLY, true)
@@ -90,8 +89,23 @@ class Preferences(context: Context) {
         get() = prefs.getBoolean(PREF_SKIP_POSTINSTALL, false)
         set(enabled) = prefs.edit { putBoolean(PREF_SKIP_POSTINSTALL, enabled) }
 
+    /** Whether to magisk patch the installed OTA. */
+    var magiskPatch: Boolean
+        get() = prefs.getBoolean(PREF_MAGISK_PATCH, true)
+        set(enabled) = prefs.edit { putBoolean(PREF_MAGISK_PATCH, enabled) }
+
+    /** Whether to disable verity and verification in the installed OTA. */
+    var vbmetaPatch: Boolean
+        get() = prefs.getBoolean(PREF_VBMETA_PATCH, false)
+        set(enabled) = prefs.edit { putBoolean(PREF_VBMETA_PATCH, enabled) }
+
     /** Whether to treat an equal fingerprint as an update. */
     var allowReinstall: Boolean
         get() = prefs.getBoolean(PREF_ALLOW_REINSTALL, false)
         set(enabled) = prefs.edit { putBoolean(PREF_ALLOW_REINSTALL, enabled) }
+
+    /** Whether to disable only verity in the installed OTA. */
+    var verityOnly: Boolean
+        get() = prefs.getBoolean(PREF_VERITY_ONLY, false)
+        set(enabled) = prefs.edit { putBoolean(PREF_VERITY_ONLY, enabled) }
 }

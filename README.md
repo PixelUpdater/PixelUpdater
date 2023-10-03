@@ -37,7 +37,7 @@ Pixel Updater is installed via a Magisk module so that it can run as a system ap
 
 4. That's it!
 
-Pixel Updater will automatically check for updates periodically. The checks can be turned off completely or extended to automatically install the updates as well.
+Pixel Updater will optionally automatically check for updates periodically.
 
 To reduce battery usage, the scheduling of the update checks is controlled by Android. They run at most once every 6 hours and will not run at all if the `Require unmetered network` or `Require sufficient battery level` conditions aren't met.
 
@@ -83,7 +83,7 @@ When reporting bugs, please include the log files as it is extremely helpful for
 
 ### Reinstallation
 
-For testing, Pixel Updater can allow the current OS version (i.e. matching build fingerprint) to be reinstalled. To do so, enable debug mode and then enable the `Allow reinstall` toggle. Make sure to not enable `Automatically install updates` at the same time or else the current OS version will be reinstalled after every reboot because it's always seen as a valid update.
+For testing, Pixel Updater can allow the current OS version (i.e. matching build fingerprint) to be reinstalled. To do so, enable debug mode and then enable the `Allow reinstall` toggle.
 
 ### Reverting an update
 

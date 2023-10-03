@@ -29,14 +29,6 @@
             app:iconSpaceReserved="false" />
 
         <SwitchPreferenceCompat
-            app:key="automatic_install"
-            app:dependency="automatic_check"
-            app:defaultValue="false"
-            app:title="@string/pref_automatic_install_name"
-            app:summary="@string/pref_automatic_install_desc"
-            app:iconSpaceReserved="false" />
-
-        <SwitchPreferenceCompat
             app:key="unmetered_only"
             app:defaultValue="true"
             app:title="@string/pref_unmetered_only_name"
@@ -52,8 +44,30 @@
 
         <SwitchPreferenceCompat
             app:key="skip_postinstall"
+            app:defaultValue="false"
             app:title="@string/pref_skip_postinstall_name"
             app:summary="@string/pref_skip_postinstall_desc"
+            app:iconSpaceReserved="false" />
+
+        <SwitchPreferenceCompat
+            app:key="magisk_patch"
+            app:defaultValue="true"
+            app:title="@string/pref_magisk_patch_name"
+            app:summary="@string/pref_magisk_patch_desc"
+            app:iconSpaceReserved="false" />
+
+        <SwitchPreferenceCompat
+            app:key="vbmeta_patch"
+            app:defaultValue="false"
+            app:title="@string/pref_vbmeta_patch_name"
+            app:summary="@string/pref_vbmeta_patch_desc"
+            app:iconSpaceReserved="false" />
+
+        <SwitchPreferenceCompat
+            app:key="automatic_reboot"
+            app:defaultValue="false"
+            app:title="@string/pref_automatic_reboot_name"
+            app:summary="@string/pref_automatic_reboot_desc"
             app:iconSpaceReserved="false" />
     </PreferenceCategory>
 
@@ -83,6 +97,18 @@
             app:key="bootloader_status"
             app:persistent="false"
             app:title="@string/pref_bootloader_status_name"
+            app:iconSpaceReserved="false" />
+
+        <Preference
+            app:key="magisk_status"
+            app:persistent="false"
+            app:title="@string/pref_magisk_status_name"
+            app:iconSpaceReserved="false" />
+
+        <Preference
+            app:key="vbmeta_status"
+            app:persistent="false"
+            app:title="@string/pref_vbmeta_status_name"
             app:iconSpaceReserved="false" />
     </PreferenceCategory>
 
@@ -124,6 +150,7 @@
 
         <SwitchPreferenceCompat
             app:key="allow_reinstall"
+            app:defaultValue="false"
             app:title="@string/pref_allow_reinstall_name"
             app:summary="@string/pref_allow_reinstall_desc"
             app:iconSpaceReserved="false" />
@@ -133,6 +160,14 @@
             app:persistent="false"
             app:title="@string/pref_revert_completed_name"
             app:summary="@string/pref_revert_completed_desc"
+            app:iconSpaceReserved="false" />
+
+        <SwitchPreferenceCompat
+            app:key="verity_only"
+            app:dependency="vbmeta_status"
+            app:defaultValue="false"
+            app:title="@string/pref_verity_only_name"
+            app:summary="@string/pref_verity_only_desc"
             app:iconSpaceReserved="false" />
     </PreferenceCategory>
 </PreferenceScreen>
