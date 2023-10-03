@@ -25,14 +25,18 @@
     <!-- Behavior preferences -->
     <string name="pref_automatic_check_name">Automatically check for updates</string>
     <string name="pref_automatic_check_desc">Automatically check for new updates in the background.</string>
-    <string name="pref_automatic_install_name">Automatically install updates</string>
-    <string name="pref_automatic_install_desc">Automatically install new updates in the background.</string>
     <string name="pref_unmetered_only_name">Require unmetered network</string>
     <string name="pref_unmetered_only_desc">Only allow updates to be downloaded over unmetered network connections (eg. Wi-Fi).</string>
     <string name="pref_battery_not_low_name">Require sufficient battery level</string>
     <string name="pref_battery_not_low_desc">Only allow updates to be installed if the battery level is not critical.</string>
     <string name="pref_skip_postinstall_name">Skip optional post-install scripts</string>
     <string name="pref_skip_postinstall_desc">Skip running post-install operations that are marked as optional in the OTA. This usually skips the dexopt operation, which precompiles app bytecode for faster loading.</string>
+    <string name="pref_magisk_patch_name">Magisk patch installed update</string>
+    <string name="pref_magisk_patch_desc">Roots update with Magisk. Requires a functional Magisk install.</string>
+    <string name="pref_vbmeta_patch_name">Disable verity and verification</string>
+    <string name="pref_vbmeta_patch_desc">Patches vbmeta with disable-verity and disable-verification flags.</string>
+    <string name="pref_automatic_reboot_name">Automatic reboot</string>
+    <string name="pref_automatic_reboot_desc">Automatically reboot when the update is complete.</string>
 
     <!-- OS information preferences -->
     <string name="pref_android_version_name">Android version</string>
@@ -46,6 +50,17 @@
     <string name="pref_bootloader_status_oemlock_carrier_blocked">OEM unlock blocked by carrier</string>
     <string name="pref_bootloader_status_oemlock_user_allowed">OEM unlock allowed by user</string>
     <string name="pref_bootloader_status_oemlock_user_blocked">OEM unlock blocked by user</string>
+    <string name="pref_magisk_status_name">Magisk status</string>
+    <string name="pref_magisk_status_unknown">Unknown</string>
+    <string name="pref_magisk_status_installed">Installed</string>
+    <string name="pref_magisk_status_not_installed">Not installed</string>
+    <string name="pref_vbmeta_status_name">Vbmeta status</string>
+    <string name="pref_vbmeta_status_unknown">Unknown</string>
+    <string name="pref_vbmeta_status_enabled">Verity and verification enabled</string>
+    <string name="pref_vbmeta_status_disabled">Verity and verification disabled</string>
+    <string name="pref_vbmeta_status_verity_disabled">Only verity disabled</string>
+    <string name="pref_vbmeta_status_verification_disabled">Only verification disabled</string>
+    <string name="pref_vbmeta_status_verification_unexpected">Unexpected value</string>
 
     <!-- Certificate preferences -->
     <string name="pref_no_certificates_name">No certificates found</string>
@@ -61,6 +76,8 @@
     <string name="pref_allow_reinstall_desc">If the latest OTA matches the current OS fingerprint, treat it as an update. This may cause continuous reinstalls if automatic updates are enabled.</string>
     <string name="pref_revert_completed_name">Revert completed update</string>
     <string name="pref_revert_completed_desc">This is only possible after an update completes, but before rebooting. This is meant for debugging purposes only.</string>
+    <string name="pref_verity_only_name">Disable verity only</string>
+    <string name="pref_verity_only_desc">Patches vbmeta with only the disable-verity flag.</string>
 
     <!-- Dialogs -->
     <string name="dialog_ota_server_url_title">@string/pref_ota_server_url_name</string>

@@ -21,6 +21,7 @@ import com.github.pixelupdater.pixelupdater.BuildConfig
 import com.github.pixelupdater.pixelupdater.Preferences
 import com.github.pixelupdater.pixelupdater.extension.toSingleLineString
 import com.github.pixelupdater.pixelupdater.wrapper.ServiceManagerProxy
+import com.github.pixelupdater.pixelupdater.wrapper.SystemPropertiesProxy
 import com.topjohnwu.superuser.Shell
 import kotlinx.parcelize.Parcelize
 import kotlinx.serialization.Serializable
@@ -42,6 +43,7 @@ import java.nio.charset.StandardCharsets
 import java.util.concurrent.locks.ReentrantLock
 import java.util.regex.Pattern
 import kotlin.concurrent.withLock
+import kotlin.experimental.or
 import kotlin.math.roundToInt
 
 class UpdaterThread(
@@ -451,11 +453,11 @@ class UpdaterThread(
             throw ValidationException("Mismatched device ID: " +
                     "current=${Build.DEVICE}, ota=$preDevices")
         } else if (postSecurityPatchLevel < Build.VERSION.SECURITY_PATCH) {
-            // throw ValidationException("Downgrading to older security patch is not allowed: " +
-            //         "current=${Build.VERSION.SECURITY_PATCH}, ota=$postSecurityPatchLevel")
+            throw ValidationException("Downgrading to older security patch is not allowed: " +
+                    "current=${Build.VERSION.SECURITY_PATCH}, ota=$postSecurityPatchLevel")
         } else if (postTimestamp < Build.TIME) {
-            // throw ValidationException("Downgrading to older timestamp is not allowed: " +
-            //         "current=${Build.TIME}, ota=$postTimestamp")
+            throw ValidationException("Downgrading to older timestamp is not allowed: " +
+                    "current=${Build.TIME}, ota=$postTimestamp")
         }
 
         // Optional
@@ -629,6 +631,52 @@ class UpdaterThread(
 
     }
 
+    // https://github.com/topjohnwu/Magisk/blob/v26.3/app/src/main/java/com/topjohnwu/magisk/core/tasks/MagiskInstaller.kt#L537-L538
+    private fun flashSecondSlot() =
+        findSecondary() && Shell.cmd("install_magisk").exec().isSuccess
+
+    // https://github.com/topjohnwu/Magisk/blob/v26.3/app/src/main/java/com/topjohnwu/magisk/core/tasks/MagiskInstaller.kt#L78-L94
+    private fun findSecondary(): Boolean {
+        if (!shellInit()) {
+            return false
+        }
+        val slot = Shell.cmd("echo \$SLOT").exec().out.first()
+        val target = if (slot == "_a") "_b" else "_a"
+        println("- Target slot: $target")
+        val bootPath = Shell.cmd(
+            "SLOT=$target",
+            "find_boot_image",
+            "SLOT=$slot",
+            "echo \"\$BOOTIMAGE\"").exec().out.firstOrNull()
+        if (bootPath == null) {
+            println("! Unable to detect target image")
+            return false
+        }
+        println("- Target image: $bootPath")
+        return true
+    }
+
+    @OptIn(ExperimentalStdlibApi::class)
+    private fun setVbmetaFlags(flags: Byte): Boolean {
+        val slot = SystemPropertiesProxy.get("ro.boot.slot_suffix")
+        val target = if (slot == "_a") "_b" else "_a"
+        println("- Target slot: $target")
+
+        val vbmeta = File("/dev/block/by-name/vbmeta$target")
+
+        if (!hasMagic(vbmeta)) {
+            println("Unexpected Format")
+            return false
+        }
+        val byte = flags.toHexString(HexFormat.Default)
+        return Shell.cmd(
+            "blockdev --setrw $vbmeta",
+            // https://android.googlesource.com/platform/external/avb/+/refs/tags/android-12.0.0_r12/libavb/avb_vbmeta_image.h#174
+            "printf '\\x$byte' | dd of=$vbmeta bs=1 seek=123 count=1 conv=notrunc status=none",
+            "blockdev --setro $vbmeta"
+        ).exec().isSuccess
+    }
+
     private fun startLogcat() {
         assert(!this::logcatProcess.isInitialized) { "logcat already started" }
 
@@ -745,18 +793,6 @@ class UpdaterThread(
                                 URL(targetUpdate.otaUrl),
                                 targetUpdate.cd,
                             )
-
-                            // TODO: Make this configurable (stock, root-only, root and disable verity/verification, etc)
-                            val dest = File(context.filesDir, "flash_inactive.sh")
-                            context.assets.open(dest.name).use { inputStream ->
-                                dest.outputStream().use { outputStream ->
-                                    inputStream.copyTo(outputStream)
-                                }
-                            }
-                            Shell.cmd(
-                                "chmod +x $dest",
-                                "$dest"
-                            ).exec()
                         }
                     }
                 } else {
@@ -768,11 +804,27 @@ class UpdaterThread(
                 Log.d(TAG, "Update engine result: $errorStr")
 
                 if (error == UpdateEngineError.SUCCESS) {
+                    // TODO: Detect differences between current and configured Magisk or Vbmeta conditions
+                    if (prefs.magiskPatch) {
+                        if (!flashSecondSlot()) {
+                            updateEngine.resetStatus()
+                            listener.onUpdateResult(this, UpdateFailed("Failed to Magisk patch inactive slot, OTA reverted"))
+                            return
+                        }
+                    }
+                    if (prefs.vbmetaPatch) {
+                        if (!setVbmetaFlags(DISABLE_VERITY_FLAG.or(if (prefs.verityOnly) 0.toByte() else DISABLE_VERIFICATION_FLAG))) {
+                            updateEngine.resetStatus()
+                            listener.onUpdateResult(this, UpdateFailed("Failed to disable verity ${if (prefs.verityOnly) "" else "and verification"}, OTA reverted"))
+                            return
+                        }
+                    }
                     Log.d(TAG, "Successfully completed upgrade")
                     listener.onUpdateResult(this, UpdateSucceeded)
                 } else if (error == UpdateEngineError.UPDATED_BUT_NOT_ACTIVE) {
                     Log.d(TAG, "Successfully completed upgrade, but not active")
                     listener.onUpdateResult(this, UpdateNeedSwitchSlots)
+                    UpdaterJob.scheduleImmediate(context, Action.SWITCH_SLOT)
                 } else if (error == UpdateEngineError.USER_CANCELED) {
                     Log.w(TAG, "User cancelled upgrade")
                     listener.onUpdateResult(this, UpdateCancelled)
@@ -904,5 +956,49 @@ class UpdaterThread(
         private const val EOCD_MIN_SIZE = 22
         private const val EOCD_OFFSET = 3072L
         private const val TIMEOUT_MS = 30_000
+        private const val MAGISKBIN = "/data/adb/magisk"
+        private const val VBMETA_MAGIC: String = "AVB0"
+        private const val DISABLE_VERITY_FLAG: Byte = 1
+        private const val DISABLE_VERIFICATION_FLAG: Byte = 2
+
+        // https://github.com/topjohnwu/Magisk/blob/v26.3/app/src/main/java/com/topjohnwu/magisk/core/utils/ShellInit.kt#L65-69
+        // https://github.com/topjohnwu/Magisk/blob/v26.3/app/src/main/res/raw/manager.sh#L232-L240
+        private fun shellInit() : Boolean {
+            if (Shell.cmd("[ ! -z \$SLOT ]").exec().isSuccess) {
+                return true
+            }
+            return Shell.cmd(
+                "cd $MAGISKBIN",
+                ". ./util_functions.sh",
+                "mount_partitions",
+                "get_flags"
+            ).exec().isSuccess
+        }
+
+        fun getVbmetaFlags(): Byte? {
+            val slot = SystemPropertiesProxy.get("ro.boot.slot_suffix")
+            val target = if (slot == "_a") "_b" else "_a"
+            println("- Target slot: $target")
+
+            val vbmeta = File("/dev/block/by-name/vbmeta$target")
+
+            if (!hasMagic(vbmeta)) {
+                println("Unexpected Format")
+                return null
+            }
+            // https://android.googlesource.com/platform/external/avb/+/refs/tags/android-12.0.0_r12/libavb/avb_vbmeta_image.h#174
+            return Shell.cmd("dd if=$vbmeta bs=1 skip=123 count=1 status=none | xxd -p").exec().out.first().toByte()
+        }
+
+        private fun hasMagic(vbmeta: File) : Boolean {
+            println("dd if=$vbmeta bs=1 count=4 status=none")
+            // https://android.googlesource.com/platform/external/avb/+/refs/tags/android-12.0.0_r12/libavb/avb_vbmeta_image.h#126
+            val magicResult = Shell.cmd("dd if=$vbmeta bs=1 count=4 status=none").exec()
+            if (magicResult.out.isEmpty()) {
+                println("Failed to get magic")
+                return false
+            }
+            return magicResult.out[0] == VBMETA_MAGIC
+        }
     }
 }

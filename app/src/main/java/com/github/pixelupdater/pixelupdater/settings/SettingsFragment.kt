@@ -55,6 +55,8 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceClic
     private lateinit var prefFingerprint: Preference
     private lateinit var prefBootSlot: Preference
     private lateinit var prefBootloaderStatus: Preference
+    private lateinit var prefMagiskStatus: Preference
+    private lateinit var prefVbmetaStatus: Preference
     private lateinit var prefNoCertificates: Preference
     private lateinit var prefVersion: LongClickablePreference
     private lateinit var prefOpenLogDir: Preference
@@ -96,6 +98,10 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceClic
 
         prefBootloaderStatus = findPreference(Preferences.PREF_BOOTLOADER_STATUS)!!
 
+        prefMagiskStatus = findPreference(Preferences.PREF_MAGISK_STATUS)!!
+
+        prefVbmetaStatus = findPreference(Preferences.PREF_VBMETA_STATUS)!!
+
         prefNoCertificates = findPreference(Preferences.PREF_NO_CERTIFICATES)!!
         prefNoCertificates.summary = getString(
             R.string.pref_no_certificates_desc, OtaPaths.OTACERTS_ZIP)
@@ -130,6 +136,26 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceClic
                 }
             }
         }
+
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.magiskStatus.collect {
+                    if (it != null) {
+                        updateMagiskStatus(it)
+                    }
+                }
+            }
+        }
+
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.vbmetaStatus.collect {
+                    if (it != null) {
+                        updateVbmetaStatus(it)
+                    }
+                }
+            }
+        }
     }
 
     override fun onStart() {
@@ -139,6 +165,8 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceClic
 
         // Make sure we refresh this every time the user switches back to the app
         viewModel.refreshBootloaderStatus()
+        viewModel.refreshMagiskStatus()
+        viewModel.refreshVbmetaStatus()
     }
 
     override fun onStop() {
@@ -184,6 +212,51 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceClic
                 }
                 is SettingsViewModel.BootloaderStatus.Failure -> {
                     append(getString(R.string.pref_bootloader_status_unknown))
+                    append('\n')
+                    append(status.errorMsg)
+                }
+            }
+        }
+    }
+
+    private fun updateMagiskStatus(status: SettingsViewModel.MagiskStatus) {
+        prefMagiskStatus.summary = buildString {
+            when (status) {
+                is SettingsViewModel.MagiskStatus.Success -> {
+                    if (status.installed) {
+                        append(getString(R.string.pref_magisk_status_installed))
+                        append(" [${status.version}]")
+                    } else {
+                        append(getString(R.string.pref_magisk_status_not_installed))
+                    }
+                }
+                is SettingsViewModel.MagiskStatus.Failure -> {
+                    append(getString(R.string.pref_magisk_status_unknown))
+                    append('\n')
+                    append(status.errorMsg)
+                }
+            }
+        }
+    }
+
+    private fun updateVbmetaStatus(status: SettingsViewModel.VbmetaStatus) {
+        prefVbmetaStatus.summary = buildString {
+            when (status) {
+                is SettingsViewModel.VbmetaStatus.Success -> {
+                    if (status.patch == SettingsViewModel.VbmetaStatus.PatchState.Enabled) {
+                        append(getString(R.string.pref_vbmeta_status_enabled))
+                    } else if (status.patch == SettingsViewModel.VbmetaStatus.PatchState.VerityDisabled) {
+                        append(getString(R.string.pref_vbmeta_status_verity_disabled))
+                    } else if (status.patch == SettingsViewModel.VbmetaStatus.PatchState.VerificationDisabled) {
+                        append(getString(R.string.pref_vbmeta_status_verification_disabled))
+                    } else if (status.patch == SettingsViewModel.VbmetaStatus.PatchState.Disabled) {
+                        append(getString(R.string.pref_vbmeta_status_disabled))
+                    } else {
+                        append(getString(R.string.pref_vbmeta_status_verification_unexpected))
+                    }
+                }
+                is SettingsViewModel.VbmetaStatus.Failure -> {
+                    append(getString(R.string.pref_vbmeta_status_unknown))
                     append('\n')
                     append(status.errorMsg)
                 }
