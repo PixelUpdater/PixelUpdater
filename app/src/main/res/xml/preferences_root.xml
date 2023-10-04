@@ -28,6 +28,14 @@
             app:summary="@string/pref_automatic_check_desc"
             app:iconSpaceReserved="false" />
 
+        <ListPreference
+            app:dependency="automatic_check"
+            app:key="notification_frequency"
+            app:defaultValue="@string/pref_notification_frequency_daily"
+            app:title="@string/pref_notification_frequency_name"
+            app:summary="@string/pref_notification_frequency_desc"
+            app:iconSpaceReserved="false" />
+
         <SwitchPreferenceCompat
             app:key="unmetered_only"
             app:defaultValue="true"

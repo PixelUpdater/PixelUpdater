@@ -808,6 +808,7 @@ class UpdaterThread(
                         return
                     } else if (action == Action.CHECK) {
                         if (checkUpdateResult.available().isEmpty()) {
+                            prefs.updateNotified = false
                             listener.onUpdateResult(this, UpdateUnnecessary)
                             return
                         } else {
@@ -816,6 +817,7 @@ class UpdaterThread(
                                 println("")
                                 versions.add(UpdateAvailable(update.version, index))
                             }
+                            prefs.updateNotified = true
                             listener.onUpdateResults(this, versions)
                             return
                         }
@@ -860,6 +862,7 @@ class UpdaterThread(
                         }
                     }
                     Log.d(TAG, "Successfully completed upgrade")
+                    prefs.updateNotified = false
                     if (prefs.automaticReboot) {
                         context.getSystemService(PowerManager::class.java).reboot(null)
                     }

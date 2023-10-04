@@ -19,6 +19,7 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceFragmentCompat
@@ -54,6 +55,7 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceClic
     private lateinit var categoryCertificates: PreferenceCategory
     private lateinit var categoryDebug: PreferenceCategory
     private lateinit var prefCheckForUpdates: Preference
+    private lateinit var prefNotificationFrequency: ListPreference
     private lateinit var prefAndroidVersion: Preference
     private lateinit var prefFingerprint: Preference
     private lateinit var prefBootSlot: Preference
@@ -91,6 +93,19 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceClic
 
         prefCheckForUpdates = findPreference(Preferences.PREF_CHECK_FOR_UPDATES)!!
         prefCheckForUpdates.onPreferenceClickListener = this
+
+        prefNotificationFrequency = findPreference(Preferences.PREF_NOTIFICATION_FREQUENCY)!!
+        // the app crashes when I try to add a string-array resource
+        prefNotificationFrequency.entries = arrayOf(
+            getString(R.string.pref_notification_frequency_daily),
+            getString(R.string.pref_notification_frequency_weekly),
+            getString(R.string.pref_notification_frequency_monthly),
+        )
+        prefNotificationFrequency.entryValues = arrayOf(
+            "daily",
+            "weekly",
+            "monthly",
+        )
 
         prefAndroidVersion = findPreference(Preferences.PREF_ANDROID_VERSION)!!
         prefAndroidVersion.summary = Build.VERSION.RELEASE

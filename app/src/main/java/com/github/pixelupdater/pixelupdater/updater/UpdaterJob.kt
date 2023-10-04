@@ -60,6 +60,9 @@ class UpdaterJob: JobService() {
 
         // TODO: Make this configurable
         private const val PERIODIC_INTERVAL_MS = 6L * 60 * 60 * 1000
+        private const val DAILY_INTERVAL_MS = 24L * 60 * 60 * 1000
+        private const val WEEKLY_INTERVAL_MS = 7L * 24 * 60 * 60 * 1000
+        private const val MONTHLY_INTERVAL_MS = 30L * 24 * 60 * 60 * 1000
 
         // Scheduling a periodic job usually makes the first iteration run immediately. We'll
         // sometimes skip this to avoid unexpected operations while the user is configuring
@@ -128,9 +131,21 @@ class UpdaterJob: JobService() {
         }
 
         fun schedulePeriodic(context: Context, skipFirstRun: Boolean) {
+            val prefs = Preferences(context)
+            val interval = if (prefs.updateNotified) {
+                when (prefs.notificationFrequency) {
+                    "daily" -> DAILY_INTERVAL_MS
+                    "weekly" -> WEEKLY_INTERVAL_MS
+                    "monthly" -> MONTHLY_INTERVAL_MS
+                    else -> PERIODIC_INTERVAL_MS
+                }
+            } else {
+                PERIODIC_INTERVAL_MS
+            }
+
             val jobInfo = createJobBuilder(context, ID_PERIODIC, null)
                 .setPersisted(true)
-                .setPeriodic(PERIODIC_INTERVAL_MS)
+                .setPeriodic(interval)
                 .build()
 
             skipNextRun = skipFirstRun
