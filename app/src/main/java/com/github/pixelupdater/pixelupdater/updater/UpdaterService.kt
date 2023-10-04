@@ -210,6 +210,7 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
         val showRetry: Boolean
         val showReboot: Boolean
         val showSwitchSlots: Boolean
+        val showRevert: Boolean
         var id: Int? = null
 
         when (result) {
@@ -223,6 +224,7 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
                 showRetry = false
                 showReboot = false
                 showSwitchSlots = false
+                showRevert = false
                 id = ID_INDEXED + result.index
             }
             UpdaterThread.UpdateUnnecessary -> {
@@ -240,6 +242,7 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
                 showRetry = false
                 showReboot = false
                 showSwitchSlots = false
+                showRevert = false
             }
             UpdaterThread.UpdateSucceeded, UpdaterThread.UpdateNeedReboot -> {
                 channel = Notifications.CHANNEL_ID_SUCCESS
@@ -251,6 +254,7 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
                 showRetry = false
                 showReboot = true
                 showSwitchSlots = false
+                showRevert = false
             }
             UpdaterThread.UpdateNeedSwitchSlots -> {
                 channel = Notifications.CHANNEL_ID_SUCCESS
@@ -262,6 +266,7 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
                 showRetry = false
                 showReboot = false
                 showSwitchSlots = true
+                showRevert = false
             }
             UpdaterThread.UpdateReverted -> {
                 channel = Notifications.CHANNEL_ID_SUCCESS
@@ -272,6 +277,7 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
                 showRetry = false
                 showReboot = false
                 showSwitchSlots = false
+                showRevert = false
             }
             UpdaterThread.UpdateCancelled -> {
                 channel = Notifications.CHANNEL_ID_FAILURE
@@ -282,6 +288,7 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
                 showRetry = true
                 showReboot = false
                 showSwitchSlots = false
+                showRevert = false
             }
             is UpdaterThread.UpdateFailed -> {
                 channel = Notifications.CHANNEL_ID_FAILURE
@@ -292,6 +299,36 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
                 showRetry = true
                 showReboot = false
                 showSwitchSlots = false
+                showRevert = false
+            }
+            is UpdaterThread.UpdatePatchFailed -> {
+                channel = Notifications.CHANNEL_ID_FAILURE
+                onlyAlertOnce = false
+                titleResId = R.string.notification_update_patch_failed
+                message = result.errorMsg
+                showInstall = false
+                showRetry = true
+                showReboot = false
+                showSwitchSlots = false
+                showRevert = true
+            }
+            UpdaterThread.UpdateMismatch -> {
+                if (silenceForPeriodic) {
+                    // TODO: Show a notification?
+                    return
+                }
+                // TODO: Add an Allow button?
+                prefs.mismatchAllowed = true
+
+                channel = Notifications.CHANNEL_ID_FAILURE
+                onlyAlertOnce = true
+                titleResId = R.string.notification_update_mismatch_title
+                message = getString(R.string.notification_update_mismatch_message)
+                showInstall = false
+                showRetry = false
+                showReboot = false
+                showSwitchSlots = false
+                showRevert = false
             }
             UpdaterThread.RootUnavailable -> {
                 channel = Notifications.CHANNEL_ID_FAILURE
@@ -302,8 +339,8 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
                 showRetry = false
                 showReboot = false
                 showSwitchSlots = false
+                showRevert = false
             }
-
             UpdaterThread.RootUnnecessary -> {
                 notifications.dismissAlert()
                 threadExited()
@@ -340,6 +377,10 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
         if (showSwitchSlots) {
             actionResIds.add(R.string.notification_action_switch_slots)
             actionIntents.add(createScheduleIntent(this, UpdaterThread.Action.SWITCH_SLOT))
+        }
+        if (showRevert) {
+            actionResIds.add(R.string.notification_action_revert)
+            actionIntents.add(createScheduleIntent(this, UpdaterThread.Action.REVERT))
         }
 
         notifications.sendAlertNotification(

@@ -178,10 +178,11 @@ class Notifications(
             setSmallIcon(icon)
             setOnlyAlertOnce(onlyAlertOnce)
 
-            for ((actionTextResId, actionIntent) in actions) {
+            for ((i, pair) in actions.withIndex()) {
+                val (actionTextResId, actionIntent) = pair
                 val actionPendingIntent = PendingIntent.getService(
                     context,
-                    id ?: 0,
+                    (id ?: 0) * 2 + i,
                     actionIntent,
                     PendingIntent.FLAG_IMMUTABLE or
                             PendingIntent.FLAG_UPDATE_CURRENT or

@@ -36,7 +36,6 @@ class UpdaterJob: JobService() {
         }
 
         val action = if (!isPeriodic) {
-            // TODO: Why isn't this just UpdaterThread.Action.CHECK?
             UpdaterThread.Action.values()[actionIndex]
         } else {
             UpdaterThread.Action.CHECK

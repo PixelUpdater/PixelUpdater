@@ -66,6 +66,7 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceClic
     private lateinit var prefRevertCompleted: Preference
     private lateinit var prefOtaUrl: Preference
     private lateinit var prefAutomaticReboot: SwitchPreferenceCompat
+    private lateinit var prefVerityOnly: SwitchPreferenceCompat
 
     private lateinit var scheduledAction: UpdaterThread.Action
 
@@ -125,6 +126,8 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceClic
         prefOtaUrl.onPreferenceClickListener = this
 
         prefAutomaticReboot = findPreference(Preferences.PREF_AUTOMATIC_REBOOT)!!
+
+        prefVerityOnly = findPreference(Preferences.PREF_VERITY_ONLY)!!
 
         refreshOtaUrl()
         refreshVersion()
@@ -316,7 +319,6 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceClic
     override fun onPreferenceClick(preference: Preference): Boolean {
         when (preference) {
             prefCheckForUpdates -> {
-                println("onPreferenceClick(prefCheckForUpdates)")
                 scheduledAction = UpdaterThread.Action.CHECK
                 performAction()
                 return true
@@ -376,6 +378,12 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceClic
             }
             Preferences.PREF_AUTOMATIC_SWITCH -> {
                 prefAutomaticReboot.isChecked = false
+            }
+            Preferences.PREF_MAGISK_PATCH, Preferences.PREF_VBMETA_PATCH, Preferences.PREF_VERITY_ONLY -> {
+                if (key == Preferences.PREF_VBMETA_PATCH) {
+                    prefVerityOnly.isChecked = false
+                }
+                prefs.mismatchAllowed = false
             }
         }
     }
