@@ -31,7 +31,7 @@
         <ListPreference
             app:dependency="automatic_check"
             app:key="notification_frequency"
-            app:defaultValue="@string/pref_notification_frequency_daily"
+            app:defaultValue="daily"
             app:title="@string/pref_notification_frequency_name"
             app:summary="@string/pref_notification_frequency_desc"
             app:iconSpaceReserved="false" />
