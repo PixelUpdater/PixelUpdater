@@ -15,6 +15,11 @@
     <!-- General preferences -->
     <string name="pref_check_for_updates_name">Check for updates</string>
     <string name="pref_check_for_updates_desc">Schedule a check for new OTA updates.</string>
+    <string name="pref_notification_frequency_name">Notification frequency</string>
+    <string name="pref_notification_frequency_desc">How frequently to send notifications about pending updates.</string>
+    <string name="pref_notification_frequency_daily">Daily</string>
+    <string name="pref_notification_frequency_weekly">Weekly</string>
+    <string name="pref_notification_frequency_monthly">Monthly</string>
     <string name="pref_ota_url_name">OTA URL</string>
     <string name="pref_ota_url_desc_none">No URL set.</string>
     <string name="pref_certificate_name">Certificate %1$s</string>

@@ -17,6 +17,7 @@ class Preferences(context: Context) {
         const val CATEGORY_DEBUG = "debug"
 
         const val PREF_CHECK_FOR_UPDATES = "check_for_updates"
+        const val PREF_NOTIFICATION_FREQUENCY = "notification_frequency"
         const val PREF_AUTOMATIC_CHECK = "automatic_check"
         const val PREF_UNMETERED_ONLY = "unmetered_only"
         const val PREF_BATTERY_NOT_LOW = "battery_not_low"
@@ -46,6 +47,7 @@ class Preferences(context: Context) {
         private const val PREF_ALERT_CACHE = "alert_cache"
         private const val PREF_HAS_ROOT = "has_root"
         private const val PREF_MISMATCH_ALLOWED = "mismatch_allowed"
+        private const val PREF_UPDATE_NOTIFIED = "update_notified"
         private const val PREF_DEBUG_MODE = "debug_mode"
     }
 
@@ -75,6 +77,7 @@ class Preferences(context: Context) {
         get() = prefs.getString(PREF_ALERT_CACHE, "")!!
         set(cache) = prefs.edit { putString(PREF_ALERT_CACHE, cache) }
 
+    /** Whether root has been granted. */
     var hasRoot: Boolean
         get() = prefs.getBoolean(PREF_HAS_ROOT, true)
         set(value) = prefs.edit { putBoolean(PREF_HAS_ROOT, value) }
@@ -84,10 +87,20 @@ class Preferences(context: Context) {
         get() = prefs.getBoolean(PREF_MISMATCH_ALLOWED, false)
         set(value) = prefs.edit { putBoolean(PREF_MISMATCH_ALLOWED, value) }
 
+    /** Whether the user has previously been notified of an update. */
+    var updateNotified: Boolean
+        get() = prefs.getBoolean(PREF_UPDATE_NOTIFIED, false)
+        set(value) = prefs.edit { putBoolean(PREF_UPDATE_NOTIFIED, value) }
+
     /** Whether to check for updates periodically. */
     var automaticCheck: Boolean
         get() = prefs.getBoolean(PREF_AUTOMATIC_CHECK, true)
         set(enabled) = prefs.edit { putBoolean(PREF_AUTOMATIC_CHECK, enabled) }
+
+    /** How frequently to send notifications about pending updates. */
+    var notificationFrequency: String
+        get() = prefs.getString(PREF_NOTIFICATION_FREQUENCY, "daily")!!
+        set(enabled) = prefs.edit { putString(PREF_NOTIFICATION_FREQUENCY, enabled) }
 
     /** Whether to only allow running when connected to an unmetered network. */
     var requireUnmetered: Boolean
