@@ -22,18 +22,21 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceFragmentCompat
+import androidx.preference.SwitchPreferenceCompat
 import androidx.preference.get
 import androidx.preference.size
 import com.github.pixelupdater.pixelupdater.BuildConfig
 import com.github.pixelupdater.pixelupdater.Permissions
 import com.github.pixelupdater.pixelupdater.Preferences
 import com.github.pixelupdater.pixelupdater.R
+import com.github.pixelupdater.pixelupdater.dialog.OtaUrlDialogFragment
 import com.github.pixelupdater.pixelupdater.updater.OtaPaths
 import com.github.pixelupdater.pixelupdater.updater.UpdaterJob
 import com.github.pixelupdater.pixelupdater.updater.UpdaterThread
 import com.github.pixelupdater.pixelupdater.view.LongClickablePreference
 import com.github.pixelupdater.pixelupdater.view.OnPreferenceLongClickListener
 import com.github.pixelupdater.pixelupdater.wrapper.SystemPropertiesProxy
+import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.launch
 import java.security.PublicKey
 import java.security.cert.Certificate
@@ -61,6 +64,8 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceClic
     private lateinit var prefVersion: LongClickablePreference
     private lateinit var prefOpenLogDir: Preference
     private lateinit var prefRevertCompleted: Preference
+    private lateinit var prefOtaUrl: Preference
+    private lateinit var prefAutomaticReboot: SwitchPreferenceCompat
 
     private lateinit var scheduledAction: UpdaterThread.Action
 
@@ -116,8 +121,31 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceClic
         prefRevertCompleted = findPreference(Preferences.PREF_REVERT_COMPLETED)!!
         prefRevertCompleted.onPreferenceClickListener = this
 
+        prefOtaUrl = findPreference(Preferences.PREF_OTA_URL)!!
+        prefOtaUrl.onPreferenceClickListener = this
+
+        prefAutomaticReboot = findPreference(Preferences.PREF_AUTOMATIC_REBOOT)!!
+
+        refreshOtaUrl()
         refreshVersion()
         refreshDebugPrefs()
+
+        Shell.getShell()
+        if (Shell.isAppGrantedRoot()!!) {
+            prefs.hasRoot = true
+        } else {
+            prefs.hasRoot = false
+            if (prefs.magiskPatch || prefs.vbmetaPatch) {
+                prefs.magiskPatch = false
+                prefs.vbmetaPatch = false
+                UpdaterJob.scheduleImmediate(context, UpdaterThread.Action.NO_ROOT)
+            }
+        }
+        if (!prefs.hasRoot) {
+            findPreference<SwitchPreferenceCompat>(Preferences.PREF_MAGISK_PATCH)?.isEnabled = false
+            findPreference<SwitchPreferenceCompat>(Preferences.PREF_VBMETA_PATCH)?.isEnabled = false
+            findPreference<SwitchPreferenceCompat>(Preferences.PREF_VERITY_ONLY)?.isEnabled = false
+        }
 
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -166,13 +194,22 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceClic
         // Make sure we refresh this every time the user switches back to the app
         viewModel.refreshBootloaderStatus()
         viewModel.refreshMagiskStatus()
-        viewModel.refreshVbmetaStatus()
+        if (prefs.hasRoot) {
+            viewModel.refreshVbmetaStatus()
+        } else {
+            viewModel.setVbmetaStatus(SettingsViewModel.VbmetaStatus.Failure("Root is unavailable"))
+        }
     }
 
     override fun onStop() {
         super.onStop()
 
         preferenceScreen.sharedPreferences!!.unregisterOnSharedPreferenceChangeListener(this)
+    }
+
+    private fun refreshOtaUrl() {
+        prefOtaUrl.summary = prefs.otaUrl?.toString()
+            ?: getString(R.string.pref_ota_url_desc_none)
     }
 
     private fun refreshVersion() {
@@ -284,6 +321,11 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceClic
                 performAction()
                 return true
             }
+            prefOtaUrl -> {
+                OtaUrlDialogFragment().show(parentFragmentManager.beginTransaction(),
+                    OtaUrlDialogFragment.TAG)
+                return true
+            }
             prefVersion -> {
                 val uri = Uri.parse(BuildConfig.PROJECT_URL_AT_COMMIT)
                 startActivity(Intent(Intent.ACTION_VIEW, uri))
@@ -326,8 +368,14 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceClic
 
     override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
         when (key) {
+            Preferences.PREF_OTA_URL -> {
+                refreshOtaUrl()
+            }
             Preferences.PREF_UNMETERED_ONLY, Preferences.PREF_BATTERY_NOT_LOW -> {
                 UpdaterJob.schedulePeriodic(requireContext(), true)
+            }
+            Preferences.PREF_AUTOMATIC_SWITCH -> {
+                prefAutomaticReboot.isChecked = false
             }
         }
     }

@@ -18,13 +18,6 @@ class MainApplication : Application() {
     override fun onCreate() {
         super.onCreate()
 
-        Shell.getShell()
-        if (Shell.isAppGrantedRoot()!!) {
-            println("got root")
-        } else {
-            println("no root")
-        }
-
         val oldCrashHandler = Thread.getDefaultUncaughtExceptionHandler()
 
         Thread.setDefaultUncaughtExceptionHandler { t, e ->

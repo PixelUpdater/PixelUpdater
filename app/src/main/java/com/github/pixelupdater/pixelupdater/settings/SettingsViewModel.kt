@@ -103,6 +103,8 @@ class SettingsViewModel : ViewModel() {
         _vbmetaStatus.update { status }
     }
 
+    fun setVbmetaStatus(status: VbmetaStatus) = _vbmetaStatus.update { status }
+
     sealed interface BootloaderStatus {
         data class Success(
             val unlocked: Boolean,
