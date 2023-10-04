@@ -9,6 +9,7 @@ package com.github.pixelupdater.pixelupdater
 import android.content.Context
 import androidx.core.content.edit
 import androidx.preference.PreferenceManager
+import java.net.URL
 
 class Preferences(context: Context) {
     companion object {
@@ -22,6 +23,8 @@ class Preferences(context: Context) {
         const val PREF_SKIP_POSTINSTALL = "skip_postinstall"
         const val PREF_MAGISK_PATCH = "magisk_patch"
         const val PREF_VBMETA_PATCH = "vbmeta_patch"
+        const val PREF_AUTOMATIC_SWITCH = "automatic_switch"
+        const val PREF_AUTOMATIC_REBOOT = "automatic_reboot"
         const val PREF_ANDROID_VERSION = "android_version"
         const val PREF_FINGERPRINT = "fingerprint"
         const val PREF_BOOT_SLOT = "boot_slot"
@@ -31,6 +34,7 @@ class Preferences(context: Context) {
         const val PREF_NO_CERTIFICATES = "no_certificates"
         const val PREF_VERSION = "version"
         const val PREF_OPEN_LOG_DIR = "open_log_dir"
+        const val PREF_OTA_URL = "ota_url"
         const val PREF_ALLOW_REINSTALL = "allow_reinstall"
         const val PREF_REVERT_COMPLETED = "revert_completed"
         const val PREF_VERITY_ONLY = "verity_only"
@@ -40,6 +44,7 @@ class Preferences(context: Context) {
         private const val PREF_TARGET_OTA = "target_ota"
         private const val PREF_PAYLOAD_PROPERTIES_CACHE = "payload_properties_cache"
         private const val PREF_ALERT_CACHE = "alert_cache"
+        private const val PREF_HAS_ROOT = "has_root"
         private const val PREF_DEBUG_MODE = "debug_mode"
     }
 
@@ -68,6 +73,10 @@ class Preferences(context: Context) {
     var alertCache: String
         get() = prefs.getString(PREF_ALERT_CACHE, "")!!
         set(cache) = prefs.edit { putString(PREF_ALERT_CACHE, cache) }
+
+    var hasRoot: Boolean
+        get() = prefs.getBoolean(PREF_HAS_ROOT, true)
+        set(value) = prefs.edit { putBoolean(PREF_HAS_ROOT, value) }
 
     /** Whether to check for updates periodically. */
     var automaticCheck: Boolean
@@ -103,6 +112,32 @@ class Preferences(context: Context) {
     var allowReinstall: Boolean
         get() = prefs.getBoolean(PREF_ALLOW_REINSTALL, false)
         set(enabled) = prefs.edit { putBoolean(PREF_ALLOW_REINSTALL, enabled) }
+
+    /** URL of OTA update. */
+    var otaUrl: URL?
+        get() = prefs.getString(PREF_OTA_URL, null)?.let { URL(it) }
+        set(url) = prefs.edit {
+            if (url == null) {
+                remove(PREF_OTA_URL)
+            } else {
+                putString(PREF_OTA_URL, url.toString())
+            }
+        }
+
+    /** Whether to force switch slots on update. */
+    var automaticSwitch: Boolean
+        get() = prefs.getBoolean(PREF_AUTOMATIC_SWITCH, false)
+        set(enabled) = prefs.edit {
+            if (!enabled) {
+                putBoolean(PREF_AUTOMATIC_REBOOT, false)
+            }
+            putBoolean(PREF_AUTOMATIC_SWITCH, enabled)
+        }
+
+    /** Whether to automatically reboot on successful update. */
+    var automaticReboot: Boolean
+        get() = prefs.getBoolean(PREF_AUTOMATIC_REBOOT, false)
+        set(enabled) = prefs.edit { putBoolean(PREF_AUTOMATIC_REBOOT, enabled) }
 
     /** Whether to disable only verity in the installed OTA. */
     var verityOnly: Boolean

@@ -15,8 +15,8 @@
     <!-- General preferences -->
     <string name="pref_check_for_updates_name">Check for updates</string>
     <string name="pref_check_for_updates_desc">Schedule a check for new OTA updates.</string>
-    <string name="pref_ota_server_url_name">OTA server URL</string>
-    <string name="pref_ota_server_url_desc_none">No URL set.</string>
+    <string name="pref_ota_url_name">OTA URL</string>
+    <string name="pref_ota_url_desc_none">No URL set.</string>
     <string name="pref_certificate_name">Certificate %1$s</string>
     <string name="pref_certificate_desc_subject">Subject: %1$s</string>
     <string name="pref_certificate_desc_serial">Serial: %1$s</string>
@@ -35,6 +35,8 @@
     <string name="pref_magisk_patch_desc">Roots update with Magisk. Requires a functional Magisk install.</string>
     <string name="pref_vbmeta_patch_name">Disable verity and verification</string>
     <string name="pref_vbmeta_patch_desc">Patches vbmeta with disable-verity and disable-verification flags.</string>
+    <string name="pref_automatic_switch_name">Force slot switch</string>
+    <string name="pref_automatic_switch_desc">Automatically switch slots when the update is complete.</string>
     <string name="pref_automatic_reboot_name">Automatic reboot</string>
     <string name="pref_automatic_reboot_desc">Automatically reboot when the update is complete.</string>
 
@@ -80,10 +82,10 @@
     <string name="pref_verity_only_desc">Patches vbmeta with only the disable-verity flag.</string>
 
     <!-- Dialogs -->
-    <string name="dialog_ota_server_url_title">@string/pref_ota_server_url_name</string>
-    <string name="dialog_ota_server_url_message">Enter the base URL for fetching OTA update metadata (excluding the filename).</string>
-    <string name="dialog_ota_server_url_error_bad_protocol">Only http:// and https:// URLs are supported.</string>
-    <string name="dialog_ota_server_url_error_malformed">Not a valid URL.</string>
+    <string name="dialog_ota_url_title">@string/pref_ota_url_name</string>
+    <string name="dialog_ota_url_message">Enter the URL of the OTA.</string>
+    <string name="dialog_ota_url_error_bad_protocol">Only http:// and https:// URLs are supported.</string>
+    <string name="dialog_ota_url_error_malformed">Not a valid URL.</string>
     <string name="dialog_action_ok">OK</string>
     <string name="dialog_action_cancel">Cancel</string>
 
@@ -108,6 +110,8 @@
     <string name="notification_update_cancelled">OTA update process was cancelled</string>
     <string name="notification_update_reverted">Successfully reverted OTA update</string>
     <string name="notification_update_failed">Failed to install OTA update</string>
+    <string name="notification_update_root_unavailable_title">Root is unavailable</string>
+    <string name="notification_update_root_unavailable_message">Magisk and Vbmeta patching have been disabled</string>
     <string name="notification_action_install">Install</string>
     <string name="notification_action_pause">Pause</string>
     <string name="notification_action_resume">Resume</string>

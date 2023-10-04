@@ -62,13 +62,6 @@
             app:title="@string/pref_vbmeta_patch_name"
             app:summary="@string/pref_vbmeta_patch_desc"
             app:iconSpaceReserved="false" />
-
-        <SwitchPreferenceCompat
-            app:key="automatic_reboot"
-            app:defaultValue="false"
-            app:title="@string/pref_automatic_reboot_name"
-            app:summary="@string/pref_automatic_reboot_desc"
-            app:iconSpaceReserved="false" />
     </PreferenceCategory>
 
     <PreferenceCategory
@@ -160,6 +153,28 @@
             app:persistent="false"
             app:title="@string/pref_revert_completed_name"
             app:summary="@string/pref_revert_completed_desc"
+            app:iconSpaceReserved="false" />
+
+        <Preference
+            app:key="ota_url"
+            app:persistent="false"
+            app:title="@string/pref_ota_url_name"
+            app:summary="@string/pref_ota_url_desc_none"
+            app:iconSpaceReserved="false" />
+
+        <SwitchPreferenceCompat
+            app:key="automatic_switch"
+            app:defaultValue="false"
+            app:title="@string/pref_automatic_switch_name"
+            app:summary="@string/pref_automatic_switch_desc"
+            app:iconSpaceReserved="false" />
+
+        <SwitchPreferenceCompat
+            app:key="automatic_reboot"
+            app:dependency="automatic_switch"
+            app:defaultValue="false"
+            app:title="@string/pref_automatic_reboot_name"
+            app:summary="@string/pref_automatic_reboot_desc"
             app:iconSpaceReserved="false" />
 
         <SwitchPreferenceCompat

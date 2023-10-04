@@ -10,6 +10,7 @@ package com.github.pixelupdater.pixelupdater.updater
 import android.annotation.SuppressLint
 import android.content.Context
 import android.net.Network
+import android.net.Uri
 import android.os.Build
 import android.os.IUpdateEngine
 import android.os.IUpdateEngineCallback
@@ -120,8 +121,8 @@ class UpdaterThread(
     }
 
     init {
-        if (action != Action.REVERT && network == null) {
-            throw IllegalStateException("Network is required for non-revert actions")
+        if (action != Action.REVERT && action != Action.NO_ROOT && network == null) {
+            throw IllegalStateException("Network is required for check and install related actions")
         }
 
         updateEngine.bind(engineCallback)
@@ -504,10 +505,15 @@ class UpdaterThread(
             return Json.decodeFromString(prefs.otaCache)
         }
 
-        val downloads = try {
-            downloadOtaPage()
-        } catch (e: Exception) {
-            throw IOException("Failed to download update info", e)
+        val downloads = if (prefs.otaUrl != null) {
+            val uri = Uri.parse(prefs.otaUrl.toString())
+            mutableListOf(DownloadInfo(uri.lastPathSegment!!, prefs.otaUrl!!))
+        } else {
+            try {
+                downloadOtaPage()
+            } catch (e: Exception) {
+                throw IOException("Failed to download update info", e)
+            }
         }
 
 
@@ -546,9 +552,9 @@ class UpdaterThread(
     }
 
     private fun pickOta(downloads: List<DownloadInfo>): DownloadInfo? {
-        val filtered = downloads.filter { it.version.contains("""20\d{2}\)""".toRegex()) }
+        val filtered = downloads.filter { it.version.contains("""20\d{2}\)""".toRegex()) && it.date != null }
         return if (filtered.isNotEmpty()) {
-            filtered.minBy { it.date }
+            filtered.minBy { it.date!! }
         } else {
             null
         }
@@ -584,10 +590,10 @@ class UpdaterThread(
                 put("RUN_POST_INSTALL", "0")
             }
 
-            // TODO: Make this configurable
-            put("SWITCH_SLOT_ON_REBOOT", "0")
+            if (!prefs.automaticSwitch) {
+                put("SWITCH_SLOT_ON_REBOOT", "0")
+            }
         }
-
 
         println("url:      $otaUrl")
         println("offset:   ${pfPayload.offset}")
@@ -742,6 +748,9 @@ class UpdaterThread(
                 } else {
                     listener.onUpdateResult(this, UpdateFailed(newStatusStr))
                 }
+            } else if (action == Action.NO_ROOT) {
+                listener.onUpdateResult(this, RootUnavailable)
+                return
             } else if (status == UpdateEngineStatus.UPDATED_NEED_REBOOT) {
                 // Resend success notification to remind the user to reboot. We can't perform any
                 // further operations besides reverting.
@@ -820,11 +829,13 @@ class UpdaterThread(
                         }
                     }
                     Log.d(TAG, "Successfully completed upgrade")
+                    if (prefs.automaticReboot) {
+                        context.getSystemService(PowerManager::class.java).reboot(null)
+                    }
                     listener.onUpdateResult(this, UpdateSucceeded)
                 } else if (error == UpdateEngineError.UPDATED_BUT_NOT_ACTIVE) {
                     Log.d(TAG, "Successfully completed upgrade, but not active")
                     listener.onUpdateResult(this, UpdateNeedSwitchSlots)
-                    UpdaterJob.scheduleImmediate(context, Action.SWITCH_SLOT)
                 } else if (error == UpdateEngineError.USER_CANCELED) {
                     Log.w(TAG, "User cancelled upgrade")
                     listener.onUpdateResult(this, UpdateCancelled)
@@ -874,6 +885,7 @@ class UpdaterThread(
         INSTALL,
         REVERT,
         SWITCH_SLOT,
+        NO_ROOT,
     }
 
     private fun List<CheckUpdateResult>.available() = filter { it.fingerprint != Build.FINGERPRINT || prefs.allowReinstall }
@@ -884,7 +896,7 @@ class UpdaterThread(
         val url: URL,
         // val sha256: String,
         // TODO: Use kotlinx.datetime?
-        val date: String,
+        val date: String? = null,
     )
 
     private data class Eocd(
@@ -894,6 +906,14 @@ class UpdaterThread(
 
     sealed interface Result {
         val isError : Boolean
+    }
+
+    data object RootUnavailable : Result {
+        override val isError = true
+    }
+
+    data object RootUnnecessary : Result {
+        override val isError = false
     }
 
     data class UpdateAvailable(val version: String, val index: Int) : Result {
@@ -994,7 +1014,7 @@ class UpdaterThread(
             println("dd if=$vbmeta bs=1 count=4 status=none")
             // https://android.googlesource.com/platform/external/avb/+/refs/tags/android-12.0.0_r12/libavb/avb_vbmeta_image.h#126
             val magicResult = Shell.cmd("dd if=$vbmeta bs=1 count=4 status=none").exec()
-            if (magicResult.out.isEmpty()) {
+            if (!magicResult.isSuccess || magicResult.out.isEmpty()) {
                 println("Failed to get magic")
                 return false
             }
