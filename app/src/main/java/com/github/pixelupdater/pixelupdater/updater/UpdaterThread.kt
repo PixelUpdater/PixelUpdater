@@ -289,12 +289,15 @@ class UpdaterThread(
         }
 
         // println(responseBody.toHexString(HexFormat.Default))
-        val size = ByteBuffer.wrap(responseBody.copyOfRange(eocdIndex + 12, eocdIndex + 12 + 4)).order(ByteOrder.LITTLE_ENDIAN).int
+        val size = ByteBuffer.wrap(responseBody.copyOfRange(eocdIndex + 12, eocdIndex + 12 + 4)).order(ByteOrder.LITTLE_ENDIAN).int.toUInt().toLong()
         if (size < 46 || size > 1024) {
             throw IOException("Unexpected size of central directory ($size)")
         }
 
-        val offset = ByteBuffer.wrap(responseBody.copyOfRange(eocdIndex + 16, eocdIndex + 16 + 4)).order(ByteOrder.LITTLE_ENDIAN).int
+        val offset = ByteBuffer.wrap(responseBody.copyOfRange(eocdIndex + 16, eocdIndex + 16 + 4)).order(ByteOrder.LITTLE_ENDIAN).int.toUInt().toLong()
+        if (offset < 0 || offset > contentLength - size) {
+            throw IOException("Unexpected offset of central directory ($offset)")
+        }
 
         return Eocd(size, offset)
     }
@@ -314,7 +317,7 @@ class UpdaterThread(
             throw IOException("Server does not support byte ranges")
         }
 
-        if (connection.contentLengthLong != eocd.size.toLong()) {
+        if (connection.contentLengthLong != eocd.size) {
             throw IOException("Expected ${eocd.size} bytes, but Content-Length is ${connection.contentLengthLong}")
         }
 
@@ -328,26 +331,19 @@ class UpdaterThread(
                 throw IOException("Unexpected file header magic ($magic)")
             }
 
-            val compressionMethod = ByteBuffer.wrap(responseBody.copyOfRange(offset + 10, offset + 10 + 2)).order(ByteOrder.LITTLE_ENDIAN).short.toInt()
-            val compressedSize = ByteBuffer.wrap(responseBody.copyOfRange(offset + 20, offset + 20 + 4)).order(ByteOrder.LITTLE_ENDIAN).int
-            val n = ByteBuffer.wrap(responseBody.copyOfRange(offset + 28, offset + 28 + 2)).order(ByteOrder.LITTLE_ENDIAN).short.toInt()
-            val m = ByteBuffer.wrap(responseBody.copyOfRange(offset + 30, offset + 30 + 2)).order(ByteOrder.LITTLE_ENDIAN).short.toInt()
-            val k = ByteBuffer.wrap(responseBody.copyOfRange(offset + 32, offset + 32 + 2)).order(ByteOrder.LITTLE_ENDIAN).short.toInt()
-            val lfh = ByteBuffer.wrap(responseBody.copyOfRange(offset + 42, offset + 42 + 4)).order(ByteOrder.LITTLE_ENDIAN).int
+            val compressionMethod = ByteBuffer.wrap(responseBody.copyOfRange(offset + 10, offset + 10 + 2)).order(ByteOrder.LITTLE_ENDIAN).short.toUShort().toInt()
+            val compressedSize = ByteBuffer.wrap(responseBody.copyOfRange(offset + 20, offset + 20 + 4)).order(ByteOrder.LITTLE_ENDIAN).int.toUInt().toLong()
+            val n = ByteBuffer.wrap(responseBody.copyOfRange(offset + 28, offset + 28 + 2)).order(ByteOrder.LITTLE_ENDIAN).short.toUShort().toInt()
+            val m = ByteBuffer.wrap(responseBody.copyOfRange(offset + 30, offset + 30 + 2)).order(ByteOrder.LITTLE_ENDIAN).short.toUShort().toInt()
+            val k = ByteBuffer.wrap(responseBody.copyOfRange(offset + 32, offset + 32 + 2)).order(ByteOrder.LITTLE_ENDIAN).short.toUShort().toInt()
+            val lfh = ByteBuffer.wrap(responseBody.copyOfRange(offset + 42, offset + 42 + 4)).order(ByteOrder.LITTLE_ENDIAN).int.toUInt().toLong()
             val filenameBytes = responseBody.copyOfRange(offset + 46, offset + 46 + n)
             val filename = String(filenameBytes, StandardCharsets.UTF_8)
 
             if (compressionMethod == 0) {
-                propertyFiles[filename] = PropertyFile(filename, (lfh + 30 + n + m).toLong(), compressedSize.toLong())
+                propertyFiles[filename] = PropertyFile(filename, (lfh + 30 + n + m), compressedSize)
             }
 
-            // println("{\n" +
-            //         "  \"offset\": ${offset},\n" +
-            //         "  \"n\": ${n},\n" +
-            //         "  \"m\": ${m},\n" +
-            //         "  \"k\": ${k},\n" +
-            //         "  \"lfh\": ${lfh}\n" +
-            //         "}")
             offset += 46 + n + m + k
         }
 
@@ -522,11 +518,6 @@ class UpdaterThread(
         for (ota in downloads) {
             // val ota = pickOta(downloads)!!
 
-            // TODO: Add textbox for custom OTA url
-            // val url = "https://dl.google.com/dl/android/aosp/bluejay-ota-tq3a.230805.001-fb877f31.zip"
-            // val url = "https://dl.google.com/dl/android/aosp/bluejay-ota-tq3a.230901.001-1f1f0abe.zip"
-            // val uri = Uri.parse(url)
-            // val ota = DownloadInfo(uri.lastPathSegment!!, URL(url), "")
             Log.d(TAG, "OTA URL: ${ota.url}")
             val cd = downloadCd(ota)
             val pfMetadata = cd[OtaPaths.METADATA_NAME]!!
@@ -639,7 +630,10 @@ class UpdaterThread(
 
     // https://github.com/topjohnwu/Magisk/blob/v26.3/app/src/main/java/com/topjohnwu/magisk/core/tasks/MagiskInstaller.kt#L537-L538
     private fun flashSecondSlot() =
-        findSecondary() && Shell.cmd("install_magisk").exec().isSuccess
+        findSecondary() && flashBoot()
+
+    private fun checkSecondSlot() =
+        findSecondary() && checkBoot()
 
     // https://github.com/topjohnwu/Magisk/blob/v26.3/app/src/main/java/com/topjohnwu/magisk/core/tasks/MagiskInstaller.kt#L78-L94
     private fun findSecondary(): Boolean {
@@ -660,6 +654,17 @@ class UpdaterThread(
         }
         println("- Target image: $bootPath")
         return true
+    }
+
+    private fun flashBoot() = Shell.cmd("install_magisk").exec().isSuccess
+
+    private fun checkBoot(): Boolean {
+        val status = Shell.cmd(
+            "./magiskboot unpack \"\$BOOTIMAGE\"",
+            "if [ -e ramdisk.cpio ]; then ./magiskboot cpio ramdisk.cpio test; else (exit 0); fi"
+        ).exec().code
+        Shell.cmd("./magiskboot cleanup").exec()
+        return status == 1
     }
 
     @OptIn(ExperimentalStdlibApi::class)
@@ -752,8 +757,24 @@ class UpdaterThread(
                 listener.onUpdateResult(this, RootUnavailable)
                 return
             } else if (status == UpdateEngineStatus.UPDATED_NEED_REBOOT) {
-                // Resend success notification to remind the user to reboot. We can't perform any
-                // further operations besides reverting.
+                if (prefs.magiskPatch) {
+                    if (!checkSecondSlot()) {
+                        if (!flashSecondSlot()) {
+                            listener.onUpdateResult(this, UpdatePatchFailed("Failed to Magisk patch inactive slot"))
+                            return
+                        }
+                    }
+                }
+                if (prefs.vbmetaPatch) {
+                    val expectedFlags = DISABLE_VERITY_FLAG.or(if (prefs.verityOnly) 0.toByte() else DISABLE_VERIFICATION_FLAG)
+                    if (getVbmetaFlags() != expectedFlags) {
+                        if (!setVbmetaFlags(expectedFlags)) {
+                            listener.onUpdateResult(this, UpdatePatchFailed("Failed to disable verity ${if (prefs.verityOnly) "" else "and verification"}"))
+                            return
+                        }
+                    }
+                }
+                Log.d(TAG, "Successfully completed upgrade")
                 listener.onUpdateResult(this, UpdateNeedReboot)
             } else {
                 if (status == UpdateEngineStatus.IDLE) {
@@ -762,6 +783,19 @@ class UpdaterThread(
                     listener.onUpdateProgress(this, ProgressType.CHECK, 0, 0)
 
                     if (action == Action.CHECK) {
+                        if (!prefs.mismatchAllowed) {
+                            val rooted = Shell.cmd("magisk -v").exec().isSuccess
+                            if (prefs.hasRoot) {
+                                val expectedFlags = if (prefs.vbmetaPatch) DISABLE_VERITY_FLAG.or(if (prefs.verityOnly) 0.toByte() else DISABLE_VERIFICATION_FLAG) else 0.toByte()
+                                if (!prefs.magiskPatch || getVbmetaFlags(active = true) != expectedFlags) {
+                                    listener.onUpdateResult(this, UpdateMismatch)
+                                    return
+                                }
+                            } else if (rooted) {
+                                listener.onUpdateResult(this, UpdateMismatch)
+                                return
+                            }
+                        }
                         println("clearing cache")
                         prefs.otaCache = ""
                     }
@@ -813,18 +847,15 @@ class UpdaterThread(
                 Log.d(TAG, "Update engine result: $errorStr")
 
                 if (error == UpdateEngineError.SUCCESS) {
-                    // TODO: Detect differences between current and configured Magisk or Vbmeta conditions
                     if (prefs.magiskPatch) {
                         if (!flashSecondSlot()) {
-                            updateEngine.resetStatus()
-                            listener.onUpdateResult(this, UpdateFailed("Failed to Magisk patch inactive slot, OTA reverted"))
+                            listener.onUpdateResult(this, UpdatePatchFailed("Failed to Magisk patch inactive slot"))
                             return
                         }
                     }
                     if (prefs.vbmetaPatch) {
                         if (!setVbmetaFlags(DISABLE_VERITY_FLAG.or(if (prefs.verityOnly) 0.toByte() else DISABLE_VERIFICATION_FLAG))) {
-                            updateEngine.resetStatus()
-                            listener.onUpdateResult(this, UpdateFailed("Failed to disable verity ${if (prefs.verityOnly) "" else "and verification"}, OTA reverted"))
+                            listener.onUpdateResult(this, UpdatePatchFailed("Failed to disable verity ${if (prefs.verityOnly) "" else "and verification"}"))
                             return
                         }
                     }
@@ -900,12 +931,16 @@ class UpdaterThread(
     )
 
     private data class Eocd(
-        val size: Int,
-        val offset: Int,
+        val size: Long,
+        val offset: Long,
     )
 
     sealed interface Result {
         val isError : Boolean
+    }
+
+    data object UpdateMismatch : Result {
+        override val isError = true
     }
 
     data object RootUnavailable : Result {
@@ -946,6 +981,10 @@ class UpdaterThread(
     }
 
     data class UpdateFailed(val errorMsg: String) : Result {
+        override val isError = true
+    }
+
+    data class UpdatePatchFailed(val errorMsg: String) : Result {
         override val isError = true
     }
 
@@ -995,9 +1034,9 @@ class UpdaterThread(
             ).exec().isSuccess
         }
 
-        fun getVbmetaFlags(): Byte? {
+        fun getVbmetaFlags(active: Boolean? = false): Byte? {
             val slot = SystemPropertiesProxy.get("ro.boot.slot_suffix")
-            val target = if (slot == "_a") "_b" else "_a"
+            val target = if (active == true) slot else if (slot == "_a") "_b" else "_a"
             println("- Target slot: $target")
 
             val vbmeta = File("/dev/block/by-name/vbmeta$target")

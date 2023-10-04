@@ -179,7 +179,7 @@
 
         <SwitchPreferenceCompat
             app:key="verity_only"
-            app:dependency="vbmeta_status"
+            app:dependency="vbmeta_patch"
             app:defaultValue="false"
             app:title="@string/pref_verity_only_name"
             app:summary="@string/pref_verity_only_desc"

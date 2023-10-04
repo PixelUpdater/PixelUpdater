@@ -45,6 +45,7 @@ class Preferences(context: Context) {
         private const val PREF_PAYLOAD_PROPERTIES_CACHE = "payload_properties_cache"
         private const val PREF_ALERT_CACHE = "alert_cache"
         private const val PREF_HAS_ROOT = "has_root"
+        private const val PREF_MISMATCH_ALLOWED = "mismatch_allowed"
         private const val PREF_DEBUG_MODE = "debug_mode"
     }
 
@@ -77,6 +78,11 @@ class Preferences(context: Context) {
     var hasRoot: Boolean
         get() = prefs.getBoolean(PREF_HAS_ROOT, true)
         set(value) = prefs.edit { putBoolean(PREF_HAS_ROOT, value) }
+
+    /** Whether a Magisk or Vbmeta configuration mismatch has been allowed. */
+    var mismatchAllowed: Boolean
+        get() = prefs.getBoolean(PREF_MISMATCH_ALLOWED, false)
+        set(value) = prefs.edit { putBoolean(PREF_MISMATCH_ALLOWED, value) }
 
     /** Whether to check for updates periodically. */
     var automaticCheck: Boolean
