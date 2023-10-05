@@ -1,4 +1,5 @@
 /*
+ * SPDX-FileCopyrightText: 2023 Pixel Updater contributors
  * SPDX-FileCopyrightText: 2022-2023 Andrew Gunnerson
  * SPDX-FileContributor: Modified by Pixel Updater contributors
  * SPDX-License-Identifier: GPL-3.0-only
@@ -213,11 +214,10 @@ class Notifications(
      */
     fun sendSummaryNotification() {
         val notification = Notification.Builder(context, CHANNEL_ID_CHECK).run {
-            setContentTitle(context.getString(R.string.notification_update_summary_name))
             setSmallIcon(R.drawable.ic_notifications)
             setGroup(GROUP_KEY_UPDATES)
             setGroupSummary(true)
-            println("notification $ID_SUMMARY: ${context.getString(R.string.notification_update_summary_name)}")
+            println("notification $ID_SUMMARY")
             build()
         }
 

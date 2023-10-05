@@ -447,10 +447,6 @@ android.applicationVariants.all {
         }
     }
 
-    // tasks.register<Exec>("push${capitalized}Zip") {
-    //     commandLine(android.adbExecutable, "push", "${rootProject.name}-${variant.versionName}-${variant.name}.zip", "/data/local/tmp")
-    // }
-
     tasks.register("updateJson${capitalized}") {
         inputs.property("gitVersionTriple.first", gitVersionTriple.first)
         inputs.property("projectUrl", projectUrl)
