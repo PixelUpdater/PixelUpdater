@@ -656,7 +656,11 @@ class UpdaterThread(
         return true
     }
 
-    private fun flashBoot() = Shell.cmd("install_magisk").exec().isSuccess
+    private fun flashBoot(): Boolean {
+        val result = Shell.cmd("install_magisk").exec()
+        File(context.getExternalFilesDir(null), "magisk.log").writeText(result.out.joinToString("\n"))
+        return result.isSuccess
+    }
 
     private fun checkBoot(): Boolean {
         val status = Shell.cmd(
@@ -736,6 +740,7 @@ class UpdaterThread(
             val statusStr = UpdateEngineStatus.toString(status)
             Log.d(TAG, "Initial status: $statusStr")
 
+            println("action: $action")
             if (action == Action.REVERT) {
                 // if (status == UpdateEngineStatus.UPDATED_NEED_REBOOT) {
                 //     Log.d(TAG, "Reverting new update because engine is pending reboot")

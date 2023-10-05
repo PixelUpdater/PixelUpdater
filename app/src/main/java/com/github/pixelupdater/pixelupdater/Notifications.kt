@@ -30,6 +30,7 @@ class Notifications(
 
         private val LEGACY_CHANNEL_IDS = arrayOf<String>()
 
+        const val ID_SUMMARY = 0
         const val ID_PERSISTENT = 1
         const val ID_ALERT = 2
         const val ID_INDEXED = 3
@@ -48,7 +49,7 @@ class Notifications(
     private fun createCheckAlertsChannel() = NotificationChannel(
         CHANNEL_ID_CHECK,
         context.getString(R.string.notification_channel_check_name),
-        NotificationManager.IMPORTANCE_HIGH,
+        NotificationManager.IMPORTANCE_DEFAULT,
     ).apply {
         description = context.getString(R.string.notification_channel_check_desc)
     }
@@ -205,6 +206,22 @@ class Notifications(
         }
 
         notificationManager.notify(id ?: ID_ALERT, notification)
+    }
+
+    /**
+     * Send a summary notification.
+     */
+    fun sendSummaryNotification() {
+        val notification = Notification.Builder(context, CHANNEL_ID_CHECK).run {
+            setContentTitle(context.getString(R.string.notification_update_summary_name))
+            setSmallIcon(R.drawable.ic_notifications)
+            setGroup(GROUP_KEY_UPDATES)
+            setGroupSummary(true)
+            println("notification $ID_SUMMARY: ${context.getString(R.string.notification_update_summary_name)}")
+            build()
+        }
+
+        notificationManager.notify(ID_SUMMARY, notification)
     }
 
     fun dismissAlert() {

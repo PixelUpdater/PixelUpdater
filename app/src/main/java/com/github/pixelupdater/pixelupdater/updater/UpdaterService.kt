@@ -53,6 +53,7 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
         Log.d(TAG, "Received intent: $intent")
 
         try {
+            println("intent.action: ${intent?.action}")
             when (val action = intent?.action) {
                 ACTION_START -> {
                     // We're launched by startForegroundService(). Android requires the foreground
@@ -395,9 +396,14 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
         )
     }
 
+    @UiThread
+    private fun notifySummary() {
+        notifications.sendSummaryNotification()
+    }
+
     override fun onUpdateResult(thread: UpdaterThread, result: UpdaterThread.Result) {
         handler.post {
-            println(result)
+            println("onUpdateResult: $result")
             require(thread === updaterThread) { "Bad thread ($thread != $updaterThread)" }
             notifyAlert(result)
             threadExited()
@@ -410,6 +416,7 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
             for (result in results) {
                 notifyAlert(result)
             }
+            notifySummary()
             threadExited()
         }
     }

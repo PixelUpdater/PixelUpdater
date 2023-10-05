@@ -40,7 +40,7 @@
     <string name="pref_magisk_patch_desc">Roots update with Magisk. Requires a functional Magisk install.</string>
     <string name="pref_vbmeta_patch_name">Disable verity and verification</string>
     <string name="pref_vbmeta_patch_desc">Patches vbmeta with disable-verity and disable-verification flags.</string>
-    <string name="pref_automatic_switch_name">Force slot switch</string>
+    <string name="pref_automatic_switch_name">Automatic slot switch</string>
     <string name="pref_automatic_switch_desc">Automatically switch slots when the update is complete.</string>
     <string name="pref_automatic_reboot_name">Automatic reboot</string>
     <string name="pref_automatic_reboot_desc">Automatically reboot when the update is complete.</string>

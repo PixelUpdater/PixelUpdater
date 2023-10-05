@@ -58,7 +58,6 @@ class UpdaterJob: JobService() {
 
         private const val EXTRA_ACTION = "action"
 
-        // TODO: Make this configurable
         private const val PERIODIC_INTERVAL_MS = 6L * 60 * 60 * 1000
         private const val DAILY_INTERVAL_MS = 24L * 60 * 60 * 1000
         private const val WEEKLY_INTERVAL_MS = 7L * 24 * 60 * 60 * 1000
@@ -126,7 +125,7 @@ class UpdaterJob: JobService() {
         fun scheduleImmediate(context: Context, action: UpdaterThread.Action) {
             val jobInfo = createJobBuilder(context, ID_IMMEDIATE, action).build()
 
-            println(jobInfo)
+            println("scheduleImmediate: $jobInfo")
             scheduleIfUnchanged(context, jobInfo)
         }
 
