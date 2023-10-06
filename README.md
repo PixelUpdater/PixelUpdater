@@ -134,7 +134,7 @@ ssh-keygen -Y verify -f pixelupdater_trusted_keys -I pixelupdater -n file -s Pix
 
 If the file is successfully verified, the output will be:
 
-```
+```text
 Good "file" signature for pixelupdater with ED25519 key SHA256:1cqrYVWgvt/jDU+RvaCJHpdET6yZHEInmLPUy2PDK5A
 ```
 
@@ -142,13 +142,13 @@ Good "file" signature for pixelupdater with ED25519 key SHA256:1cqrYVWgvt/jDU+Rv
 
 First, extract the apk from the zip and then run:
 
-```
+```text
 apksigner verify --print-certs system/priv-app/com.github.pixelupdater.pixelupdater/app-release.apk
 ```
 
 Then, check that the SHA-256 digest of the APK signing certificate is:
 
-```
+```text
 766538c98337dae57f6c1e15f2c5ca89c62b25c4ba49b06a244c96f6e0d5e957
 ```
 
