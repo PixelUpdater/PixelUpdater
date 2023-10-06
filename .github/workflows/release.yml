@@ -46,6 +46,7 @@ jobs:
           RELEASE_KEY_PASSPHRASE: ${{ secrets.RELEASE_KEY_PASSPHRASE }}
           RELEASE_KEYSTORE_PASSPHRASE: ${{ secrets.RELEASE_KEYSTORE_PASSPHRASE }}
         run: |
+          ./gradlew zipDebug
           ./gradlew zipRelease
 
       - name: Archive artifacts
