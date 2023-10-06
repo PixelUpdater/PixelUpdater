@@ -9,6 +9,7 @@ bouncycastle = "1.76"
 jgit = "6.6.0.202305301015-r"
 json = "20230618"
 jsoup = "1.16.1"
+jsr305 = "3.0.2"
 kotlin = "1.9.0"
 libsu = "5.2.1"
 kotlinx-serialization = "1.5.1"
@@ -25,6 +26,7 @@ androidx-preference-ktx = { group = "androidx.preference", name = "preference-kt
 bouncycastle-pkix = { group = "org.bouncycastle", name = "bcpkix-jdk18on", version.ref = "bouncycastle" }
 bouncycastle-prov = { group = "org.bouncycastle", name = "bcprov-jdk18on", version.ref = "bouncycastle" }
 jsoup = { group = "org.jsoup", name = "jsoup", version.ref = "jsoup" }
+jsr305 =  { group = "com.google.code.findbugs", name = "jsr305", version.ref = "jsr305" }
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
 libsu-core = { group = "com.github.topjohnwu.libsu", name = "core", version.ref = "libsu" }
 # libsu-service = { group = "com.github.topjohnwu.libsu", name = "service", version.ref = "libsu" }

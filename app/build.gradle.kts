@@ -162,7 +162,6 @@ android {
         versionName = gitVersionName
         resourceConfigurations.addAll(listOf(
             "en",
-            "vi",
         ))
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -247,6 +246,7 @@ dependencies {
     implementation(libs.bouncycastle.pkix)
     implementation(libs.bouncycastle.prov)
     implementation(libs.jsoup)
+    implementation(libs.jsr305)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.libsu.core)
     implementation(libs.material)
@@ -395,6 +395,21 @@ android.applicationVariants.all {
 
         from(File(rootDir, "LICENSE"))
         from(File(rootDir, "README.md"))
+    }
+
+    tasks.register("sign${capitalized}Zip") {
+        dependsOn.add("zip${capitalized}")
+        val output = tasks.named("zip${capitalized}").get().outputs.files.singleFile
+        val sig = File("$output.sig")
+        doLast {
+            if (sig.exists()) {
+                println("deleting ${sig.name}")
+                sig.delete()
+            }
+            exec {
+                commandLine("ssh-keygen", "-Y", "sign", "-f", System.getenv("SIGNING_KEY"), "-P", System.getenv("SIGNING_KEY_PASSPHRASE"), "-n", "file", output)
+            }
+        }
     }
 
     tasks.register("push${capitalized}App") {
