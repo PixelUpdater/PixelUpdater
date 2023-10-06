@@ -36,11 +36,8 @@ jobs:
           cache: 'gradle'
 
       - name: Decode Keystore
-        env:
-          ENCODED_STRING: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
-          RELEASE_KEYSTORE: ${{ secrets.RELEASE_KEYSTORE }}
         run: |
-          echo $ENCODED_STRING | base64 -d > keystore.jks
+          echo "$RELEASE_KEYSTORE_BASE64" | base64 -d > keystore.jks
 
       - name: Build Release apk
         env:
