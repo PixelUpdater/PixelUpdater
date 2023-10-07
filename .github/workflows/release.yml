@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  create_release:
+  build:
     name: Create Github release
     runs-on: ubuntu-latest
     permissions:
@@ -44,22 +44,22 @@ jobs:
         run: |
           echo -n "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 -d > keystore.jks
 
-      - name: Create SSH KEY
-        run: |
-          echo "${{ secrets.SIGNING_KEY }}" > pixelupdater.key
-          chmod 600 pixelupdater.key
+      # - name: Create SSH KEY
+      #   run: |
+      #     echo "${{ secrets.SIGNING_KEY }}" > pixelupdater.key
+      #     chmod 600 pixelupdater.key
 
-      - name: Debug Keystore and ssh key
-        run: |
-          sha256sum keystore.jks > keystore_sha256.txt
-          sha256sum pixelupdater.key > ssh_key_sha256.txt
-          ls -l
-          echo "Checking keystore file path:"
-          echo [$PWD]
-          echo "keystore hash"
-          cat keystore_sha256.txt
-          echo "ssh_key hash"
-          cat ssh_key_sha256.txt
+      # - name: Debug Keystore and ssh key
+      #   run: |
+      #     sha256sum keystore.jks > keystore_sha256.txt
+      #     sha256sum pixelupdater.key > ssh_key_sha256.txt
+      #     ls -l
+      #     echo "Checking keystore file path:"
+      #     echo [$PWD]
+      #     echo "keystore hash"
+      #     cat keystore_sha256.txt
+      #     echo "ssh_key hash"
+      #     cat ssh_key_sha256.txt
 
       - name: Build Release apk
         env:
@@ -77,11 +77,18 @@ jobs:
         run: |
           ls -lR app/build/distributions/release
 
+      - name: Rename files
+        run: |
+          # Rename the existing files
+          mv app/build/distributions/release/PixelUpdater-***.zip app/build/distributions/release/PixelUpdater_${{ steps.get_version.outputs.version }}.zip
+          mv app/build/distributions/release/PixelUpdater-***.zip.sig app/build/distributions/release/PixelUpdater_${{ steps.get_version.outputs.version }}.zip.sig
+        working-directory: ${{ github.workspace }}
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
           name: "PixelUpdater_${{ steps.get_version.outputs.version }}"
-          path: app/build/distributions/release/*.zip
+          path: app/build/distributions/release/*
 
       - name: Create release
         id: create_release
@@ -93,3 +100,6 @@ jobs:
           # body_path: RELEASE.md
           draft: true
           prerelease: false
+          files: |
+            app/build/distributions/release/PixelUpdater_${{ steps.get_version.outputs.version }}.zip
+            app/build/distributions/release/PixelUpdater_${{ steps.get_version.outputs.version }}.zip.sig
