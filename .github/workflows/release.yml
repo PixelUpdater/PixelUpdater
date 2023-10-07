@@ -47,6 +47,7 @@ jobs:
       - name: Create SSH KEY
         run: |
           echo "${{ secrets.SIGNING_KEY }}" > pixelupdater.key
+          chmod 600 pixelupdater.key
 
       - name: Debug Keystore and ssh key
         run: |
