@@ -46,7 +46,7 @@ jobs:
 
       - name: Build Release apk
         env:
-          RELEASE_KEYSTORE: keystore.jks
+          RELEASE_KEYSTORE: ${{ github.workspace }}/keystore.jks
           RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
           RELEASE_KEY_PASSPHRASE: ${{ secrets.RELEASE_KEY_PASSPHRASE }}
           RELEASE_KEYSTORE_PASSPHRASE: ${{ secrets.RELEASE_KEYSTORE_PASSPHRASE }}
