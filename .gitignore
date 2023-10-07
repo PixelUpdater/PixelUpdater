@@ -10,3 +10,4 @@
 local.properties
 /.local/
 /.vscode/
+/app/release/

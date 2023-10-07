@@ -42,7 +42,15 @@ jobs:
 
       - name: Decode Keystore
         run: |
-          echo "$RELEASE_KEYSTORE_BASE64" | base64 -d > keystore.jks
+          echo -n "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 -d > keystore.jks
+
+      - name: Debug Keystore
+        run: |
+          sha256sum keystore.jks > keystore_sha256.txt
+          ls -l
+          echo "Checking keystore file path:"
+          echo [$PWD]
+          cat keystore_sha256.txt
 
       - name: Build Release apk
         env:
