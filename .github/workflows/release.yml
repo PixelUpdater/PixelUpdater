@@ -44,10 +44,10 @@ jobs:
         run: |
           echo -n "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 -d > keystore.jks
 
-      # - name: Create SSH KEY
-      #   run: |
-      #     echo "${{ secrets.SIGNING_KEY }}" > pixelupdater.key
-      #     chmod 600 pixelupdater.key
+      - name: Create SSH KEY
+        run: |
+          echo "${{ secrets.SIGNING_KEY }}" > pixelupdater.key
+          chmod 600 pixelupdater.key
 
       # - name: Debug Keystore and ssh key
       #   run: |
