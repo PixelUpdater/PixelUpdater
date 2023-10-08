@@ -155,9 +155,10 @@ val gitVersionCode = getVersionCode(gitVersionTriple)
 println("gitVersionCode: $gitVersionCode")
 val gitVersionName = getVersionName(git, gitVersionTriple)
 println("gitVersionName: $gitVersionName")
+val gitBranch = git.repository.branch
+println("Current Git branch: $gitBranch")
 
 val projectUrl = "https://github.com/PixelUpdater/PixelUpdater"
-val releaseMetadataBranch = "master"
 
 val extraDir = layout.buildDirectory.map { it.dir("extra") }
 val archiveDir = extraDir.map { it.dir("archive") }
@@ -303,7 +304,7 @@ android.applicationVariants.all {
 
     val moduleProp = tasks.register("moduleProp${capitalized}") {
         inputs.property("projectUrl", projectUrl)
-        inputs.property("releaseMetadataBranch", releaseMetadataBranch)
+        inputs.property("gitBranch", gitBranch)
         inputs.property("rootProject.name", rootProject.name)
         inputs.property("variant.applicationId", variant.applicationId)
         inputs.property("variant.name", variant.name)
@@ -323,7 +324,7 @@ android.applicationVariants.all {
             props["description"] = "Pixel OTA updater"
 
             if (variant.name == "release") {
-                props["updateJson"] = "${projectUrl}/raw/${releaseMetadataBranch}/app/module/updates/${variant.name}/info.json"
+                props["updateJson"] = "${projectUrl}/raw/${gitBranch}/app/module/updates/${variant.name}/info.json"
             }
 
             outputFile.get().asFile.writeText(
@@ -647,7 +648,7 @@ tasks.register("changelogPreRelease") {
 tasks.register("changelogPostRelease") {
     doLast {
         updateChangelog(null, false)
-        updateModuleChangelog(releaseMetadataBranch)
+        updateModuleChangelog(gitBranch)
     }
 }
 
