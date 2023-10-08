@@ -30,6 +30,10 @@ jobs:
         with:
           submodules: true
 
+      # https://github.com/actions/checkout/issues/290
+      - name: Preserve tag annotations
+        run: git fetch -f origin ${{ github.ref }}:${{ github.ref }}
+
       - name: Validate gradle wrapper checksum
         uses: gradle/wrapper-validation-action@v1
 
