@@ -76,6 +76,7 @@ jobs:
         run: |
           ./gradlew zipRelease
           ./gradlew signReleaseZip
+          ./gradlew updateJsonRelease
 
       - name: Debug list artifacts
         run: |
