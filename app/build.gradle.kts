@@ -49,6 +49,9 @@ fun describeVersion(git: Git): VersionTriple {
         val commit = git.repository.resolve(pieces.pop().substring(1))
         val count = pieces.pop().toInt()
         val tag = pieces.joinToString("-")
+        println("tag: $tag")
+        println("count: $count")
+        println("commit: $commit")
 
         Triple(tag, count, commit)
     } else {
@@ -60,6 +63,10 @@ fun describeVersion(git: Git): VersionTriple {
             log.next()
             ++count
         }
+
+        println("tag: null")
+        println("count: $count")
+        println("commit: ${head.id}")
 
         Triple(null, count, head.id)
     }
@@ -77,10 +84,14 @@ fun getVersionCode(triple: VersionTriple): Int {
             throw IllegalArgumentException("Tag is not in the form 'v<major>.<minor>': $tag")
         }
 
+
         Pair(pieces[0].toInt(), pieces[1].toInt())
     } else {
         Pair(0, 0)
     }
+    println("major: $major")
+    println("minor: $minor")
+    println("count: ${triple.second}")
 
     // 8 bits for major version, 8 bits for minor version, and 8 bits for git commit count
     assert(major in 0 until 1.shl(8))
@@ -138,8 +149,11 @@ fun getSelectedDevice(): String {
 
 val git = Git.open(File(rootDir, ".git"))!!
 val gitVersionTriple = describeVersion(git)
+println("gitVersionTriple: $gitVersionTriple")
 val gitVersionCode = getVersionCode(gitVersionTriple)
+println("gitVersionCode: $gitVersionCode")
 val gitVersionName = getVersionName(git, gitVersionTriple)
+println("gitVersionName: $gitVersionName")
 
 val projectUrl = "https://github.com/PixelUpdater/PixelUpdater"
 val releaseMetadataBranch = "master"
@@ -360,8 +374,11 @@ android.applicationVariants.all {
         inputs.property("variant.applicationId", variant.applicationId)
         inputs.property("variant.name", variant.name)
         inputs.property("variant.versionName", variant.versionName)
+        println("inputs: $inputs")
 
         archiveFileName.set("${rootProject.name}-${variant.versionName}-${variant.name}.zip")
+        println("archiveFileName: $archiveFileName")
+
         // Force instantiation of old value or else this will cause infinite recursion
         destinationDirectory.set(destinationDirectory.dir(variant.name).get())
 
