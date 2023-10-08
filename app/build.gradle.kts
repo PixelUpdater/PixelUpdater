@@ -43,6 +43,7 @@ typealias VersionTriple = Triple<String?, Int, ObjectId>
 fun describeVersion(git: Git): VersionTriple {
     // jgit doesn't provide a nice way to get strongly-typed objects from its `describe` command
     val describeStr = git.describe().setLong(true).call()
+    println("git.describe(): ${git.describe().call()}")
 
     return if (describeStr != null) {
         val pieces = describeStr.split('-').toMutableList()
@@ -374,10 +375,14 @@ android.applicationVariants.all {
         inputs.property("variant.applicationId", variant.applicationId)
         inputs.property("variant.name", variant.name)
         inputs.property("variant.versionName", variant.versionName)
-        println("inputs: $inputs")
+
+        println("rootProject.name: ${rootProject.name}")
+        println("variant.applicationId: ${variant.applicationId}")
+        println("variant.name: ${variant.name}")
+        println("variant.versionName: ${variant.versionName}")
 
         archiveFileName.set("${rootProject.name}-${variant.versionName}-${variant.name}.zip")
-        println("archiveFileName: $archiveFileName")
+        println("archiveFileName: ${rootProject.name}-${variant.versionName}-${variant.name}.zip")
 
         // Force instantiation of old value or else this will cause infinite recursion
         destinationDirectory.set(destinationDirectory.dir(variant.name).get())
