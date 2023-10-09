@@ -125,7 +125,7 @@ Both the zip file and the APK contained within are digitally signed.
 First, save the public key to a file listing the keys to be trusted.
 
 ```bash
-echo 'pixelupdater ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMhOIXQSss8MibtGMGOyvJHeB3e7osngI5nsLLU3H55P' > pixelupdater_trusted_keys
+echo pixelupdater ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMhOIXQSss8MibtGMGOyvJHeB3e7osngI5nsLLU3H55P > pixelupdater_trusted_keys
 ```
 
 Then, verify the signature of the zip file using the list of trusted keys.
