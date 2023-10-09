@@ -11,3 +11,4 @@ local.properties
 /.local/
 /.vscode/
 /app/release/
+.env
