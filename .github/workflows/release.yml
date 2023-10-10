@@ -1,4 +1,5 @@
----
+name: Build-Release
+
 on:
   push:
     # Uncomment to test against a branch
@@ -105,30 +106,30 @@ jobs:
             app/build/distributions/release/PixelUpdater-${{ steps.get_version.outputs.version }}-release.zip
             app/build/distributions/release/PixelUpdater-${{ steps.get_version.outputs.version }}-release.zip.sig
 
-  update-links:
-    runs-on: ubuntu-latest
-    needs: build
+  # update-links:
+  #   runs-on: ubuntu-latest
+  #   needs: build
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          ref: update-links
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v4
+  #       with:
+  #         ref: update-links
 
-      # Download release.json
-      - name: Download info.json
-        uses: actions/download-artifact@v3
-        with:
-          name: release.json
-        continue-on-error: true
+  #     # Download release.json
+  #     - name: Download info.json
+  #       uses: actions/download-artifact@v3
+  #       with:
+  #         name: release.json
+  #       continue-on-error: true
 
-      # Update the release.json file, commit and push
-      - name: Update release.json
-        run: |
-          ls -al .
-          git config user.name github-actions
-          git config user.email github-actions@github.com
-          git add release.json
-          git commit -m "Update release.json ${{ github.ref }}"
-          git push origin update-links
+  #     # Update the release.json file, commit and push
+  #     - name: Update release.json
+  #       run: |
+  #         ls -al .
+  #         git config user.name github-actions
+  #         git config user.email github-actions@github.com
+  #         git add release.json
+  #         git commit -m "Update release.json ${{ github.ref }}"
+  #         git push origin update-links
 

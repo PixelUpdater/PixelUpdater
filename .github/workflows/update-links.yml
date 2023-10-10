@@ -1,0 +1,46 @@
+name: Update-Links
+
+on:
+  release:
+    types:
+      - published
+
+jobs:
+  job1:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Determine Build-Release's run id
+        id: get_run_id
+        run: |
+          run_id=$(gh api -X GET /repos/PixelUpdater/PixelUpdater/actions/workflows/Build-Release/runs --query "workflow_runs[0].run_id")
+          echo "Build-Release run id: $run_id"
+          echo "::set-output name=run_id::$run_id"
+
+      - name: Download artifacts from Workflow Build-Release
+        run: |
+            artifact_id=$(gh api -X GET /repos/PixelUpdater/PixelUpdater/actions/runs/${{ steps.get_run_id.outputs.run_id }}/artifacts --query "artifacts | map(select(.name == 'release.json')) | .[0].id")
+            if [[ -n "$artifact_id" ]]; then
+                curl -sLJO -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "https://api.github.com/repos/PixelUpdater/PixelUpdater/actions/artifacts/$artifact_id"
+            else
+                echo "The specified artifact 'artifact-name' was not found in the workflow run."
+                exit 1
+            fi
+
+      - name: List downloaded artifacts
+        run: |
+          ls -l .
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: update-links
+
+      # Update the release.json file, commit and push
+      - name: Update release.json
+        run: |
+          ls -al .
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add release.json
+          git commit -m "Update release.json ${{ github.ref }}"
+          git push origin update-links
