@@ -95,6 +95,13 @@ jobs:
           name: "PixelUpdater_${{ steps.get_version.outputs.version }}"
           path: app/build/distributions/release/*
 
+      - name: Upload release-info
+        uses: actions/upload-artifact@v3
+        id: upload_release_info
+        with:
+          name: release update json
+          path: app/module/updates/release/info.json
+
       - name: Create release
         id: create_release
         uses: softprops/action-gh-release@v1
@@ -108,3 +115,32 @@ jobs:
           files: |
             app/build/distributions/release/PixelUpdater_${{ steps.get_version.outputs.version }}.zip
             app/build/distributions/release/PixelUpdater_${{ steps.get_version.outputs.version }}.zip.sig
+
+  update-links:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: update-links
+
+      # Download the info.json
+      - name: Download info.json
+        uses: actions/download-artifact@v3
+        with:
+          name: release update json
+          path: temp
+        continue-on-error: true
+
+      # Update the release.json file, commit and push
+      - name: Update release.json
+        run: |
+          ls -al .
+          ls -al temp
+          echo temp/info.json > release.json
+          git add release.json
+          git commit -m "Update release.json ${{ github.ref }}"
+          git push origin update-links
+
+
