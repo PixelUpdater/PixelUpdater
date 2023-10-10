@@ -6,13 +6,16 @@ on:
       - published
 
 jobs:
-  job1:
+  update-links:
     runs-on: ubuntu-latest
+
     steps:
+
       - name: Determine Build-Release's run id
         id: get_run_id
         run: |
-          run_id=$(gh api -X GET /repos/PixelUpdater/PixelUpdater/actions/workflows/Build-Release/runs --query "workflow_runs[0].run_id")
+          run_info=$(gh api -X GET /repos/PixelUpdater/PixelUpdater/actions/workflows/Build-Release/runs)
+          run_id=$(echo "$run_info" | jq -r '.workflow_runs[0].id')
           echo "Build-Release run id: $run_id"
           echo "::set-output name=run_id::$run_id"
 
