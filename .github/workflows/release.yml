@@ -77,6 +77,7 @@ jobs:
           ./gradlew zipRelease
           ./gradlew signReleaseZip
           ./gradlew updateJsonRelease
+          cp app/module/updates/release/info.json app/build/distributions/release/info.json
 
       - name: Debug list artifacts
         run: |
@@ -93,7 +94,8 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: "PixelUpdater_${{ steps.get_version.outputs.version }}"
-          path: app/build/distributions/release/*
+          path: |
+            app/build/distributions/release/*
 
       - name: Create release
         id: create_release
@@ -108,3 +110,4 @@ jobs:
           files: |
             app/build/distributions/release/PixelUpdater_${{ steps.get_version.outputs.version }}.zip
             app/build/distributions/release/PixelUpdater_${{ steps.get_version.outputs.version }}.zip.sig
+            app/build/distributions/release/info.json
