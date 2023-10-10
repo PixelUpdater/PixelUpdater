@@ -14,10 +14,12 @@ jobs:
       - name: Determine Build-Release's run id
         id: get_run_id
         run: |
+          export GH_TOKEN="${{ secrets.GITHUB_TOKEN }}"
           run_info=$(gh api -X GET /repos/PixelUpdater/PixelUpdater/actions/workflows/Build-Release/runs)
           run_id=$(echo "$run_info" | jq -r '.workflow_runs[0].id')
           echo "Build-Release run id: $run_id"
           echo "::set-output name=run_id::$run_id"
+        shell: /usr/bin/bash -e {0}
 
       - name: Download artifacts from Workflow Build-Release
         run: |
