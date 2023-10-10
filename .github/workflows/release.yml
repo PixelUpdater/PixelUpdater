@@ -15,16 +15,6 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Get version from tag
-        id: get_version
-        run: |
-          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
-              version=${GITHUB_REF#refs/tags/v}
-          else
-              version=0.0.0.${GITHUB_REF#refs/heads/}
-          fi
-          echo "version=${version}" >> "${GITHUB_OUTPUT}"
-
       - name: Check out repository
         uses: actions/checkout@v3
         with:
@@ -34,15 +24,21 @@ jobs:
       - name: Preserve tag annotations
         run: git fetch -f origin ${{ github.ref }}:${{ github.ref }}
 
+      - name: Get version from git describe
+        id: get_version
+        run: |
+          version=$(git describe | sed -E 's/v([0-9]*\.[0-9]*)-([0-9]+)-g([0-9a-f]+)/v\1.r\2.g\3/')
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
       - name: Validate gradle wrapper checksum
         uses: gradle/wrapper-validation-action@v1
 
       - name: Set up Java
         uses: actions/setup-java@v3
         with:
-          distribution: 'temurin'
-          java-version: '20'
-          cache: 'gradle'
+          distribution: temurin
+          java-version: 17
+          cache: gradle
 
       - name: Decode Keystore
         run: |
@@ -68,7 +64,7 @@ jobs:
       - name: Build Release apk
         env:
           RELEASE_KEYSTORE: ${{ github.workspace }}/keystore.jks
-          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_ALIAS: release
           RELEASE_KEY_PASSPHRASE: ${{ secrets.RELEASE_KEY_PASSPHRASE }}
           RELEASE_KEYSTORE_PASSPHRASE: ${{ secrets.RELEASE_KEYSTORE_PASSPHRASE }}
           SIGNING_KEY: ${{ github.workspace }}/pixelupdater.key
@@ -82,39 +78,32 @@ jobs:
         run: |
           ls -lR app/build/distributions/release
 
-      - name: Rename files
-        run: |
-          # Rename the existing files
-          mv app/build/distributions/release/PixelUpdater-***.zip app/build/distributions/release/PixelUpdater_${{ steps.get_version.outputs.version }}.zip
-          mv app/build/distributions/release/PixelUpdater-***.zip.sig app/build/distributions/release/PixelUpdater_${{ steps.get_version.outputs.version }}.zip.sig
-        working-directory: ${{ github.workspace }}
-
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: "PixelUpdater_${{ steps.get_version.outputs.version }}"
+          name: PixelUpdater-${{ steps.get_version.outputs.version }}-release
           path: app/build/distributions/release/*
 
       - name: Upload release-info
         uses: actions/upload-artifact@v3
         id: upload_release_info
         with:
-          name: release update json
-          path: app/module/updates/release/info.json
+          name: release.json
+          path: app/build/distributions/release.json
 
       - name: Create release
         id: create_release
         uses: softprops/action-gh-release@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          tag_name: v${{ steps.get_version.outputs.version }}
-          name: Version ${{ steps.get_version.outputs.version }}
+          tag_name: ${{ steps.get_version.outputs.version }}
+          name: Release ${{ steps.get_version.outputs.version }}
           # body_path: RELEASE.md
           draft: true
           prerelease: false
           files: |
-            app/build/distributions/release/PixelUpdater_${{ steps.get_version.outputs.version }}.zip
-            app/build/distributions/release/PixelUpdater_${{ steps.get_version.outputs.version }}.zip.sig
+            app/build/distributions/release/PixelUpdater-${{ steps.get_version.outputs.version }}-release.zip
+            app/build/distributions/release/PixelUpdater-${{ steps.get_version.outputs.version }}-release.zip.sig
 
   update-links:
     runs-on: ubuntu-latest
@@ -126,20 +115,17 @@ jobs:
         with:
           ref: update-links
 
-      # Download the info.json
+      # Download release.json
       - name: Download info.json
         uses: actions/download-artifact@v3
         with:
-          name: release update json
-          path: temp
+          name: release.json
         continue-on-error: true
 
       # Update the release.json file, commit and push
       - name: Update release.json
         run: |
           ls -al .
-          ls -al temp
-          cat temp/info.json > release.json
           git config user.name github-actions
           git config user.email github-actions@github.com
           git add release.json

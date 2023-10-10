@@ -6,6 +6,7 @@
  * Based on BCR code.
  */
 
+import com.android.build.gradle.internal.api.BaseVariantOutputImpl
 import com.google.protobuf.gradle.proto
 import org.eclipse.jgit.api.ArchiveCommand
 import org.eclipse.jgit.api.Git
@@ -103,7 +104,7 @@ fun getVersionCode(triple: VersionTriple): Int {
 }
 
 fun getVersionName(git: Git, triple: VersionTriple): String {
-    val tag = triple.first?.replace(Regex("^v"), "") ?: "NONE"
+    val tag = triple.first ?: "NONE"
 
     return buildString {
         append(tag)
@@ -298,6 +299,15 @@ android.applicationVariants.all {
     val capitalized = variant.name.replaceFirstChar { it.uppercase() }
     val variantDir = extraDir.map { it.dir(variant.name) }
 
+    // https://stackoverflow.com/a/60849081/434343
+    outputs.all {
+        val output = this as BaseVariantOutputImpl
+        if (output.outputFileName == "${project.name}-${variant.name}.apk") {
+            output.outputFileName = "${rootProject.name}.apk"
+            println("output.outputFileName: ${output.outputFileName}")
+        }
+    }
+
     variant.preBuildProvider.configure {
         dependsOn(archive)
     }
@@ -322,10 +332,7 @@ android.applicationVariants.all {
             props["versionCode"] = variant.versionCode.toString()
             props["author"] = "Pixel Updater contributors"
             props["description"] = "Pixel OTA updater"
-
-            if (variant.name == "release") {
-                props["updateJson"] = "${projectUrl}/raw/${gitBranch}/app/module/updates/${variant.name}/info.json"
-            }
+            props["updateJson"] = "${projectUrl}/raw/update-links/${variant.name}.json"
 
             outputFile.get().asFile.writeText(
                 props.map { "${it.key}=${it.value}" }.joinToString("\n"))
@@ -486,30 +493,23 @@ android.applicationVariants.all {
     }
 
     tasks.register("updateJson${capitalized}") {
-        inputs.property("gitVersionTriple.first", gitVersionTriple.first)
         inputs.property("projectUrl", projectUrl)
         inputs.property("rootProject.name", rootProject.name)
         inputs.property("variant.name", variant.name)
         inputs.property("variant.versionCode", variant.versionCode)
         inputs.property("variant.versionName", variant.versionName)
 
-        val moduleDir = File(projectDir, "module")
-        val updatesDir = File(moduleDir, "updates")
-        val variantUpdateDir = File(updatesDir, variant.name)
-        val jsonFile = File(variantUpdateDir, "info.json")
+        val outputDir = tasks.named("zip${capitalized}").get().outputs.files.singleFile.parentFile.parentFile
+        val jsonFile = File(outputDir, "${variant.name}.json")
 
         outputs.file(jsonFile)
 
         doLast {
-            if (gitVersionTriple.second != 0) {
-                throw IllegalStateException("The release tag must be checked out")
-            }
-
             val root = JSONObject()
             root.put("version", variant.versionName)
             root.put("versionCode", variant.versionCode)
-            root.put("zipUrl", "${projectUrl}/releases/download/${gitVersionTriple.first}/${rootProject.name}-${variant.versionName}-release.zip")
-            root.put("changelog", "${projectUrl}/raw/${gitVersionTriple.first}/app/module/updates/${variant.name}/changelog.txt")
+            root.put("zipUrl", "${projectUrl}/releases/download/${variant.versionName}/${rootProject.name}-${variant.versionName}-${variant.name}.zip")
+            root.put("changelog", "${projectUrl}/raw/${variant.versionName}/app/module/updates/${variant.name}/changelog.txt")
 
             jsonFile.writer().use {
                 root.write(it, 4, 0)
