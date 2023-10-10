@@ -139,7 +139,7 @@ jobs:
         run: |
           ls -al .
           ls -al temp
-          echo temp/info.json > release.json
+          cat temp/info.json > release.json
           git config user.name github-actions
           git config user.email github-actions@github.com
           git add release.json
