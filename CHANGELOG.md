@@ -7,7 +7,8 @@
     to update the actual links at the bottom of the file.
 -->
 
-##Pixel Updater
+## Pixel Updater
+
 ### Unreleased
 
 * Fork as Pixel Updater
@@ -16,6 +17,7 @@
 * Add scraper
 
 ## Custota
+
 ### Version 2.3
 
 * Update dependencies ([PR #17], [PR #20], [PR #21])
