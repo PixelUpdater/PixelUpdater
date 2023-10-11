@@ -58,12 +58,37 @@ jobs:
             name: release.json
           continue-on-error: true
 
-        # Update the release.json file, commit and push
+        - name: Get tag message
+          id: get_tag_message
+          run: |
+            tag_message=$(git show -s --format='%B' ${{ github.ref }})
+            echo "::set-output name=message::${tag_message}"
+
+        - name: Format tag message
+          id: format_tag_message
+          run: |
+            tag_message="${{ steps.get_tag_message.outputs.message }}"
+            date="$(date +'%Y-%m-%d')"
+            release_version="${{ steps.get_version.outputs.version }}"
+            formatted_message="${date} ${release_version}\n${tag_message}"
+            echo "::set-output name=formatted_message::${formatted_message}"
+
+        - name: Append to changelog.txt
+          run: |
+            formatted_message="${{ steps.format_tag_message.outputs.formatted_message }}"
+            if [ -f changelog.txt ]; then
+              echo -e "${formatted_message}\n$(cat changelog.txt)" > changelog.txt
+            else
+              echo -e "${formatted_message}" > changelog.txt
+            fi
+
+        # Update the release.json file and changelog.txt, commit and push
         - name: Update release.json
           run: |
             ls -al .
             git config user.name github-actions
             git config user.email github-actions@github.com
             git add release.json
+            git add changelog.txt
             git commit -m "Update release.json ${{ github.ref }}"
             git push origin update-links

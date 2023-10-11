@@ -92,6 +92,12 @@ jobs:
           name: release.json
           path: app/build/distributions/release.json
 
+      - name: Get tag message
+        id: get_tag_message
+        run: |
+          tag_message=$(git show -s --format='%B' ${{ github.ref }})
+          echo "::set-output name=message::${tag_message}"
+
       - name: Create release
         id: create_release
         uses: softprops/action-gh-release@v1
@@ -99,7 +105,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: ${{ steps.get_version.outputs.version }}
           name: Release ${{ steps.get_version.outputs.version }}
-          # body_path: RELEASE.md
+          body: ${{ steps.get_tag_message.outputs.message }}
           draft: true
           prerelease: false
           files: |
