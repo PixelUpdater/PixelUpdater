@@ -1,4 +1,5 @@
 name: Test tag annotation
+
 on:
   push:
     tags:
@@ -20,7 +21,14 @@ jobs:
         id: tag-data
         uses: ericcornelissen/git-tag-annotation-action@v2
 
+      - name: Strip PGP Signature
+        id: strip-pgp
+        run: |
+          ANNOTATION="${{ steps.tag-data.outputs.git-tag-annotation }}"
+          ANNOTATION="${ANNOTATION%%-----BEGIN PGP SIGNATURE-----*}"
+          echo "::set-output name=stripped-annotation::$ANNOTATION"
+
       - name: The output
         env:
-          ANNOTATION: ${{ steps.tag-data.outputs.git-tag-annotation }}
-        run: echo "$ANNOTATION"
+          STRIPPED_ANNOTATION: ${{ steps.strip-pgp.outputs.stripped-annotation }}
+        run: echo "$STRIPPED_ANNOTATION"
