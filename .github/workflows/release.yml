@@ -92,11 +92,16 @@ jobs:
           name: release.json
           path: app/build/distributions/release.json
 
-      - name: Get tag message
-        id: get_tag_message
-        run: |
-          tag_message=$(git show -s --format='%B' ${{ github.ref }})
-          echo "::set-output name=message::${tag_message}"
+      - name: Get current tag annotation
+        id: tag-data
+        uses: ericcornelissen/git-tag-annotation-action@v2
+
+      # - name: Strip PGP Signature
+      #   id: strip-pgp
+      #   run: |
+      #     ANNOTATION="${{ steps.tag-data.outputs.git-tag-annotation }}"
+      #     STRIPPED_ANNOTATION=$(echo "$ANNOTATION" | awk '/-BEGIN PGP SIGNATURE-/{exit} {print}')
+      #     echo "::set-output name=stripped-annotation::$STRIPPED_ANNOTATION"
 
       - name: Create release
         id: create_release
@@ -105,7 +110,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: ${{ steps.get_version.outputs.version }}
           name: Release ${{ steps.get_version.outputs.version }}
-          body: ${{ steps.get_tag_message.outputs.message }}
+          body: ${{ steps.tag-data.outputs.git-tag-annotation }}
           draft: true
           prerelease: false
           files: |

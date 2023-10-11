@@ -58,24 +58,24 @@ jobs:
             name: release.json
           continue-on-error: true
 
-        - name: Get tag message
-          id: get_tag_message
+        - name: Get the published release's body
+          id: get_release_body
           run: |
-            tag_message=$(git show -s --format='%B' ${{ github.ref }})
-            echo "::set-output name=message::${tag_message}"
+            release_body="${{ github.event.release.body }}"
+            echo "::set-output name=release_body::${release_body}"
 
-        - name: Format tag message
-          id: format_tag_message
+        - name: Format release body
+          id: format_release_body
           run: |
-            tag_message="${{ steps.get_tag_message.outputs.message }}"
+            release_body="${{ steps.get_release_body.outputs.message }}"
             date="$(date +'%Y-%m-%d')"
             release_version="${{ steps.get_version.outputs.version }}"
-            formatted_message="${date} ${release_version}\n${tag_message}"
+            formatted_message="${date} ${release_version}\n${release_body}"
             echo "::set-output name=formatted_message::${formatted_message}"
 
         - name: Append to changelog.txt
           run: |
-            formatted_message="${{ steps.format_tag_message.outputs.formatted_message }}"
+            formatted_message="${{ steps.format_release_body.outputs.formatted_message }}"
             if [ -f changelog.txt ]; then
               echo -e "${formatted_message}\n$(cat changelog.txt)" > changelog.txt
             else
