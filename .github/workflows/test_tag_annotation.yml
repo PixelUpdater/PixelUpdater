@@ -25,8 +25,8 @@ jobs:
         id: strip-pgp
         run: |
           ANNOTATION="${{ steps.tag-data.outputs.git-tag-annotation }}"
-          ANNOTATION="${ANNOTATION%%-----BEGIN PGP SIGNATURE-----*}"
-          echo "::set-output name=stripped-annotation::$ANNOTATION"
+          STRIPPED_ANNOTATION=$(echo "$ANNOTATION" | sed '/^-----BEGIN PGP SIGNATURE-----$/,$d')
+          echo "::set-output name=stripped-annotation::$STRIPPED_ANNOTATION"
 
       - name: The output
         env:
