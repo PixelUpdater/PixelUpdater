@@ -15,12 +15,19 @@ import android.content.ComponentName
 import android.content.Context
 import android.os.PersistableBundle
 import android.util.Log
+import com.github.pixelupdater.pixelupdater.Notifications
+import com.github.pixelupdater.pixelupdater.Permissions
 import com.github.pixelupdater.pixelupdater.Preferences
 
 class UpdaterJob: JobService() {
     override fun onStartJob(params: JobParameters): Boolean {
         println("onStartJob")
         val prefs = Preferences(this)
+
+        if (!Permissions.haveRequired(applicationContext) || !Notifications.areEnabled(applicationContext)) {
+            Log.i(TAG, "Notifications are disabled, job skipped")
+            return false
+        }
 
         val actionIndex = params.extras.getInt(EXTRA_ACTION, -1)
         val isPeriodic = actionIndex == -1

@@ -35,6 +35,15 @@ class Notifications(
         const val ID_PERSISTENT = 1
         const val ID_ALERT = 2
         const val ID_INDEXED = 3
+
+        // https://stackoverflow.com/a/57769424/434343
+        fun areEnabled(context: Context): Boolean {
+            val notificationManager = context.getSystemService(NotificationManager::class.java)
+            return when {
+                notificationManager.areNotificationsEnabled().not() -> false
+                else -> notificationManager.notificationChannels.firstOrNull { channel -> channel.importance == NotificationManager.IMPORTANCE_NONE } == null
+            }
+        }
     }
 
     private val notificationManager = context.getSystemService(NotificationManager::class.java)

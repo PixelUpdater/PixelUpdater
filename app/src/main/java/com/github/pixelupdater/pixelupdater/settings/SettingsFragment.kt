@@ -15,6 +15,8 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.provider.DocumentsContract
+import android.provider.Settings
+import android.view.View
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -28,6 +30,7 @@ import androidx.preference.SwitchPreferenceCompat
 import androidx.preference.get
 import androidx.preference.size
 import com.github.pixelupdater.pixelupdater.BuildConfig
+import com.github.pixelupdater.pixelupdater.Notifications
 import com.github.pixelupdater.pixelupdater.Permissions
 import com.github.pixelupdater.pixelupdater.Preferences
 import com.github.pixelupdater.pixelupdater.R
@@ -38,6 +41,7 @@ import com.github.pixelupdater.pixelupdater.updater.UpdaterThread
 import com.github.pixelupdater.pixelupdater.view.LongClickablePreference
 import com.github.pixelupdater.pixelupdater.view.OnPreferenceLongClickListener
 import com.github.pixelupdater.pixelupdater.wrapper.SystemPropertiesProxy
+import com.google.android.material.snackbar.Snackbar
 import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.launch
 import java.security.PublicKey
@@ -70,6 +74,8 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceClic
     private lateinit var prefOtaUrl: Preference
     private lateinit var prefAutomaticReboot: SwitchPreferenceCompat
     private lateinit var prefVerityOnly: SwitchPreferenceCompat
+
+    private lateinit var snackbar: Snackbar
 
     private lateinit var scheduledAction: UpdaterThread.Action
 
@@ -205,12 +211,18 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceClic
         }
     }
 
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        snackbar = Snackbar.make(view, "Notifications are disabled", Snackbar.LENGTH_INDEFINITE)
+    }
+
     override fun onStart() {
         super.onStart()
 
         preferenceScreen.sharedPreferences!!.registerOnSharedPreferenceChangeListener(this)
 
         // Make sure we refresh this every time the user switches back to the app
+        refreshSnackbar()
         viewModel.refreshBootloaderStatus()
         viewModel.refreshMagiskStatus()
         if (prefs.hasRoot) {
@@ -224,6 +236,15 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceClic
         super.onStop()
 
         preferenceScreen.sharedPreferences!!.unregisterOnSharedPreferenceChangeListener(this)
+    }
+
+    private fun refreshSnackbar() {
+        val context = requireContext()
+        if (!Permissions.haveRequired(context) || !Notifications.areEnabled(context)) {
+            snackbar.show()
+        } else {
+            snackbar.dismiss()
+        }
     }
 
     private fun refreshOtaUrl() {
@@ -324,10 +345,15 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceClic
         val context = requireContext()
 
         if (Permissions.haveRequired(context)) {
-            println("performing action")
-            UpdaterJob.scheduleImmediate(requireContext(), scheduledAction)
+            if (Notifications.areEnabled(context)) {
+                UpdaterJob.scheduleImmediate(requireContext(), scheduledAction)
+            } else {
+                val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                    putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                }
+                startActivity(intent)
+            }
         } else {
-            println("not performing action")
             requestPermissionRequired.launch(Permissions.REQUIRED)
         }
     }
