@@ -1,0 +1,26 @@
+name: Test tag annotation
+on:
+  push:
+    tags:
+      - "v*" # Push events of tags matching v*, i.e. v1.0, v20.15.10
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Example job
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Fetch tags
+        run: git fetch --tags --force
+
+      - name: Get current tag annotation
+        id: tag-data
+        uses: ericcornelissen/git-tag-annotation-action@v2
+
+      - name: The output
+        env:
+          ANNOTATION: ${{ steps.tag-data.outputs.git-tag-annotation }}
+        run: echo "$ANNOTATION"
