@@ -96,9 +96,11 @@ jobs:
       - name: Get annotation from git for-each-ref
         id: get_annotation
         run: |
-          echo 'annotation<<EOF'
-          git for-each-ref ${{ github.ref }} --format='%(contents)' | awk '/-BEGIN PGP SIGNATURE-/{exit} {print}'
-          echo 'EOF'
+          {
+            echo 'annotation<<EOF'
+            git for-each-ref ${{ github.ref }} --format='%(contents)' | awk '/-BEGIN PGP SIGNATURE-/{exit} {print}'
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
 
       - name: Create release
         id: create_release
