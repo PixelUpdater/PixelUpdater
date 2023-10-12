@@ -58,6 +58,13 @@ jobs:
             name: release.json
           continue-on-error: true
 
+        # https://stackoverflow.com/a/63817068/434343
+        - name: Dump GitHub context
+          env:
+            GITHUB_CONTEXT: ${{ toJson(github) }}
+          run: |
+            echo "$GITHUB_CONTEXT"
+
         - name: Prepend to changelog.txt
           env:
             RELEASE_BODY: ${{ github.event.release.body }}
