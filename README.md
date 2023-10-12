@@ -196,7 +196,7 @@ and then build the release zip:
 
 Bug fix and translation pull requests are welcome and much appreciated!
 
-If you are interested in implementing a new feature and would like to see it included in Pixel Updater, please open an issue to discuss it first. We intend for Pixel Updater to be as simple and low-maintenance as possible, so we am not too inclined to add new features, but we could be convinced otherwise.
+If you are interested in implementing a new feature and would like to see it included in Pixel Updater, please open an issue to discuss it first. We intend for Pixel Updater to be as simple and low-maintenance as possible, so we are not too inclined to add new features, but we could be convinced otherwise.
 
 ## License
 
