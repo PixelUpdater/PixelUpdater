@@ -11,6 +11,13 @@ jobs:
     name: Example job
     runs-on: ubuntu-latest
     steps:
+      # https://stackoverflow.com/a/63817068/434343
+      - name: Dump GitHub context
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+        run: |
+          echo "$GITHUB_CONTEXT"
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
