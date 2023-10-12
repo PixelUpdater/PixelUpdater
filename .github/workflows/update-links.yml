@@ -58,37 +58,28 @@ jobs:
             name: release.json
           continue-on-error: true
 
-        - name: Get the published release's body
-          id: get_release_body
+        - name: Prepend to changelog.txt
+          env:
+            RELEASE_BODY: ${{ github.event.release.body }}
           run: |
-            release_body="${{ github.event.release.body }}"
-            echo "::set-output name=release_body::${release_body}"
-
-        - name: Format release body
-          id: format_release_body
-          run: |
-            release_body="${{ steps.get_release_body.outputs.message }}"
-            date="$(date +'%Y-%m-%d')"
-            release_version="${{ steps.get_version.outputs.version }}"
-            formatted_message="${date} ${release_version}\n${release_body}"
-            echo "::set-output name=formatted_message::${formatted_message}"
-
-        - name: Append to changelog.txt
-          run: |
-            formatted_message="${{ steps.format_release_body.outputs.formatted_message }}"
-            if [ -f changelog.txt ]; then
-              echo -e "${formatted_message}\n$(cat changelog.txt)" > changelog.txt
-            else
-              echo -e "${formatted_message}" > changelog.txt
+            DATE="$(echo ${{ github.event.release.published_at }} | sed -E 's/T.+//')"
+            if [ -f changelog.md ]; then
+              mv changelog.md changelog-old.md
+            fi
+            echo -e "### $DATE ${{ steps.get_version.outputs.version }}-release\n" > changelog.md
+            echo $RELEASE_BODY >> release.changelog.md
+            if [ -f changelog-old.md ]; then
+              echo >> changelog.md
+              cat changelog-old.md >> changelog.md
             fi
 
-        # Update the release.json file and changelog.txt, commit and push
+        # Update the release.json file and changelog.md, commit and push
         - name: Update release.json
           run: |
             ls -al .
             git config user.name github-actions
             git config user.email github-actions@github.com
             git add release.json
-            git add changelog.txt
-            git commit -m "Update release.json ${{ github.ref }}"
+            git add changelog.md
+            git commit -m "Update for ${{ github.ref }}"
             git push origin update-links
