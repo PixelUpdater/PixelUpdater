@@ -58,13 +58,6 @@ jobs:
             name: release.json
           continue-on-error: true
 
-        # https://stackoverflow.com/a/63817068/434343
-        - name: Dump GitHub context
-          env:
-            GITHUB_CONTEXT: ${{ toJson(github) }}
-          run: |
-            echo "$GITHUB_CONTEXT"
-
         - name: Prepend to changelog.txt
           env:
             RELEASE_BODY: ${{ github.event.release.body }}
@@ -74,7 +67,7 @@ jobs:
               mv changelog.md changelog-old.md
             fi
             echo -e "### $DATE ${{ steps.get_version.outputs.version }}-release\n" > changelog.md
-            echo $RELEASE_BODY >> release.changelog.md
+            echo $RELEASE_BODY >> changelog.md
             if [ -f changelog-old.md ]; then
               echo >> changelog.md
               cat changelog-old.md >> changelog.md
