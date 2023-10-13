@@ -17,6 +17,8 @@ import android.content.Intent
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import com.github.pixelupdater.pixelupdater.settings.SettingsActivity
+import com.github.pixelupdater.pixelupdater.updater.UpdaterService
+import kotlinx.serialization.json.Json
 
 class Notifications(
     private val context: Context,
@@ -233,11 +235,16 @@ class Notifications(
         notificationManager.notify(ID_SUMMARY, notification)
     }
 
-    fun dismissAlert() {
+    fun dismissNotifications() {
         notificationManager.cancel(ID_ALERT)
-    }
-
-    fun dismissIndexedAlert(index: Int) {
-        notificationManager.cancel(index)
+        val prefs = Preferences(context)
+        if (prefs.alertCache.isNotEmpty()) {
+            val alerts = Json.decodeFromString<List<UpdaterService.IndexedAlert>>(prefs.alertCache)
+            for (alert in alerts) {
+                notificationManager.cancel(alert.index)
+            }
+            prefs.alertCache = ""
+            notificationManager.cancel(ID_SUMMARY)
+        }
     }
 }

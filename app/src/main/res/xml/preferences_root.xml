@@ -67,7 +67,6 @@
 
         <SwitchPreferenceCompat
             app:key="vbmeta_patch"
-            app:defaultValue="false"
             app:title="@string/pref_vbmeta_patch_name"
             app:summary="@string/pref_vbmeta_patch_desc"
             app:iconSpaceReserved="false" />
@@ -189,7 +188,6 @@
         <SwitchPreferenceCompat
             app:key="verity_only"
             app:dependency="vbmeta_patch"
-            app:defaultValue="false"
             app:title="@string/pref_verity_only_name"
             app:summary="@string/pref_verity_only_desc"
             app:iconSpaceReserved="false" />

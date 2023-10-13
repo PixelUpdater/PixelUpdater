@@ -93,8 +93,15 @@
     <string name="dialog_ota_url_message">Enter the URL of the OTA.</string>
     <string name="dialog_ota_url_error_bad_protocol">Only http:// and https:// URLs are supported.</string>
     <string name="dialog_ota_url_error_malformed">Not a valid URL.</string>
+    <string name="dialog_vbmeta_title">Changing Vbmeta Patching Settings</string>
+    <string name="dialog_vbmeta_message">Changes to this value can directly or indirectly lead to a data wipe. Be sure to understand the implications before changing this setting.</string>
     <string name="dialog_action_ok">OK</string>
     <string name="dialog_action_cancel">Cancel</string>
+
+    <!-- Snackbar -->
+    <string name="snackbar_notifications_disabled">Notifications are disabled</string>
+    <string name="snackbar_network_restricted">Network is restricted</string>
+    <string name="snackbar_battery_low">Battery is low</string>
 
     <!-- Notifications -->
     <string name="notification_channel_persistent_name">background services</string>
@@ -119,7 +126,7 @@
     <string name="notification_update_failed">Failed to install OTA update</string>
     <string name="notification_update_patch_failed">Failed to patch update</string>
     <string name="notification_update_mismatch_title">Configuration mismatch</string>
-    <string name="notification_update_mismatch_message">Magisk and Vbmeta settings differ from booted system</string>
+    <string name="notification_update_mismatch_message">Magisk and Vbmeta settings differ from booted system. Changing Vbmeta settings can directly or indirectly lead to a data wipe.</string>
     <string name="notification_update_root_unavailable_title">Root is unavailable</string>
     <string name="notification_update_root_unavailable_message">Magisk and Vbmeta patching have been disabled</string>
     <string name="notification_action_install">Install</string>

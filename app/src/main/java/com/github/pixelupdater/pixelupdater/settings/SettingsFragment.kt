@@ -41,6 +41,7 @@ import com.github.pixelupdater.pixelupdater.updater.UpdaterThread
 import com.github.pixelupdater.pixelupdater.view.LongClickablePreference
 import com.github.pixelupdater.pixelupdater.view.OnPreferenceLongClickListener
 import com.github.pixelupdater.pixelupdater.wrapper.SystemPropertiesProxy
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.launch
@@ -53,7 +54,8 @@ import java.security.interfaces.RSAPublicKey
 
 
 class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceClickListener,
-    OnPreferenceLongClickListener, SharedPreferences.OnSharedPreferenceChangeListener {
+    OnPreferenceLongClickListener, SharedPreferences.OnSharedPreferenceChangeListener,
+    Preference.OnPreferenceChangeListener {
     private val viewModel: SettingsViewModel by viewModels()
 
     private lateinit var prefs: Preferences
@@ -72,6 +74,7 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceClic
     private lateinit var prefOpenLogDir: Preference
     private lateinit var prefRevertCompleted: Preference
     private lateinit var prefOtaUrl: Preference
+    private lateinit var prefVbmetaPatch: SwitchPreferenceCompat
     private lateinit var prefAutomaticReboot: SwitchPreferenceCompat
     private lateinit var prefVerityOnly: SwitchPreferenceCompat
 
@@ -147,9 +150,18 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceClic
         prefOtaUrl = findPreference(Preferences.PREF_OTA_URL)!!
         prefOtaUrl.onPreferenceClickListener = this
 
+        prefVbmetaPatch = findPreference(Preferences.PREF_VBMETA_PATCH)!!
+        prefVbmetaPatch.onPreferenceChangeListener = this
+
         prefAutomaticReboot = findPreference(Preferences.PREF_AUTOMATIC_REBOOT)!!
 
         prefVerityOnly = findPreference(Preferences.PREF_VERITY_ONLY)!!
+        prefVerityOnly.onPreferenceChangeListener = this
+
+        if (UpdaterThread.getVbmetaFlags(active = true) == 0.toByte()) {
+            prefVbmetaPatch.isChecked = false
+            prefVbmetaPatch.isEnabled = false
+        }
 
         refreshOtaUrl()
         refreshVersion()
@@ -213,7 +225,12 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceClic
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        snackbar = Snackbar.make(view, "Notifications are disabled", Snackbar.LENGTH_INDEFINITE)
+        snackbar = Snackbar.make(view, R.string.snackbar_notifications_disabled, Snackbar.LENGTH_INDEFINITE)
+        val context = requireContext()
+        if (!Permissions.haveRequired(context) || !Notifications.areEnabled(context)) {
+            scheduledAction = UpdaterThread.Action.CHECK
+            performAction()
+        }
     }
 
     override fun onStart() {
@@ -347,6 +364,7 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceClic
         if (Permissions.haveRequired(context)) {
             if (Notifications.areEnabled(context)) {
                 UpdaterJob.scheduleImmediate(requireContext(), scheduledAction)
+                refreshSnackbar()
             } else {
                 val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
                     putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
@@ -404,6 +422,22 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceClic
                 refreshVersion()
                 refreshDebugPrefs()
                 return true
+            }
+        }
+
+        return false
+    }
+
+    override fun onPreferenceChange(preference: Preference, newValue: Any?): Boolean {
+        when (preference) {
+            prefVbmetaPatch, prefVerityOnly -> {
+                val switchPreference = preference as SwitchPreferenceCompat
+                MaterialAlertDialogBuilder(requireContext()).apply {
+                    setTitle(getString(R.string.dialog_vbmeta_title))
+                    setMessage(getString(R.string.dialog_vbmeta_message))
+                    setPositiveButton(R.string.dialog_action_ok) { _, _ -> switchPreference.isChecked = !switchPreference.isChecked }
+                    setNegativeButton(R.string.dialog_action_cancel, null)
+                }.show()
             }
         }
 

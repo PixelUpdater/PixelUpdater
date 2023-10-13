@@ -92,7 +92,7 @@ class SettingsViewModel : ViewModel() {
 
     fun refreshVbmetaStatus() {
         val status = try {
-            val flags = UpdaterThread.getVbmetaFlags()!!.toInt()
+            val flags = UpdaterThread.getVbmetaFlags(active = true)!!.toInt()
             VbmetaStatus.Success(
                 VbmetaStatus.PatchState.values()[flags]
             )

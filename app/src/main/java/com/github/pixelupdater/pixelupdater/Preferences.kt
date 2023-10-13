@@ -10,6 +10,7 @@ package com.github.pixelupdater.pixelupdater
 import android.content.Context
 import androidx.core.content.edit
 import androidx.preference.PreferenceManager
+import com.github.pixelupdater.pixelupdater.updater.UpdaterThread
 import java.net.URL
 
 class Preferences(context: Context) {
@@ -147,12 +148,7 @@ class Preferences(context: Context) {
     /** Whether to force switch slots on update. */
     var automaticSwitch: Boolean
         get() = prefs.getBoolean(PREF_AUTOMATIC_SWITCH, false)
-        set(enabled) = prefs.edit {
-            if (!enabled) {
-                putBoolean(PREF_AUTOMATIC_REBOOT, false)
-            }
-            putBoolean(PREF_AUTOMATIC_SWITCH, enabled)
-        }
+        set(enabled) = prefs.edit { putBoolean(PREF_AUTOMATIC_SWITCH, enabled) }
 
     /** Whether to automatically reboot on successful update. */
     var automaticReboot: Boolean
@@ -163,4 +159,12 @@ class Preferences(context: Context) {
     var verityOnly: Boolean
         get() = prefs.getBoolean(PREF_VERITY_ONLY, false)
         set(enabled) = prefs.edit { putBoolean(PREF_VERITY_ONLY, enabled) }
+
+    init {
+        if (!prefs.contains(PREF_VBMETA_PATCH) && !prefs.contains(PREF_VERITY_ONLY)) {
+            val flags = UpdaterThread.getVbmetaFlags(active = true)
+            vbmetaPatch = flags != 0.toByte()
+            verityOnly = flags == UpdaterThread.DISABLE_VERITY_FLAG
+        }
+    }
 }

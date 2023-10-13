@@ -115,14 +115,7 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
             // we want to leave the existing notification visible so that it can be updated with the
             // new status without re-alerting the user when onlySendOnce is true.
             if (!silent) {
-                notifications.dismissAlert()
-                if (prefs.alertCache.isNotEmpty()) {
-                    val alerts = Json.decodeFromString<List<IndexedAlert>>(prefs.alertCache)
-                    for (alert in alerts) {
-                        notifications.dismissIndexedAlert(alert.index)
-                    }
-                    prefs.alertCache = ""
-                }
+                notifications.dismissNotifications()
             } else {
                 // TODO: Verify indexed alerts are properly updated
             }
@@ -351,7 +344,7 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
                 showRevert = false
             }
             UpdaterThread.RootUnnecessary -> {
-                notifications.dismissAlert()
+                notifications.dismissNotifications()
                 threadExited()
                 return
             }
@@ -449,7 +442,7 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
     )
 
     @Serializable
-    private data class IndexedAlert(
+    data class IndexedAlert(
         val version: String,
         val index: Int
     )

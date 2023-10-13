@@ -1025,8 +1025,8 @@ class UpdaterThread(
         private const val TIMEOUT_MS = 30_000
         private const val MAGISKBIN = "/data/adb/magisk"
         private const val VBMETA_MAGIC: String = "AVB0"
-        private const val DISABLE_VERITY_FLAG: Byte = 1
-        private const val DISABLE_VERIFICATION_FLAG: Byte = 2
+        const val DISABLE_VERITY_FLAG: Byte = 1
+        const val DISABLE_VERIFICATION_FLAG: Byte = 2
 
         // https://github.com/topjohnwu/Magisk/blob/v26.3/app/src/main/java/com/topjohnwu/magisk/core/utils/ShellInit.kt#L65-69
         // https://github.com/topjohnwu/Magisk/blob/v26.3/app/src/main/res/raw/manager.sh#L232-L240
@@ -1053,6 +1053,7 @@ class UpdaterThread(
                 println("Unexpected Format")
                 return null
             }
+            println("dd if=$vbmeta bs=1 skip=123 count=1 status=none | xxd -p")
             // https://android.googlesource.com/platform/external/avb/+/refs/tags/android-12.0.0_r12/libavb/avb_vbmeta_image.h#174
             return Shell.cmd("dd if=$vbmeta bs=1 skip=123 count=1 status=none | xxd -p").exec().out.first().toByte()
         }
