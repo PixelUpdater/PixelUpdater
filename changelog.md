@@ -1,3 +1,7 @@
+### 2023-10-14 v0.101-release
+
+- Check for updates on allow reinstall
+
 ### 2023-10-14 v0.1-release
 
 - fork as Pixel Updater
