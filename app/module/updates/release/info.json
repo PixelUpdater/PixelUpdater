@@ -1,6 +1,6 @@
 {
-    "zipUrl": "https://github.com/chenxiaolong/Custota/releases/download/v2.4/Custota-2.4-release.zip",
-    "changelog": "https://github.com/chenxiaolong/Custota/raw/v2.4/app/module/updates/release/changelog.txt",
-    "version": "2.4",
-    "versionCode": 132096
+    "zipUrl": "https://github.com/PixelUpdater/PixelUpdater/releases/download/v0.1/PixelUpdater-0.1-release.zip",
+    "changelog": "https://github.com/PixelUpdater/PixelUpdater/raw/v0.1/app/module/updates/release/changelog.txt",
+    "version": "0.1",
+    "versionCode": 256
 }

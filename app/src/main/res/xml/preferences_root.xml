@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
     SPDX-FileCopyrightText: 2023 Andrew Gunnerson
+    SPDX-FileContributor: Modified by Pixel Updater contributors
     SPDX-License-Identifier: GPL-3.0-only
 -->
 <PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
@@ -108,7 +109,7 @@
         app:title="@string/pref_header_about"
         app:iconSpaceReserved="false">
 
-        <com.chiller3.custota.view.LongClickablePreference
+        <com.github.pixelupdater.pixelupdater.view.LongClickablePreference
             app:key="version"
             app:persistent="false"
             app:title="@string/pref_version_name"
