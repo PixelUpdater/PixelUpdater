@@ -1,4 +1,5 @@
 /*
+ * SPDX-FileCopyrightText: 2023 Pixel Updater contributors
  * SPDX-FileCopyrightText: 2023 Andrew Gunnerson
  * SPDX-FileContributor: Modified by Pixel Updater contributors
  * SPDX-License-Identifier: GPL-3.0-only
@@ -14,11 +15,18 @@ import android.content.ComponentName
 import android.content.Context
 import android.os.PersistableBundle
 import android.util.Log
+import com.github.pixelupdater.pixelupdater.Notifications
+import com.github.pixelupdater.pixelupdater.Permissions
 import com.github.pixelupdater.pixelupdater.Preferences
 
 class UpdaterJob: JobService() {
     override fun onStartJob(params: JobParameters): Boolean {
         val prefs = Preferences(this)
+
+        if (!Permissions.haveRequired(applicationContext) || !Notifications.areEnabled(applicationContext)) {
+            Log.i(TAG, "Notifications are disabled, job skipped")
+            return false
+        }
 
         val actionIndex = params.extras.getInt(EXTRA_ACTION, -1)
         val isPeriodic = actionIndex == -1
@@ -36,8 +44,6 @@ class UpdaterJob: JobService() {
 
         val action = if (!isPeriodic) {
             UpdaterThread.Action.values()[actionIndex]
-        } else if (prefs.automaticInstall) {
-            UpdaterThread.Action.INSTALL
         } else {
             UpdaterThread.Action.CHECK
         }
@@ -60,6 +66,9 @@ class UpdaterJob: JobService() {
         private const val EXTRA_ACTION = "action"
 
         private const val PERIODIC_INTERVAL_MS = 6L * 60 * 60 * 1000
+        private const val DAILY_INTERVAL_MS = 24L * 60 * 60 * 1000
+        private const val WEEKLY_INTERVAL_MS = 7L * 24 * 60 * 60 * 1000
+        private const val MONTHLY_INTERVAL_MS = 30L * 24 * 60 * 60 * 1000
 
         // Scheduling a periodic job usually makes the first iteration run immediately. We'll
         // sometimes skip this to avoid unexpected operations while the user is configuring
@@ -127,9 +136,21 @@ class UpdaterJob: JobService() {
         }
 
         fun schedulePeriodic(context: Context, skipFirstRun: Boolean) {
+            val prefs = Preferences(context)
+            val interval = if (prefs.updateNotified) {
+                when (prefs.notificationFrequency) {
+                    "daily" -> DAILY_INTERVAL_MS
+                    "weekly" -> WEEKLY_INTERVAL_MS
+                    "monthly" -> MONTHLY_INTERVAL_MS
+                    else -> PERIODIC_INTERVAL_MS
+                }
+            } else {
+                PERIODIC_INTERVAL_MS
+            }
+
             val jobInfo = createJobBuilder(context, ID_PERIODIC, null)
                 .setPersisted(true)
-                .setPeriodic(PERIODIC_INTERVAL_MS)
+                .setPeriodic(interval)
                 .build()
 
             skipNextRun = skipFirstRun

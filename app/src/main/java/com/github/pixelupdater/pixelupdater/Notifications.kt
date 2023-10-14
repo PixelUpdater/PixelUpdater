@@ -1,4 +1,5 @@
 /*
+ * SPDX-FileCopyrightText: 2023 Pixel Updater contributors
  * SPDX-FileCopyrightText: 2022-2023 Andrew Gunnerson
  * SPDX-FileContributor: Modified by Pixel Updater contributors
  * SPDX-License-Identifier: GPL-3.0-only
@@ -13,23 +14,41 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import com.github.pixelupdater.pixelupdater.settings.SettingsActivity
+import com.github.pixelupdater.pixelupdater.updater.UpdaterService
+import kotlinx.serialization.json.Json
 
 class Notifications(
     private val context: Context,
 ) {
     companion object {
+        private val TAG = Notifications::class.java.simpleName
+
         const val CHANNEL_ID_PERSISTENT = "persistent"
         const val CHANNEL_ID_CHECK = "check"
         const val CHANNEL_ID_FAILURE = "failure"
         const val CHANNEL_ID_SUCCESS = "success"
 
+        const val GROUP_KEY_UPDATES = "UPDATES"
+
         private val LEGACY_CHANNEL_IDS = arrayOf<String>()
 
+        const val ID_SUMMARY = 0
         const val ID_PERSISTENT = 1
         const val ID_ALERT = 2
+        const val ID_INDEXED = 3
+
+        // https://stackoverflow.com/a/57769424/434343
+        fun areEnabled(context: Context): Boolean {
+            val notificationManager = context.getSystemService(NotificationManager::class.java)
+            return when {
+                notificationManager.areNotificationsEnabled().not() -> false
+                else -> notificationManager.notificationChannels.firstOrNull { channel -> channel.importance == NotificationManager.IMPORTANCE_NONE } == null
+            }
+        }
     }
 
     private val notificationManager = context.getSystemService(NotificationManager::class.java)
@@ -45,7 +64,7 @@ class Notifications(
     private fun createCheckAlertsChannel() = NotificationChannel(
         CHANNEL_ID_CHECK,
         context.getString(R.string.notification_channel_check_name),
-        NotificationManager.IMPORTANCE_HIGH,
+        NotificationManager.IMPORTANCE_DEFAULT,
     ).apply {
         description = context.getString(R.string.notification_channel_check_desc)
     }
@@ -157,6 +176,7 @@ class Notifications(
         @DrawableRes icon: Int,
         errorMsg: String?,
         actions: List<Pair<Int, Intent>>,
+        id: Int?,
     ) {
         val notification = Notification.Builder(context, channel).run {
             val text = buildString {
@@ -174,10 +194,11 @@ class Notifications(
             setSmallIcon(icon)
             setOnlyAlertOnce(onlyAlertOnce)
 
-            for ((actionTextResId, actionIntent) in actions) {
+            for ((i, pair) in actions.withIndex()) {
+                val (actionTextResId, actionIntent) = pair
                 val actionPendingIntent = PendingIntent.getService(
                     context,
-                    0,
+                    (id ?: 0) * 2 + i,
                     actionIntent,
                     PendingIntent.FLAG_IMMUTABLE or
                             PendingIntent.FLAG_UPDATE_CURRENT or
@@ -191,13 +212,42 @@ class Notifications(
                 ).build())
             }
 
+            if (id != null && id >= ID_INDEXED) {
+                setGroup(GROUP_KEY_UPDATES)
+            }
+
+            Log.d(TAG, "notification ${id ?: ID_ALERT}: ${context.getString(title)}, $text")
             build()
         }
 
-        notificationManager.notify(ID_ALERT, notification)
+        notificationManager.notify(id ?: ID_ALERT, notification)
     }
 
-    fun dismissAlert() {
+    /**
+     * Send a summary notification.
+     */
+    fun sendSummaryNotification() {
+        val notification = Notification.Builder(context, CHANNEL_ID_CHECK).run {
+            setSmallIcon(R.drawable.ic_notifications)
+            setGroup(GROUP_KEY_UPDATES)
+            setGroupSummary(true)
+            Log.d(TAG, "notification $ID_SUMMARY")
+            build()
+        }
+
+        notificationManager.notify(ID_SUMMARY, notification)
+    }
+
+    fun dismissNotifications() {
         notificationManager.cancel(ID_ALERT)
+        val prefs = Preferences(context)
+        if (prefs.alertCache.isNotEmpty()) {
+            val alerts = Json.decodeFromString<List<UpdaterService.IndexedAlert>>(prefs.alertCache)
+            for (alert in alerts) {
+                notificationManager.cancel(alert.index)
+            }
+            prefs.alertCache = ""
+            notificationManager.cancel(ID_SUMMARY)
+        }
     }
 }

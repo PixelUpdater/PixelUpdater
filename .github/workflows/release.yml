@@ -1,4 +1,5 @@
----
+name: Build-Release
+
 on:
   push:
     # Uncomment to test against a branch
@@ -6,32 +7,111 @@ on:
     #  - ci
     tags:
       - 'v*'
+  workflow_dispatch:
+
 jobs:
-  create_release:
+  build:
     name: Create Github release
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - name: Get version from tag
-        id: get_version
-        run: |
-          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
-              version=${GITHUB_REF#refs/tags/v}
-          else
-              version=0.0.0.${GITHUB_REF#refs/heads/}
-          fi
-          echo "version=${version}" >> "${GITHUB_OUTPUT}"
-
       - name: Check out repository
         uses: actions/checkout@v3
+        with:
+          submodules: true
+
+      # https://github.com/actions/checkout/issues/290
+      - name: Preserve tag annotations
+        run: git fetch -f origin ${{ github.ref }}:${{ github.ref }}
+
+      - name: Get version from git describe
+        id: get_version
+        run: |
+          version=$(git describe | sed -E 's/v([0-9]*\.[0-9]*)-([0-9]+)-g([0-9a-f]+)/v\1.r\2.g\3/')
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Validate gradle wrapper checksum
+        uses: gradle/wrapper-validation-action@v1
+
+      - name: Set up Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+
+      - name: Decode Keystore
+        run: |
+          echo -n "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 -d > keystore.jks
+
+      - name: Create SSH KEY
+        run: |
+          echo "${{ secrets.SIGNING_KEY }}" > pixelupdater.key
+          chmod 600 pixelupdater.key
+
+      # - name: Debug Keystore and ssh key
+      #   run: |
+      #     sha256sum keystore.jks > keystore_sha256.txt
+      #     sha256sum pixelupdater.key > ssh_key_sha256.txt
+      #     ls -l
+      #     echo "Checking keystore file path:"
+      #     echo [$PWD]
+      #     echo "keystore hash"
+      #     cat keystore_sha256.txt
+      #     echo "ssh_key hash"
+      #     cat ssh_key_sha256.txt
+
+      - name: Build Release apk
+        env:
+          RELEASE_KEYSTORE: ${{ github.workspace }}/keystore.jks
+          RELEASE_KEY_ALIAS: release
+          RELEASE_KEY_PASSPHRASE: ${{ secrets.RELEASE_KEY_PASSPHRASE }}
+          RELEASE_KEYSTORE_PASSPHRASE: ${{ secrets.RELEASE_KEYSTORE_PASSPHRASE }}
+          SIGNING_KEY: ${{ github.workspace }}/pixelupdater.key
+          SIGNING_KEY_PASSPHRASE: ${{ secrets.SIGNING_KEY_PASSPHRASE }}
+        run: |
+          ./gradlew zipRelease
+          ./gradlew signReleaseZip
+          ./gradlew updateJsonRelease
+
+      - name: Debug list artifacts
+        run: |
+          ls -lR app/build/distributions/release
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: PixelUpdater-artifacts-${{ steps.get_version.outputs.version }}-release
+          path: app/build/distributions/release/*
+
+      - name: Upload release-info
+        uses: actions/upload-artifact@v3
+        id: upload_release_info
+        with:
+          name: release.json
+          path: app/build/distributions/release.json
+
+      # https://github.com/ericcornelissen/git-tag-annotation-action/blob/v2.0.6/src/main.sh
+      - name: Get annotation from git for-each-ref
+        id: get_annotation
+        run: |
+          {
+            echo 'annotation<<EOF'
+            git for-each-ref ${{ github.ref }} --format='%(contents)' | awk '/-BEGIN PGP SIGNATURE-/{exit} {print}'
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
 
       - name: Create release
+        id: create_release
         uses: softprops/action-gh-release@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          tag_name: v${{ steps.get_version.outputs.version }}
-          name: Version ${{ steps.get_version.outputs.version }}
-          body_path: RELEASE.md
+          tag_name: ${{ steps.get_version.outputs.version }}
+          name: Release ${{ steps.get_version.outputs.version }}
+          body: ${{ steps.get_annotation.outputs.annotation }}
           draft: true
           prerelease: false
+          files: |
+            app/build/distributions/release/PixelUpdater-${{ steps.get_version.outputs.version }}-release.zip
+            app/build/distributions/release/PixelUpdater-${{ steps.get_version.outputs.version }}-release.zip.sig
