@@ -451,7 +451,11 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceClic
                 prefs.mismatchAllowed = false
             }
             Preferences.PREF_ALLOW_REINSTALL -> {
-                prefs.updateNotified = false
+                if (prefs.allowReinstall) {
+                    performAction()
+                } else {
+                    prefs.updateNotified = false
+                }
             }
         }
     }
