@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
     SPDX-FileCopyrightText: 2023 Andrew Gunnerson
+    SPDX-FileContributor: Modified by Pixel Updater contributors
     SPDX-License-Identifier: GPL-3.0-only
 -->
 <resources>
-    <string name="app_name" translatable="false">Custota</string>
+    <string name="app_name" translatable="false">Pixel Updater</string>
 
     <string name="dialog_ota_server_url_hint" translatable="false">https://hostname[:port]/path</string>
 </resources>

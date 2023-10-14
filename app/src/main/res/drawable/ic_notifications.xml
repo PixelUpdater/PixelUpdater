@@ -8,9 +8,32 @@
     <group
         android:pivotX="480"
         android:pivotY="480"
-        android:translateY="960">
-        <path
-            android:fillColor="@android:color/white"
-            android:pathData="M260-40q-24 0-42-18t-18-42v-760q0-24 18-42t42-18h440q24 0 42 18t18 42v760q0 24-18 42t-42 18H260Zm0-90v30h440v-30H260Zm0-60h440v-580H260v580Zm220-128L325-473l43-43 82 82v-194h60v194l82-82 43 43-155 155ZM260-830h440v-30H260v30Zm0 0v-30 30Zm0 700v30-30Z" />
+        android:scaleX="1.405"
+        android:scaleY="1.405">
+        <group
+            android:scaleX="0.46875"
+            android:scaleY="0.46875">
+            <path
+                android:fillColor="@color/logo_blue"
+                android:pathData="M1185.8,804c-0.7,64.1-22.3,110.6-64.9,139.5c-43.3,29.4-101.8,44.1-175.7,44.1h-86.5v214.7h112.5c120,0,214.9-19,284.8-57.1c69.8-38.1,119.7-88.6,149.7-151.5c28.3-59.4,43.3-122.6,44.9-189.7H1185.8z" />
+            <path
+                android:fillColor="@color/logo_red"
+                android:pathData="M1185.8,800.7c0,1.1,0,2.2,0,3.3h264.7c0.1-4,0.1-8,0.1-12c0-120-36.7-214.4-109.9-283c-73.3-68.6-189.5-103-348.8-103H858.7v214.6h119.4C1116.6,620.6,1185.8,680.7,1185.8,800.7z" />
+            <path
+                android:fillColor="@color/logo_yellow"
+                android:pathData="M597.3 406h261.4v473H597.3z" />
+            <path
+                android:fillColor="@color/logo_green"
+                android:pathData="M597.3 879h261.4v763H597.3z" />
+        </group>
+        <group
+            android:scaleX="0.2"
+            android:scaleY="0.2"
+            android:translateX="487.96875"
+            android:translateY="769.6875">
+            <path
+                android:fillColor="@android:color/white"
+                android:pathData="M260-40q-24 0-42-18t-18-42v-760q0-24 18-42t42-18h440q24 0 42 18t18 42v760q0 24-18 42t-42 18H260Zm0-90v30h440v-30H260Zm0-60h440v-580H260v580Zm220-128L325-473l43-43 82 82v-194h60v194l82-82 43 43-155 155ZM260-830h440v-30H260v30Zm0 0v-30 30Zm0 700v30-30Z" />
+        </group>
     </group>
 </vector>
