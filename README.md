@@ -22,6 +22,7 @@ Pixel Updater was forked from [Custota](https://github.com/chenxiaolong/Custota)
 
 ## Limitations
 
+* The device must be rooted with Magisk. KernelSU is not supported.
 * The device must be a Google Pixel and support A/B updates.
 * Incremental updates are not supported.
 * Pre-downloading an update to install later is not supported.
@@ -39,7 +40,7 @@ Pixel Updater was forked from [Custota](https://github.com/chenxiaolong/Custota)
 
 4. That's it!
 
-Pixel Updater will automatically check for updates periodically. The checks can be turned off completely or extended to automatically install the updates as well.
+Pixel Updater will optionally automatically check for updates periodically.
 
 To reduce battery usage, the scheduling of the update checks is controlled by Android. They run at most once every 6 hours and will not run at all if the `Require unmetered network` or `Require sufficient battery level` conditions aren't met.
 
@@ -85,7 +86,7 @@ When reporting bugs, please include the log files as it is extremely helpful for
 
 ### Reinstallation
 
-For testing, Pixel Updater can allow the current OS version (i.e. matching build fingerprint) to be reinstalled. To do so, enable debug mode and then enable the `Allow reinstall` toggle. Make sure to not enable `Automatically install updates` at the same time or else the current OS version will be reinstalled after every reboot because it's always seen as a valid update.
+For testing, Pixel Updater can allow the current OS version (i.e. matching build fingerprint) to be reinstalled. To do so, enable debug mode and then enable the `Allow reinstall` toggle.
 
 ### Reverting an update
 
@@ -127,7 +128,7 @@ Both the zip file and the APK contained within are digitally signed.
 First, save the public key to a file listing the keys to be trusted.
 
 ```bash
-echo 'pixelupdater ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMhOIXQSss8MibtGMGOyvJHeB3e7osngI5nsLLU3H55P' > pixelupdater_trusted_keys
+echo pixelupdater ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMhOIXQSss8MibtGMGOyvJHeB3e7osngI5nsLLU3H55P > pixelupdater_trusted_keys
 ```
 
 Then, verify the signature of the zip file using the list of trusted keys.
@@ -138,7 +139,7 @@ ssh-keygen -Y verify -f pixelupdater_trusted_keys -I pixelupdater -n file -s Pix
 
 If the file is successfully verified, the output will be:
 
-```
+```text
 Good "file" signature for pixelupdater with ED25519 key SHA256:1cqrYVWgvt/jDU+RvaCJHpdET6yZHEInmLPUy2PDK5A
 ```
 
@@ -146,13 +147,13 @@ Good "file" signature for pixelupdater with ED25519 key SHA256:1cqrYVWgvt/jDU+Rv
 
 First, extract the apk from the zip and then run:
 
-```
+```text
 apksigner verify --print-certs system/priv-app/com.github.pixelupdater.pixelupdater/app-release.apk
 ```
 
 Then, check that the SHA-256 digest of the APK signing certificate is:
 
-```
+```text
 766538c98337dae57f6c1e15f2c5ca89c62b25c4ba49b06a244c96f6e0d5e957
 ```
 

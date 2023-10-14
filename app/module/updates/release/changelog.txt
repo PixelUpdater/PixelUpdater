@@ -1,1 +1,0 @@
-The changelog can be found at: [`CHANGELOG.md`](https://github.com/PixelUpdater/PixelUpdater/blob/master/CHANGELOG.md).
