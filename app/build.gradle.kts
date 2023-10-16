@@ -419,6 +419,9 @@ android.applicationVariants.all {
     }
 
     tasks.register("push${capitalized}App") {
+        inputs.property("rootProject.name", rootProject.name)
+        inputs.property("variant.applicationId", variant.applicationId)
+
         dependsOn.add(variant.assembleProvider)
 
         val output = variant.outputs.map { it.outputFile }[0]
@@ -428,7 +431,7 @@ android.applicationVariants.all {
                 commandLine(android.adbExecutable, "-s", selectedDevice, "push", output, "/data/local/tmp")
             }
             exec {
-                commandLine(android.adbExecutable, "-s", selectedDevice, "shell", "su", "-c", "cp", "/data/local/tmp/${output.name}", "/data/adb/modules/${variant.applicationId}/system/priv-app/${variant.applicationId}")
+                commandLine(android.adbExecutable, "-s", selectedDevice, "shell", "su", "-c", "cp", "/data/local/tmp/${output.name}", "/data/adb/modules/${variant.applicationId}/system/priv-app/${rootProject.name}")
             }
             exec {
                 commandLine(android.adbExecutable, "-s", selectedDevice, "shell", "am", "force-stop", variant.applicationId)

@@ -79,13 +79,13 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
                     startUpdate(intent)
                 }
                 ACTION_SCHEDULE -> {
-                    val action = IntentCompat.getParcelableExtra(intent, EXTRA_ACTION, UpdaterThread.Action::class.java)!!
+                    val extraAction = IntentCompat.getParcelableExtra(intent, EXTRA_ACTION, UpdaterThread.Action::class.java)!!
                     val target = intent.extras?.getString("target")
-                    if (action == UpdaterThread.Action.INSTALL && target != null) {
+                    if (extraAction == UpdaterThread.Action.INSTALL && target != null) {
                         prefs.targetOta = target
                     }
 
-                    UpdaterJob.scheduleImmediate(this, action)
+                    UpdaterJob.scheduleImmediate(this, extraAction)
                 }
             }
         } catch (e: Exception) {
@@ -310,7 +310,7 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
                 showSwitchSlots = false
                 showRevert = true
             }
-            UpdaterThread.UpdateMismatch -> {
+            UpdaterThread.UpdateMismatch, UpdaterThread.UpdateMismatchMagisk, UpdaterThread.UpdateMismatchVbmeta, UpdaterThread.UpdateMismatchRootUnavailable -> {
                 if (silenceForPeriodic) {
                     return
                 }
@@ -319,7 +319,24 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
                 channel = Notifications.CHANNEL_ID_FAILURE
                 onlyAlertOnce = true
                 titleResId = R.string.notification_update_mismatch_title
-                message = getString(R.string.notification_update_mismatch_message)
+                message = when (result) {
+                    UpdaterThread.UpdateMismatch -> {
+                        getString(R.string.notification_update_mismatch_message)
+                    }
+
+                    UpdaterThread.UpdateMismatchMagisk -> {
+                        getString(R.string.notification_update_mismatch_magisk_message)
+                    }
+
+                    UpdaterThread.UpdateMismatchVbmeta -> {
+                        getString(R.string.notification_update_mismatch_vbmeta_message)
+                    }
+
+                    UpdaterThread.UpdateMismatchRootUnavailable -> {
+                        getString(R.string.notification_update_mismatch_root_unavailable_message)
+                    }
+                    else -> getString(R.string.notification_update_mismatch_message)
+                }
                 showInstall = false
                 showRetry = false
                 showReboot = false

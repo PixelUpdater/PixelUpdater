@@ -60,18 +60,6 @@
             app:summary="@string/pref_skip_postinstall_desc"
             app:iconSpaceReserved="false" />
 
-        <SwitchPreferenceCompat
-            app:key="magisk_patch"
-            app:defaultValue="true"
-            app:title="@string/pref_magisk_patch_name"
-            app:summary="@string/pref_magisk_patch_desc"
-            app:iconSpaceReserved="false" />
-
-        <SwitchPreferenceCompat
-            app:key="vbmeta_patch"
-            app:title="@string/pref_vbmeta_patch_name"
-            app:summary="@string/pref_vbmeta_patch_desc"
-            app:iconSpaceReserved="false" />
     </PreferenceCategory>
 
     <PreferenceCategory
@@ -185,6 +173,19 @@
             app:defaultValue="false"
             app:title="@string/pref_automatic_reboot_name"
             app:summary="@string/pref_automatic_reboot_desc"
+            app:iconSpaceReserved="false" />
+
+        <SwitchPreferenceCompat
+            app:key="magisk_patch"
+            app:defaultValue="true"
+            app:title="@string/pref_magisk_patch_name"
+            app:summary="@string/pref_magisk_patch_desc"
+            app:iconSpaceReserved="false" />
+
+        <SwitchPreferenceCompat
+            app:key="vbmeta_patch"
+            app:title="@string/pref_vbmeta_patch_name"
+            app:summary="@string/pref_vbmeta_patch_desc"
             app:iconSpaceReserved="false" />
 
         <SwitchPreferenceCompat
