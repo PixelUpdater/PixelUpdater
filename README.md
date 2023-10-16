@@ -77,6 +77,7 @@ To access the Pixel Updater's logs, enable debug mode and press `Open log direct
 
 * `check.log`, `install.log`, and `revert.log`: Logs for the last check/install/revert operation.
 * `crash.log`: Logs for the last crash.
+* `magisk.log`: Logs for the Magisk patch operation.
 * `/data/local/tmp/pixelupdater_selinux.log`: Logs for the SELinux changes made during boot.
   * This log cannot be saved to the normal log directory because it is written prior to the user unlocking the device for the first time after booting.
 
@@ -90,7 +91,7 @@ For testing, Pixel Updater can allow the current OS version (i.e. matching build
 
 ### Reverting an update
 
-Normally, an update can be cancelled by pressing the `Cancel` button in the notification while it is being downloaded or installed. However, if the opportunity to do so was missed and the update has already been installed, the update can be reverted by enabling debug mode and pressing the `Revert completed update` option. This stops the bootloader slot from being switched on reboot. Note that an update can only be reverted if the device hasn't been rebooted yet.
+Normally, an update can be cancelled by pressing the `Cancel` button in the notification while it is being downloaded or installed. However, if the opportunity to do so was missed and the update has already been installed, the update can be cancelled by enabling debug mode and pressing the `Revert completed update` option. This stops the bootloader slot from being switched on reboot. Note that an update can only be reverted if the device hasn't been rebooted yet. Also note that revert does not undo the the changes made to the inactive slot; it simply prevents the device from switching slots on the next reboot.
 
 ## How it works
 

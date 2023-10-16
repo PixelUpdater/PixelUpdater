@@ -16,8 +16,14 @@ import android.os.Bundle
 import android.os.Environment
 import android.provider.DocumentsContract
 import android.provider.Settings
+import android.text.SpannableStringBuilder
+import android.text.style.ForegroundColorSpan
 import android.view.View
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.AttrRes
+import androidx.annotation.ColorInt
+import androidx.annotation.StringRes
+import androidx.core.graphics.ColorUtils
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -40,6 +46,7 @@ import com.github.pixelupdater.pixelupdater.updater.UpdaterThread
 import com.github.pixelupdater.pixelupdater.view.LongClickablePreference
 import com.github.pixelupdater.pixelupdater.view.OnPreferenceLongClickListener
 import com.github.pixelupdater.pixelupdater.wrapper.SystemPropertiesProxy
+import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.topjohnwu.superuser.Shell
@@ -72,6 +79,7 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceClic
     private lateinit var prefOpenLogDir: Preference
     private lateinit var prefRevertCompleted: Preference
     private lateinit var prefOtaUrl: Preference
+    private lateinit var prefMagiskPatch: SwitchPreferenceCompat
     private lateinit var prefVbmetaPatch: SwitchPreferenceCompat
     private lateinit var prefAutomaticReboot: SwitchPreferenceCompat
     private lateinit var prefVerityOnly: SwitchPreferenceCompat
@@ -135,6 +143,8 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceClic
         prefOtaUrl = findPreference(Preferences.PREF_OTA_URL)!!
         prefOtaUrl.onPreferenceClickListener = this
 
+        prefMagiskPatch = findPreference(Preferences.PREF_MAGISK_PATCH)!!
+
         prefVbmetaPatch = findPreference(Preferences.PREF_VBMETA_PATCH)!!
         prefVbmetaPatch.onPreferenceChangeListener = this
 
@@ -157,16 +167,19 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceClic
             prefs.hasRoot = true
         } else {
             prefs.hasRoot = false
-            if (prefs.magiskPatch || prefs.vbmetaPatch) {
+            if (prefs.magiskPatch || prefs.vbmetaPatch || prefs.verityOnly) {
                 prefs.magiskPatch = false
                 prefs.vbmetaPatch = false
+                prefs.verityOnly = false
+                prefs.mismatchAllowed = false
+                prefMagiskPatch.isChecked = false
+                prefVbmetaPatch.isChecked = false
+                prefVerityOnly.isChecked = false
                 UpdaterJob.scheduleImmediate(context, UpdaterThread.Action.NO_ROOT)
             }
-        }
-        if (!prefs.hasRoot) {
-            findPreference<SwitchPreferenceCompat>(Preferences.PREF_MAGISK_PATCH)?.isEnabled = false
-            findPreference<SwitchPreferenceCompat>(Preferences.PREF_VBMETA_PATCH)?.isEnabled = false
-            findPreference<SwitchPreferenceCompat>(Preferences.PREF_VERITY_ONLY)?.isEnabled = false
+            prefMagiskPatch.isEnabled = false
+            prefVbmetaPatch.isEnabled = false
+            prefVerityOnly.isEnabled = false
         }
 
         lifecycleScope.launch {
@@ -299,7 +312,7 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceClic
     }
 
     private fun updateMagiskStatus(status: SettingsViewModel.MagiskStatus) {
-        prefMagiskStatus.summary = buildString {
+        prefMagiskStatus.summary = SpannableStringBuilder().apply {
             when (status) {
                 is SettingsViewModel.MagiskStatus.Success -> {
                     if (status.installed) {
@@ -315,11 +328,23 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceClic
                     append(status.errorMsg)
                 }
             }
+            append('\n')
+            @StringRes
+            val statusRes: Int
+            val error: Boolean
+            if (prefMagiskPatch.isChecked) {
+                statusRes = R.string.pref_magisk_ota_status_installed
+                error = status !is SettingsViewModel.MagiskStatus.Success || !status.installed
+            } else {
+                statusRes = R.string.pref_magisk_ota_status_not_installed
+                error = status !is SettingsViewModel.MagiskStatus.Success || status.installed
+            }
+            append(buildColoredSpannable(statusRes, error))
         }
     }
 
     private fun updateVbmetaStatus(status: SettingsViewModel.VbmetaStatus) {
-        prefVbmetaStatus.summary = buildString {
+        prefVbmetaStatus.summary = SpannableStringBuilder().apply {
             when (status) {
                 is SettingsViewModel.VbmetaStatus.Success -> {
                     when (status.patch) {
@@ -344,7 +369,43 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceClic
                     append(status.errorMsg)
                 }
             }
+            append('\n')
+            @StringRes
+            val statusRes: Int
+            val error: Boolean
+            if (prefVbmetaPatch.isChecked) {
+                if (prefVerityOnly.isChecked) {
+                    statusRes = R.string.pref_vbmeta_ota_status_verity_disabled
+                    error = status !is SettingsViewModel.VbmetaStatus.Success || status.patch != SettingsViewModel.VbmetaStatus.PatchState.VerityDisabled
+                } else {
+                    if (status is SettingsViewModel.VbmetaStatus.Success) {
+                        println("status.patch: ${status.patch}")
+                    }
+                    statusRes = R.string.pref_vbmeta_ota_status_disabled
+                    error = status !is SettingsViewModel.VbmetaStatus.Success || status.patch != SettingsViewModel.VbmetaStatus.PatchState.Disabled
+                }
+            } else {
+                statusRes = R.string.pref_vbmeta_ota_status_enabled
+                error = status !is SettingsViewModel.VbmetaStatus.Success || status.patch != SettingsViewModel.VbmetaStatus.PatchState.Enabled
+            }
+            append(buildColoredSpannable(statusRes, error))
         }
+    }
+
+    private fun buildColoredSpannable(@StringRes statusRes: Int, error: Boolean): SpannableStringBuilder {
+        val coloredSpannable = SpannableStringBuilder(getString(statusRes))
+        @AttrRes
+        val colorRes = if (error) {
+            com.google.android.material.R.attr.colorError
+        } else {
+            com.google.android.material.R.attr.colorOnSurface
+        }
+        @ColorInt
+        val colorId = MaterialColors.getColor(requireView(), colorRes)
+        val opacity = if (colorRes == com.google.android.material.R.attr.colorError) 192 else 128
+        val foreground = ForegroundColorSpan(ColorUtils.setAlphaComponent(colorId, opacity))
+        coloredSpannable.setSpan(foreground, 0, coloredSpannable.length, 0)
+        return coloredSpannable
     }
 
     private fun performAction() {
@@ -420,6 +481,24 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceClic
     override fun onPreferenceChange(preference: Preference, newValue: Any?): Boolean {
         when (preference) {
             prefVbmetaPatch, prefVerityOnly -> {
+                val newBoolean = newValue as Boolean
+                val status = viewModel.vbmetaStatus.value
+                val showAlert = if (status == null) {
+                    true
+                } else if (status !is SettingsViewModel.VbmetaStatus.Success) {
+                    true
+                } else if (preference == prefVerityOnly) {
+                    if (newBoolean && status.patch != SettingsViewModel.VbmetaStatus.PatchState.VerityDisabled) {
+                        true
+                    } else {
+                        !newBoolean && status.patch != SettingsViewModel.VbmetaStatus.PatchState.Disabled
+                    }
+                } else {
+                    !newBoolean && status.patch != SettingsViewModel.VbmetaStatus.PatchState.Enabled
+                }
+                if (!showAlert) {
+                    return true
+                }
                 val switchPreference = preference as SwitchPreferenceCompat
                 MaterialAlertDialogBuilder(requireContext()).apply {
                     setTitle(getString(R.string.dialog_vbmeta_title))
@@ -445,8 +524,17 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceClic
                 prefAutomaticReboot.isChecked = false
             }
             Preferences.PREF_MAGISK_PATCH, Preferences.PREF_VBMETA_PATCH, Preferences.PREF_VERITY_ONLY -> {
-                if (key == Preferences.PREF_VBMETA_PATCH) {
-                    prefVerityOnly.isChecked = false
+                if (key == Preferences.PREF_MAGISK_PATCH) {
+                    if (viewModel.magiskStatus.value != null) {
+                        updateMagiskStatus(viewModel.magiskStatus.value!!)
+                    }
+                } else {
+                    if (key == Preferences.PREF_VBMETA_PATCH) {
+                        prefVerityOnly.isChecked = false
+                    }
+                    if (viewModel.vbmetaStatus.value != null) {
+                        updateVbmetaStatus(viewModel.vbmetaStatus.value!!)
+                    }
                 }
                 prefs.mismatchAllowed = false
             }

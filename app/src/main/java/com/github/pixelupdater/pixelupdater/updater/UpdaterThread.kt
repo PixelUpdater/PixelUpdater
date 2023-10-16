@@ -713,6 +713,9 @@ class UpdaterThread(
                 Log.d(TAG, "New status after revert: $newStatusStr")
 
                 if (newStatus == UpdateEngineStatus.IDLE) {
+                    if (getVbmetaFlags(active = false) != 0.toByte() && getVbmetaFlags(active = true) == 0.toByte()) {
+                        setVbmetaFlags(0.toByte())
+                    }
                     listener.onUpdateResult(this, UpdateReverted)
                 } else {
                     listener.onUpdateResult(this, UpdateFailed(newStatusStr))
@@ -748,15 +751,25 @@ class UpdaterThread(
 
                     if (action == Action.CHECK) {
                         if (!prefs.mismatchAllowed) {
-                            val rooted = Shell.cmd("magisk -v").exec().isSuccess
                             if (prefs.hasRoot) {
                                 val expectedFlags = if (prefs.vbmetaPatch) DISABLE_VERITY_FLAG.or(if (prefs.verityOnly) 0.toByte() else DISABLE_VERIFICATION_FLAG) else 0.toByte()
-                                if (!prefs.magiskPatch || getVbmetaFlags(active = true) != expectedFlags) {
-                                    listener.onUpdateResult(this, UpdateMismatch)
+                                val actualFlags = getVbmetaFlags(active = true)
+                                if (!prefs.magiskPatch) {
+                                    if (actualFlags != expectedFlags) {
+                                        listener.onUpdateResult(this, UpdateMismatch)
+                                    } else {
+                                        listener.onUpdateResult(this, UpdateMismatchMagisk)
+                                    }
+                                    return
+                                } else if (actualFlags != expectedFlags) {
+                                    listener.onUpdateResult(this, UpdateMismatchVbmeta)
                                     return
                                 }
-                            } else if (rooted) {
-                                listener.onUpdateResult(this, UpdateMismatch)
+                            } else if (prefs.magiskPatch || prefs.vbmetaPatch) {
+                                listener.onUpdateResult(this, RootUnavailable)
+                                return
+                            } else {
+                                listener.onUpdateResult(this, UpdateMismatchRootUnavailable)
                                 return
                             }
                         }
@@ -906,6 +919,18 @@ class UpdaterThread(
     }
 
     data object UpdateMismatch : Result {
+        override val isError = true
+    }
+
+    data object UpdateMismatchMagisk : Result {
+        override val isError = true
+    }
+
+    data object UpdateMismatchRootUnavailable : Result {
+        override val isError = true
+    }
+
+    data object UpdateMismatchVbmeta : Result {
         override val isError = true
     }
 
