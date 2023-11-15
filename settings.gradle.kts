@@ -1,5 +1,6 @@
 /*
  * SPDX-FileCopyrightText: 2023 Andrew Gunnerson
+ * SPDX-FileContributor: Modified by Pixel Updater contributors
  * SPDX-License-Identifier: GPL-3.0-only
  */
 
@@ -17,5 +18,5 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-rootProject.name = "Custota"
+rootProject.name = "PixelUpdater"
 include(":app")

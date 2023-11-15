@@ -1,5 +1,6 @@
 /*
  * SPDX-FileCopyrightText: 2022-2023 Andrew Gunnerson
+ * SPDX-FileContributor: Modified by Pixel Updater contributors
  * SPDX-License-Identifier: GPL-3.0-only
  * Based on BCR code.
  */
@@ -109,21 +110,21 @@ val gitVersionTriple = describeVersion(git)
 val gitVersionCode = getVersionCode(gitVersionTriple)
 val gitVersionName = getVersionName(git, gitVersionTriple)
 
-val projectUrl = "https://github.com/chenxiaolong/Custota"
+val projectUrl = "https://github.com/PixelUpdater/PixelUpdater"
 val releaseMetadataBranch = "master"
 
 val extraDir = layout.buildDirectory.map { it.dir("extra") }
 val archiveDir = extraDir.map { it.dir("archive") }
 
 android {
-    namespace = "com.chiller3.custota"
+    namespace = "com.github.pixelupdater.pixelupdater"
 
     compileSdk = 34
     buildToolsVersion = "34.0.0"
     ndkVersion = "26.0.10792818"
 
     defaultConfig {
-        applicationId = "com.chiller3.custota"
+        applicationId = "com.github.pixelupdater.pixelupdater"
         minSdk = 33
         targetSdk = 34
         versionCode = gitVersionCode
@@ -270,8 +271,8 @@ android.applicationVariants.all {
             props["name"] = rootProject.name
             props["version"] = "v${variant.versionName}"
             props["versionCode"] = variant.versionCode.toString()
-            props["author"] = "chenxiaolong"
-            props["description"] = "Custom OTA updater"
+            props["author"] = "Pixel Updater contributors"
+            props["description"] = "Pixel OTA updater"
 
             if (variant.name == "release") {
                 props["updateJson"] = "${projectUrl}/raw/${releaseMetadataBranch}/app/module/updates/${variant.name}/info.json"
