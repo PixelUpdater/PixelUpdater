@@ -19,6 +19,8 @@ Pixel Updater was forked from [Custota](https://github.com/chenxiaolong/Custota)
 * Supports pausing, resuming, and cancelling updates.
 * Supports skipping optional post-install scripts to speed up updates.
 * Never communicates with any server besides Google's OTA server.
+* Patches with Magisk after an OTA by default
+* Syncs the verity and verification flags after an OTA by default.
 
 ## Limitations
 

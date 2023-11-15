@@ -750,10 +750,21 @@ class UpdaterThread(
                     listener.onUpdateProgress(this, ProgressType.CHECK, 0, 0)
 
                     if (action == Action.CHECK) {
+                        if (prefs.mismatchAllowed) {
+                            if (prefs.hasRoot) {
+                                val expectedFlags = prefs.lastVbmetaState.toByte()
+                                val actualFlags = getVbmetaFlags(active = true)
+                                if (actualFlags != expectedFlags) {
+                                    prefs.mismatchAllowed = false
+                                }
+                                prefs.lastVbmetaState = actualFlags?.toInt() ?: 0
+                            }
+                        }
                         if (!prefs.mismatchAllowed) {
                             if (prefs.hasRoot) {
                                 val expectedFlags = if (prefs.vbmetaPatch) DISABLE_VERITY_FLAG.or(if (prefs.verityOnly) 0.toByte() else DISABLE_VERIFICATION_FLAG) else 0.toByte()
                                 val actualFlags = getVbmetaFlags(active = true)
+                                prefs.lastVbmetaState = actualFlags?.toInt() ?: 0
                                 if (!prefs.magiskPatch) {
                                     if (actualFlags != expectedFlags) {
                                         listener.onUpdateResult(this, UpdateMismatch)
