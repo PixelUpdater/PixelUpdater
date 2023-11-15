@@ -82,10 +82,22 @@ class UpdaterJob: JobService() {
         ): JobInfo.Builder {
             val prefs = Preferences(context)
 
-            val networkType = if (prefs.requireUnmetered) {
-                JobInfo.NETWORK_TYPE_UNMETERED
-            } else {
-                JobInfo.NETWORK_TYPE_ANY
+            val builder = JobInfo.Builder(jobId, ComponentName(context, UpdaterJob::class.java))
+
+            if (action == UpdaterThread.Action.INSTALL) {
+                val networkType = if (prefs.requireUnmetered) {
+                    JobInfo.NETWORK_TYPE_UNMETERED
+                } else {
+                    JobInfo.NETWORK_TYPE_ANY
+                }
+
+                builder
+                    .setRequiredNetworkType(networkType)
+            }
+
+            if (action == UpdaterThread.Action.INSTALL || action == UpdaterThread.Action.SWITCH_SLOT) {
+                builder
+                    .setRequiresBatteryNotLow(prefs.requireBatteryNotLow)
             }
 
             val extras = PersistableBundle().apply {
@@ -94,10 +106,7 @@ class UpdaterJob: JobService() {
                 }
             }
 
-            return JobInfo.Builder(jobId, ComponentName(context, UpdaterJob::class.java))
-                .setRequiredNetworkType(networkType)
-                .setRequiresBatteryNotLow(prefs.requireBatteryNotLow)
-                .setExtras(extras)
+            return builder.setExtras(extras)
         }
 
         private fun scheduleIfUnchanged(context: Context, jobInfo: JobInfo) {
