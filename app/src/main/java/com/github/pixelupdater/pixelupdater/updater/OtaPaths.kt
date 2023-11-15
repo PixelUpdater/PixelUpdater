@@ -1,4 +1,5 @@
 /*
+ * SPDX-FileCopyrightText: 2023 Pixel Updater contributors
  * SPDX-FileCopyrightText: 2023 Andrew Gunnerson
  * SPDX-FileContributor: Modified by Pixel Updater contributors
  * SPDX-License-Identifier: GPL-3.0-only
@@ -23,9 +24,6 @@ object OtaPaths {
     /** Name of payload file containing the actual partition images. */
     const val PAYLOAD_NAME = "payload.bin"
 
-    /** Name of [PAYLOAD_NAME]'s header in the property files. */
-    const val PAYLOAD_METADATA_NAME = "payload_metadata.bin"
-
     /** Name of payload properties file containing payload checksums. */
     const val PAYLOAD_PROPERTIES_NAME = "payload_properties.txt"
 
@@ -33,7 +31,7 @@ object OtaPaths {
     const val CARE_MAP_NAME = "care_map.pb"
 
     /** Name of file containing the protobuf representation of the OTA metadata. */
-    const val METADATA_NAME = "metadata.pb"
+    const val METADATA_NAME = "META-INF/com/android/metadata.pb"
 
     /** Parse X509 certificates from [OTACERTS_ZIP]. */
     val otaCerts: List<X509Certificate>

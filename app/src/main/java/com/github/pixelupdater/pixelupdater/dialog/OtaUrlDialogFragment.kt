@@ -22,9 +22,9 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import java.net.MalformedURLException
 import java.net.URL
 
-class OtaServerUrlDialogFragment : DialogFragment() {
+class OtaUrlDialogFragment : DialogFragment() {
     companion object {
-        val TAG: String = OtaServerUrlDialogFragment::class.java.simpleName
+        val TAG: String = OtaUrlDialogFragment::class.java.simpleName
 
         const val RESULT_SUCCESS = "success"
     }
@@ -42,9 +42,9 @@ class OtaServerUrlDialogFragment : DialogFragment() {
 
         binding = DialogTextInputBinding.inflate(layoutInflater)
 
-        binding.message.setText(R.string.dialog_ota_server_url_message)
+        binding.message.setText(R.string.dialog_ota_url_message)
 
-        binding.text.hint = getString(R.string.dialog_ota_server_url_hint)
+        binding.text.hint = getString(R.string.dialog_ota_url_hint)
         binding.text.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
         binding.text.addTextChangedListener {
             url = null
@@ -63,26 +63,26 @@ class OtaServerUrlDialogFragment : DialogFragment() {
                         binding.textLayout.isErrorEnabled = false
                     } else {
                         binding.textLayout.error = getString(
-                            R.string.dialog_ota_server_url_error_bad_protocol)
+                            R.string.dialog_ota_url_error_bad_protocol)
                     }
                 }
             } catch (e: MalformedURLException) {
-                binding.textLayout.error = getString(R.string.dialog_ota_server_url_error_malformed)
+                binding.textLayout.error = getString(R.string.dialog_ota_url_error_malformed)
             }
 
             refreshOkButtonEnabledState()
         }
         if (savedInstanceState == null) {
-            val oldUrl = prefs.otaServerUrl?.toString()
+            val oldUrl = prefs.otaUrl?.toString()
             binding.text.setText(oldUrl)
             isEmpty = oldUrl == null
         }
 
         return MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.dialog_ota_server_url_title)
+            .setTitle(R.string.dialog_ota_url_title)
             .setView(binding.root)
             .setPositiveButton(R.string.dialog_action_ok) { _, _ ->
-                prefs.otaServerUrl = url
+                prefs.otaUrl = url
                 success = true
             }
             .setNegativeButton(R.string.dialog_action_cancel, null)

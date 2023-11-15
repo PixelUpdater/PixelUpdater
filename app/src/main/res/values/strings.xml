@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
+    SPDX-FileCopyrightText: 2023 Pixel Updater contributors
     SPDX-FileCopyrightText: 2023 Andrew Gunnerson
+    SPDX-FileContributor: Modified by Pixel Updater contributors
     SPDX-License-Identifier: GPL-3.0-only
 -->
 <resources>
@@ -15,8 +17,20 @@
     <!-- General preferences -->
     <string name="pref_check_for_updates_name">Check for updates</string>
     <string name="pref_check_for_updates_desc">Schedule a check for new OTA updates.</string>
-    <string name="pref_ota_server_url_name">OTA server URL</string>
-    <string name="pref_ota_server_url_desc_none">No URL set.</string>
+    <string name="pref_notification_frequency_name">Notification frequency</string>
+    <string name="pref_notification_frequency_desc">How frequently to send notifications about pending updates.</string>
+    <string-array name="pref_notification_frequency_entries">
+        <item>Daily</item>
+        <item>Weekly</item>
+        <item>Monthly</item>
+    </string-array>
+    <string-array name="pref_notification_frequency_entry_values">
+        <item>daily</item>
+        <item>weekly</item>
+        <item>monthly</item>
+    </string-array>
+    <string name="pref_ota_url_name">OTA URL</string>
+    <string name="pref_ota_url_desc_none">No URL set.</string>
     <string name="pref_certificate_name">Certificate %1$s</string>
     <string name="pref_certificate_desc_subject">Subject: %1$s</string>
     <string name="pref_certificate_desc_serial">Serial: %1$s</string>
@@ -25,14 +39,20 @@
     <!-- Behavior preferences -->
     <string name="pref_automatic_check_name">Automatically check for updates</string>
     <string name="pref_automatic_check_desc">Automatically check for new updates in the background.</string>
-    <string name="pref_automatic_install_name">Automatically install updates</string>
-    <string name="pref_automatic_install_desc">Automatically install new updates in the background.</string>
     <string name="pref_unmetered_only_name">Require unmetered network</string>
     <string name="pref_unmetered_only_desc">Only allow updates to be downloaded over unmetered network connections (eg. Wi-Fi).</string>
     <string name="pref_battery_not_low_name">Require sufficient battery level</string>
     <string name="pref_battery_not_low_desc">Only allow updates to be installed if the battery level is not critical.</string>
     <string name="pref_skip_postinstall_name">Skip optional post-install scripts</string>
     <string name="pref_skip_postinstall_desc">Skip running post-install operations that are marked as optional in the OTA. This usually skips the dexopt operation, which precompiles app bytecode for faster loading.</string>
+    <string name="pref_magisk_patch_name">Magisk patch installed update</string>
+    <string name="pref_magisk_patch_desc">Roots update with Magisk. Requires a functional Magisk install.</string>
+    <string name="pref_vbmeta_patch_name">Disable verity and verification</string>
+    <string name="pref_vbmeta_patch_desc">Patches vbmeta with disable-verity and disable-verification flags.</string>
+    <string name="pref_automatic_switch_name">Automatic slot switch</string>
+    <string name="pref_automatic_switch_desc">Automatically switch slots when the update is complete.</string>
+    <string name="pref_automatic_reboot_name">Automatic reboot</string>
+    <string name="pref_automatic_reboot_desc">Automatically reboot when the update is complete.</string>
 
     <!-- OS information preferences -->
     <string name="pref_android_version_name">Android version</string>
@@ -46,6 +66,22 @@
     <string name="pref_bootloader_status_oemlock_carrier_blocked">OEM unlock blocked by carrier</string>
     <string name="pref_bootloader_status_oemlock_user_allowed">OEM unlock allowed by user</string>
     <string name="pref_bootloader_status_oemlock_user_blocked">OEM unlock blocked by user</string>
+    <string name="pref_magisk_status_name">Magisk status</string>
+    <string name="pref_magisk_status_unknown">Unknown</string>
+    <string name="pref_magisk_status_installed">Installed</string>
+    <string name="pref_magisk_status_not_installed">Not installed</string>
+    <string name="pref_magisk_ota_status_installed">Magisk will be installed after an OTA</string>
+    <string name="pref_magisk_ota_status_not_installed">Magisk will not be installed after an OTA</string>
+    <string name="pref_vbmeta_status_name">Vbmeta status</string>
+    <string name="pref_vbmeta_status_unknown">Unknown</string>
+    <string name="pref_vbmeta_status_enabled">Verity and verification enabled</string>
+    <string name="pref_vbmeta_status_disabled">Verity and verification disabled</string>
+    <string name="pref_vbmeta_status_verity_disabled">Only verity disabled</string>
+    <string name="pref_vbmeta_status_verification_disabled">Only verification disabled</string>
+    <string name="pref_vbmeta_status_verification_unexpected">Unexpected value</string>
+    <string name="pref_vbmeta_ota_status_enabled">Verity and verification will be enabled after an OTA</string>
+    <string name="pref_vbmeta_ota_status_disabled">Verity and verification will be disabled after an OTA</string>
+    <string name="pref_vbmeta_ota_status_verity_disabled">Only verity will be disabled after an OTA</string>
 
     <!-- Certificate preferences -->
     <string name="pref_no_certificates_name">No certificates found</string>
@@ -60,15 +96,24 @@
     <string name="pref_allow_reinstall_name">Allow reinstall</string>
     <string name="pref_allow_reinstall_desc">If the latest OTA matches the current OS fingerprint, treat it as an update. This may cause continuous reinstalls if automatic updates are enabled.</string>
     <string name="pref_revert_completed_name">Revert completed update</string>
-    <string name="pref_revert_completed_desc">This is only possible after an update completes, but before rebooting. This is meant for debugging purposes only.</string>
+    <string name="pref_revert_completed_desc">This is only possible after an update completes, but before rebooting. This prevents the device from switching slots on the next reboot. This does not undo the operations performed on the inactive slot.</string>
+    <string name="pref_verity_only_name">Disable verity only</string>
+    <string name="pref_verity_only_desc">Patches vbmeta with only the disable-verity flag.</string>
 
     <!-- Dialogs -->
-    <string name="dialog_ota_server_url_title">@string/pref_ota_server_url_name</string>
-    <string name="dialog_ota_server_url_message">Enter the base URL for fetching OTA update metadata (excluding the filename).</string>
-    <string name="dialog_ota_server_url_error_bad_protocol">Only http:// and https:// URLs are supported.</string>
-    <string name="dialog_ota_server_url_error_malformed">Not a valid URL.</string>
+    <string name="dialog_ota_url_title">@string/pref_ota_url_name</string>
+    <string name="dialog_ota_url_message">Enter the URL of the OTA.</string>
+    <string name="dialog_ota_url_error_bad_protocol">Only http:// and https:// URLs are supported.</string>
+    <string name="dialog_ota_url_error_malformed">Not a valid URL.</string>
+    <string name="dialog_vbmeta_title">Changing Vbmeta Patching Settings</string>
+    <string name="dialog_vbmeta_message">Changes to this value can directly or indirectly lead to a data wipe. Be sure to understand the implications before changing this setting.\n\nNote: Pixel Updater does not patch the active slot. If you change the configuration, be aware that that the currently active slot will remain unchanged.</string>
     <string name="dialog_action_ok">OK</string>
     <string name="dialog_action_cancel">Cancel</string>
+
+    <!-- Snackbar -->
+    <string name="snackbar_notifications_disabled">Notifications are disabled</string>
+    <string name="snackbar_network_restricted">Network is restricted</string>
+    <string name="snackbar_battery_low">Battery is low</string>
 
     <!-- Notifications -->
     <string name="notification_channel_persistent_name">background services</string>
@@ -87,13 +132,24 @@
     <string name="notification_update_available">OTA update is available</string>
     <string name="notification_update_unnecessary">OS is already up to date</string>
     <string name="notification_update_succeeded">Successfully installed OTA update</string>
+    <string name="notification_update_needs_switch_slots">Successfully installed OTA update, but the slot is not active</string>
     <string name="notification_update_cancelled">OTA update process was cancelled</string>
     <string name="notification_update_reverted">Successfully reverted OTA update</string>
     <string name="notification_update_failed">Failed to install OTA update</string>
+    <string name="notification_update_patch_failed">Failed to patch update</string>
+    <string name="notification_update_mismatch_title">Configuration mismatch</string>
+    <string name="notification_update_mismatch_message">Magisk and Vbmeta settings differ from booted system. Changing Vbmeta settings can directly or indirectly lead to a data wipe. Be sure to understand the implications before changing this setting.</string>
+    <string name="notification_update_mismatch_magisk_message">Magisk settings differ from booted system.</string>
+    <string name="notification_update_mismatch_vbmeta_message">Vbmeta settings differ from booted system. Changing Vbmeta settings can directly or indirectly lead to a data wipe. Be sure to understand the implications before changing this setting.</string>
+    <string name="notification_update_mismatch_root_unavailable_message">Magisk settings differ from booted system. Root is required to detect current Vbmeta status and Vbmeta will not be patched. If verity or verification are currently disabled, this may indirectly lead to a wipe. Be sure to understand the implications before continuing.</string>
+    <string name="notification_update_root_unavailable_title">Root is unavailable</string>
+    <string name="notification_update_root_unavailable_message">Magisk and Vbmeta patching have been disabled</string>
     <string name="notification_action_install">Install</string>
     <string name="notification_action_pause">Pause</string>
     <string name="notification_action_resume">Resume</string>
     <string name="notification_action_cancel">Cancel</string>
     <string name="notification_action_reboot">Reboot</string>
+    <string name="notification_action_switch_slots">Switch Slots</string>
+    <string name="notification_action_revert">Revert</string>
     <string name="notification_action_retry">Retry</string>
 </resources>

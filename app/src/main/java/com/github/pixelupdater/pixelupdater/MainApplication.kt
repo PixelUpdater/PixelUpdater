@@ -1,4 +1,5 @@
 /*
+ * SPDX-FileCopyrightText: 2023 Pixel Updater contributors
  * SPDX-FileCopyrightText: 2022-2023 Andrew Gunnerson
  * SPDX-FileContributor: Modified by Pixel Updater contributors
  * SPDX-License-Identifier: GPL-3.0-only
@@ -11,6 +12,7 @@ import android.app.Application
 import android.util.Log
 import com.github.pixelupdater.pixelupdater.updater.UpdaterJob
 import com.google.android.material.color.DynamicColors
+import com.topjohnwu.superuser.Shell
 import java.io.File
 
 class MainApplication : Application() {
@@ -45,5 +47,9 @@ class MainApplication : Application() {
 
     companion object {
         private val TAG = MainApplication::class.java.simpleName
+
+        init {
+            Shell.setDefaultBuilder(Shell.Builder.create().setFlags(Shell.FLAG_MOUNT_MASTER or Shell.FLAG_REDIRECT_STDERR))
+        }
     }
 }

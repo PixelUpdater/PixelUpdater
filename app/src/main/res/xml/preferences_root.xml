@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
+    SPDX-FileCopyrightText: 2023 Pixel Updater contributors
     SPDX-FileCopyrightText: 2023 Andrew Gunnerson
     SPDX-FileContributor: Modified by Pixel Updater contributors
     SPDX-License-Identifier: GPL-3.0-only
@@ -15,12 +16,6 @@
             app:title="@string/pref_check_for_updates_name"
             app:summary="@string/pref_check_for_updates_desc"
             app:iconSpaceReserved="false" />
-
-        <Preference
-            app:key="ota_server_url"
-            app:persistent="false"
-            app:title="@string/pref_ota_server_url_name"
-            app:iconSpaceReserved="false" />
     </PreferenceCategory>
 
     <PreferenceCategory
@@ -34,12 +29,14 @@
             app:summary="@string/pref_automatic_check_desc"
             app:iconSpaceReserved="false" />
 
-        <SwitchPreferenceCompat
-            app:key="automatic_install"
+        <ListPreference
+            app:key="notification_frequency"
             app:dependency="automatic_check"
-            app:defaultValue="false"
-            app:title="@string/pref_automatic_install_name"
-            app:summary="@string/pref_automatic_install_desc"
+            app:defaultValue="daily"
+            app:title="@string/pref_notification_frequency_name"
+            app:summary="@string/pref_notification_frequency_desc"
+            app:entries="@array/pref_notification_frequency_entries"
+            app:entryValues="@array/pref_notification_frequency_entry_values"
             app:iconSpaceReserved="false" />
 
         <SwitchPreferenceCompat
@@ -58,9 +55,11 @@
 
         <SwitchPreferenceCompat
             app:key="skip_postinstall"
+            app:defaultValue="false"
             app:title="@string/pref_skip_postinstall_name"
             app:summary="@string/pref_skip_postinstall_desc"
             app:iconSpaceReserved="false" />
+
     </PreferenceCategory>
 
     <PreferenceCategory
@@ -89,6 +88,18 @@
             app:key="bootloader_status"
             app:persistent="false"
             app:title="@string/pref_bootloader_status_name"
+            app:iconSpaceReserved="false" />
+
+        <Preference
+            app:key="magisk_status"
+            app:persistent="false"
+            app:title="@string/pref_magisk_status_name"
+            app:iconSpaceReserved="false" />
+
+        <Preference
+            app:key="vbmeta_status"
+            app:persistent="false"
+            app:title="@string/pref_vbmeta_status_name"
             app:iconSpaceReserved="false" />
     </PreferenceCategory>
 
@@ -130,6 +141,7 @@
 
         <SwitchPreferenceCompat
             app:key="allow_reinstall"
+            app:defaultValue="false"
             app:title="@string/pref_allow_reinstall_name"
             app:summary="@string/pref_allow_reinstall_desc"
             app:iconSpaceReserved="false" />
@@ -139,6 +151,48 @@
             app:persistent="false"
             app:title="@string/pref_revert_completed_name"
             app:summary="@string/pref_revert_completed_desc"
+            app:iconSpaceReserved="false" />
+
+        <Preference
+            app:key="ota_url"
+            app:persistent="false"
+            app:title="@string/pref_ota_url_name"
+            app:summary="@string/pref_ota_url_desc_none"
+            app:iconSpaceReserved="false" />
+
+        <SwitchPreferenceCompat
+            app:key="automatic_switch"
+            app:defaultValue="false"
+            app:title="@string/pref_automatic_switch_name"
+            app:summary="@string/pref_automatic_switch_desc"
+            app:iconSpaceReserved="false" />
+
+        <SwitchPreferenceCompat
+            app:key="automatic_reboot"
+            app:dependency="automatic_switch"
+            app:defaultValue="false"
+            app:title="@string/pref_automatic_reboot_name"
+            app:summary="@string/pref_automatic_reboot_desc"
+            app:iconSpaceReserved="false" />
+
+        <SwitchPreferenceCompat
+            app:key="magisk_patch"
+            app:defaultValue="true"
+            app:title="@string/pref_magisk_patch_name"
+            app:summary="@string/pref_magisk_patch_desc"
+            app:iconSpaceReserved="false" />
+
+        <SwitchPreferenceCompat
+            app:key="vbmeta_patch"
+            app:title="@string/pref_vbmeta_patch_name"
+            app:summary="@string/pref_vbmeta_patch_desc"
+            app:iconSpaceReserved="false" />
+
+        <SwitchPreferenceCompat
+            app:key="verity_only"
+            app:dependency="vbmeta_patch"
+            app:title="@string/pref_verity_only_name"
+            app:summary="@string/pref_verity_only_desc"
             app:iconSpaceReserved="false" />
     </PreferenceCategory>
 </PreferenceScreen>

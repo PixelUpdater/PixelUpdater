@@ -1,10 +1,12 @@
 /*
+ * SPDX-FileCopyrightText: 2023 Pixel Updater contributors
  * SPDX-FileCopyrightText: 2022-2023 Andrew Gunnerson
  * SPDX-FileContributor: Modified by Pixel Updater contributors
  * SPDX-License-Identifier: GPL-3.0-only
  * Based on BCR code.
  */
 
+import com.android.build.gradle.internal.api.BaseVariantOutputImpl
 import com.google.protobuf.gradle.proto
 import org.eclipse.jgit.api.ArchiveCommand
 import org.eclipse.jgit.api.Git
@@ -12,6 +14,8 @@ import org.eclipse.jgit.archive.TarFormat
 import org.eclipse.jgit.lib.ObjectId
 import org.jetbrains.kotlin.backend.common.pop
 import org.json.JSONObject
+import java.io.BufferedReader
+import java.io.InputStreamReader
 
 plugins {
     alias(libs.plugins.android.application)
@@ -88,7 +92,7 @@ fun getVersionCode(triple: VersionTriple): Int {
 }
 
 fun getVersionName(git: Git, triple: VersionTriple): String {
-    val tag = triple.first?.replace(Regex("^v"), "") ?: "NONE"
+    val tag = triple.first ?: "NONE"
 
     return buildString {
         append(tag)
@@ -105,13 +109,41 @@ fun getVersionName(git: Git, triple: VersionTriple): String {
     }
 }
 
+fun getSelectedDevice(): String {
+    val adbExecutable = android.adbExecutable
+
+    // Retrieve the target device serial number from the command line
+    val targetDeviceSerialFromCommandLine = project.findProperty("s") as String?
+
+    // Retrieve the target device serial number from the environment variable
+    val targetDeviceSerialFromEnv = System.getenv("s")
+
+    // Determine the selected device based on priority
+    val selectedDevice = targetDeviceSerialFromCommandLine ?: targetDeviceSerialFromEnv
+        ?: run {
+            // If no target device is specified, determine the selected device
+            // by listing available devices and selecting the first one
+            val commandDevices = "${adbExecutable.absolutePath} devices"
+            val processDevices = Runtime.getRuntime().exec(commandDevices)
+            processDevices.waitFor()
+            val readerDevices = BufferedReader(InputStreamReader(processDevices.inputStream))
+            val devices = readerDevices.lines()
+                .filter { it.endsWith("device") }
+                .map { it.split('\t')[0] }
+                .toList()
+            devices.firstOrNull() ?: ""
+        }
+
+    return selectedDevice
+}
+
 val git = Git.open(File(rootDir, ".git"))!!
 val gitVersionTriple = describeVersion(git)
 val gitVersionCode = getVersionCode(gitVersionTriple)
 val gitVersionName = getVersionName(git, gitVersionTriple)
+val gitBranch = git.repository.branch
 
 val projectUrl = "https://github.com/PixelUpdater/PixelUpdater"
-val releaseMetadataBranch = "master"
 
 val extraDir = layout.buildDirectory.map { it.dir("extra") }
 val archiveDir = extraDir.map { it.dir("archive") }
@@ -131,7 +163,6 @@ android {
         versionName = gitVersionName
         resourceConfigurations.addAll(listOf(
             "en",
-            "vi",
         ))
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -215,7 +246,10 @@ dependencies {
     implementation(libs.androidx.preference.ktx)
     implementation(libs.bouncycastle.pkix)
     implementation(libs.bouncycastle.prov)
+    implementation(libs.jsoup)
+    implementation(libs.jsr305)
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.libsu.core)
     implementation(libs.material)
     implementation(libs.protobuf.javalite)
 }
@@ -249,13 +283,21 @@ android.applicationVariants.all {
     val capitalized = variant.name.replaceFirstChar { it.uppercase() }
     val variantDir = extraDir.map { it.dir(variant.name) }
 
+    // https://stackoverflow.com/a/60849081/434343
+    outputs.all {
+        val output = this as BaseVariantOutputImpl
+        if (output.outputFileName == "${project.name}-${variant.name}.apk") {
+            output.outputFileName = "${rootProject.name}.apk"
+        }
+    }
+
     variant.preBuildProvider.configure {
         dependsOn(archive)
     }
 
     val moduleProp = tasks.register("moduleProp${capitalized}") {
         inputs.property("projectUrl", projectUrl)
-        inputs.property("releaseMetadataBranch", releaseMetadataBranch)
+        inputs.property("gitBranch", gitBranch)
         inputs.property("rootProject.name", rootProject.name)
         inputs.property("variant.applicationId", variant.applicationId)
         inputs.property("variant.name", variant.name)
@@ -269,14 +311,11 @@ android.applicationVariants.all {
             val props = LinkedHashMap<String, String>()
             props["id"] = variant.applicationId
             props["name"] = rootProject.name
-            props["version"] = "v${variant.versionName}"
+            props["version"] = variant.versionName
             props["versionCode"] = variant.versionCode.toString()
             props["author"] = "Pixel Updater contributors"
             props["description"] = "Pixel OTA updater"
-
-            if (variant.name == "release") {
-                props["updateJson"] = "${projectUrl}/raw/${releaseMetadataBranch}/app/module/updates/${variant.name}/info.json"
-            }
+            props["updateJson"] = "${projectUrl}/raw/update-links/${variant.name}.json"
 
             outputFile.get().asFile.writeText(
                 props.map { "${it.key}=${it.value}" }.joinToString("\n"))
@@ -346,7 +385,7 @@ android.applicationVariants.all {
             into("system/etc/sysconfig")
         }
         from(variant.outputs.map { it.outputFile }) {
-            into("system/priv-app/${variant.applicationId}")
+            into("system/priv-app/${rootProject.name}")
         }
 
         val moduleDir = File(projectDir, "module")
@@ -365,179 +404,94 @@ android.applicationVariants.all {
         from(File(rootDir, "README.md"))
     }
 
+    tasks.register("sign${capitalized}Zip") {
+        dependsOn.add("zip${capitalized}")
+        val output = tasks.named("zip${capitalized}").get().outputs.files.singleFile
+        val sig = File("$output.sig")
+        doLast {
+            if (sig.exists()) {
+                sig.delete()
+            }
+            exec {
+                commandLine("ssh-keygen", "-Y", "sign", "-f", System.getenv("SIGNING_KEY"), "-P", System.getenv("SIGNING_KEY_PASSPHRASE"), "-n", "file", output)
+            }
+        }
+    }
+
+    tasks.register("push${capitalized}App") {
+        inputs.property("rootProject.name", rootProject.name)
+        inputs.property("variant.applicationId", variant.applicationId)
+
+        dependsOn.add(variant.assembleProvider)
+
+        val output = variant.outputs.map { it.outputFile }[0]
+        doLast {
+            val selectedDevice = getSelectedDevice()
+            exec {
+                commandLine(android.adbExecutable, "-s", selectedDevice, "push", output, "/data/local/tmp")
+            }
+            exec {
+                commandLine(android.adbExecutable, "-s", selectedDevice, "shell", "su", "-c", "cp", "/data/local/tmp/${output.name}", "/data/adb/modules/${variant.applicationId}/system/priv-app/${rootProject.name}")
+            }
+            exec {
+                commandLine(android.adbExecutable, "-s", selectedDevice, "shell", "am", "force-stop", variant.applicationId)
+            }
+            exec {
+                commandLine(android.adbExecutable, "-s", selectedDevice, "shell", "am", "start", "-n", "${variant.applicationId}/${variant.applicationId}.settings.SettingsActivity")
+            }
+        }
+    }
+
+    tasks.register("push${capitalized}Zip") {
+        dependsOn.add("zip${capitalized}")
+        val output = tasks.named("zip${capitalized}").get().outputs.files.singleFile
+        doLast {
+            val selectedDevice = getSelectedDevice()
+            exec {
+                println("Pushing ${output.name} to /data/local/tmp on device $selectedDevice ...")
+                commandLine(android.adbExecutable, "-s", selectedDevice, "push", output, "/data/local/tmp")
+            }
+        }
+    }
+
+    tasks.register("flash${capitalized}") {
+        dependsOn.add("push${capitalized}Zip")
+        val output = tasks.named("zip${capitalized}").get().outputs.files.singleFile
+        doLast {
+            val selectedDevice = getSelectedDevice()
+            exec {
+                println("Flashing ${output.name} to device $selectedDevice ...")
+                commandLine(android.adbExecutable, "-s", selectedDevice, "shell", "su", "-c", "magisk --install-module /data/local/tmp/${output.name}")
+            }
+            exec {
+                println("Rebooting device $selectedDevice ...")
+                commandLine(android.adbExecutable, "-s", selectedDevice, "reboot")
+            }
+        }
+    }
+
     tasks.register("updateJson${capitalized}") {
-        inputs.property("gitVersionTriple.first", gitVersionTriple.first)
         inputs.property("projectUrl", projectUrl)
         inputs.property("rootProject.name", rootProject.name)
         inputs.property("variant.name", variant.name)
         inputs.property("variant.versionCode", variant.versionCode)
         inputs.property("variant.versionName", variant.versionName)
 
-        val moduleDir = File(projectDir, "module")
-        val updatesDir = File(moduleDir, "updates")
-        val variantUpdateDir = File(updatesDir, variant.name)
-        val jsonFile = File(variantUpdateDir, "info.json")
+        val outputDir = tasks.named("zip${capitalized}").get().outputs.files.singleFile.parentFile.parentFile
+        val jsonFile = File(outputDir, "${variant.name}.json")
 
         outputs.file(jsonFile)
 
         doLast {
-            if (gitVersionTriple.second != 0) {
-                throw IllegalStateException("The release tag must be checked out")
-            }
-
             val root = JSONObject()
             root.put("version", variant.versionName)
             root.put("versionCode", variant.versionCode)
-            root.put("zipUrl", "${projectUrl}/releases/download/${gitVersionTriple.first}/${rootProject.name}-${variant.versionName}-release.zip")
-            root.put("changelog", "${projectUrl}/raw/${gitVersionTriple.first}/app/module/updates/${variant.name}/changelog.txt")
+            root.put("zipUrl", "${projectUrl}/releases/download/${variant.versionName}/${rootProject.name}-${variant.versionName}-${variant.name}.zip")
+            root.put("changelog", "${projectUrl}/raw/update-links/changelog.md")
 
             jsonFile.writer().use {
                 root.write(it, 4, 0)
             }
         }
     }
-}
-
-data class LinkRef(val type: String, val number: Int) : Comparable<LinkRef> {
-    override fun compareTo(other: LinkRef): Int = compareValuesBy(
-        this,
-        other,
-        { it.type },
-        { it.number },
-    )
-
-    override fun toString(): String = "[$type #$number]"
-}
-
-fun checkBrackets(line: String) {
-    var expectOpening = true
-
-    for (c in line) {
-        if (c == '[' || c == ']') {
-            if (c == '[' != expectOpening) {
-                throw IllegalArgumentException("Mismatched brackets: $line")
-            }
-
-            expectOpening = !expectOpening
-        }
-    }
-
-    if (!expectOpening) {
-        throw IllegalArgumentException("Missing closing bracket: $line")
-    }
-}
-
-fun updateChangelogLinks(baseUrl: String) {
-    val file = File(rootDir, "CHANGELOG.md")
-    val regexStandaloneLink = Regex("\\[([^\\]]+)\\](?![\\(\\[])")
-    val regexAutoLink = Regex("(Issue|PR) #(\\d+)")
-    val links = hashMapOf<LinkRef, String>()
-    var skipRemaining = false
-    val changelog = mutableListOf<String>()
-
-    file.useLines { lines ->
-        for (rawLine in lines) {
-            val line = rawLine.trimEnd()
-
-            if (!skipRemaining) {
-                checkBrackets(line)
-                val matches = regexStandaloneLink.findAll(line)
-
-                for (linkMatch in matches) {
-                    val linkText = linkMatch.groupValues[1]
-                    val match = regexAutoLink.matchEntire(linkText)
-                    require(match != null) { "Invalid link format: $linkText" }
-
-                    val ref = match.groupValues[0]
-                    val type = match.groupValues[1]
-                    val number = match.groupValues[2].toInt()
-
-                    val link = when (type) {
-                        "Issue" -> "$baseUrl/issues/$number"
-                        "PR" -> "$baseUrl/pull/$number"
-                        else -> throw IllegalArgumentException("Unknown link type: $type")
-                    }
-
-                    // #0 is used for examples only
-                    if (number != 0) {
-                        links[LinkRef(type, number)] = link
-                    }
-                }
-
-                if ("Do not manually edit the lines below" in line) {
-                    skipRemaining = true
-                }
-
-                changelog.add(line)
-            }
-        }
-    }
-
-    for ((ref, link) in links.entries.sortedBy { it.key }) {
-        changelog.add("$ref: $link")
-    }
-
-    changelog.add("")
-
-    file.writeText(changelog.joinToString("\n"))
-}
-
-fun updateChangelog(version: String?, replaceFirst: Boolean) {
-    val file = File(rootDir, "CHANGELOG.md")
-    val expected = if (version != null) { "### Version $version" } else { "### Unreleased" }
-
-    val changelog = mutableListOf<String>().apply {
-        // This preserves a trailing newline, unlike File.readLines()
-        addAll(file.readText().lineSequence())
-    }
-
-    val index = changelog.indexOfFirst { it.startsWith("### ") }
-    if (index == -1) {
-        changelog.addAll(0, listOf(expected, ""))
-    } else if (changelog[index] != expected) {
-        if (replaceFirst) {
-            changelog[index] = expected
-        } else {
-            changelog.addAll(index, listOf(expected, ""))
-        }
-    }
-
-    file.writeText(changelog.joinToString("\n"))
-}
-
-fun updateModuleChangelog(gitRef: String) {
-    File(File(File(File(projectDir, "module"), "updates"), "release"), "changelog.txt")
-        .writeText("The changelog can be found at: [`CHANGELOG.md`]($projectUrl/blob/$gitRef/CHANGELOG.md).\n")
-}
-
-tasks.register("changelogUpdateLinks") {
-    doLast {
-        updateChangelogLinks(projectUrl)
-    }
-}
-
-tasks.register("changelogPreRelease") {
-    doLast {
-        val version = project.property("releaseVersion")
-
-        updateChangelog(version.toString(), true)
-        updateModuleChangelog("v$version")
-    }
-}
-
-tasks.register("changelogPostRelease") {
-    doLast {
-        updateChangelog(null, false)
-        updateModuleChangelog(releaseMetadataBranch)
-    }
-}
-
-tasks.register("preRelease") {
-    dependsOn("changelogUpdateLinks")
-    dependsOn("changelogPreRelease")
-}
-
-tasks.register("postRelease") {
-    dependsOn("updateJsonRelease")
-    dependsOn("changelogPostRelease")
 }

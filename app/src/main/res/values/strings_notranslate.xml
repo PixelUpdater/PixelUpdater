@@ -7,5 +7,5 @@
 <resources>
     <string name="app_name" translatable="false">Pixel Updater</string>
 
-    <string name="dialog_ota_server_url_hint" translatable="false">https://hostname[:port]/path</string>
+    <string name="dialog_ota_url_hint" translatable="false">https://hostname[:port]/path</string>
 </resources>

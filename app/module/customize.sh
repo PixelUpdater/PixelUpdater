@@ -7,10 +7,12 @@
 # be added to the module zip, but instead, we're forced to rename the files with
 # a .so extension and bundle them into the .apk. We'll extract those here.
 
+app_name=$(grep '^name=' "${MODPATH}/module.prop" | cut -d= -f2)
 app_id=$(grep '^id=' "${MODPATH}/module.prop" | cut -d= -f2)
-apk=$(find "${MODPATH}"/system/priv-app/"${app_id}" -name '*.apk')
+apk=$(find "${MODPATH}"/system/priv-app/"${app_name}"/ -name '*.apk')
 abi=$(getprop ro.product.cpu.abi)
 
+echo "App Name: ${app_name}"
 echo "App ID: ${app_id}"
 echo "APK: ${apk}"
 echo "ABI: ${abi}"

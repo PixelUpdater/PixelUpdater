@@ -1,4 +1,4 @@
-The changelog can be found at: [`CHANGELOG.md`](./CHANGELOG.md).
+The changelog can be found at: [`changelog.md`](https://github.com/PixelUpdater/PixelUpdater/blob/update-links/changelog.md).
 
 ---
 
