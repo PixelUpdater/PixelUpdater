@@ -75,7 +75,7 @@ Pixel Updater has hidden debug options that can be enabled or disabled by long p
 
 ### Logs
 
-To access the Pixel Updater's logs, enable debug mode and press `Open log directory` to open the log directory in the system file manager (DocumentsUI). Or alternatively, browse to `/sdcard/Android/com.github.pixelupdater.pixelupdater/files` manually.
+To access the Pixel Updater's logs, enable debug mode and press `Open log directory` to open the log directory in the system file manager (DocumentsUI). Or alternatively, browse to `/sdcard/Android/data/com.github.pixelupdater.pixelupdater/files` manually.
 
 * `check.log`, `install.log`, and `revert.log`: Logs for the last check/install/revert operation.
 * `crash.log`: Logs for the last crash.
