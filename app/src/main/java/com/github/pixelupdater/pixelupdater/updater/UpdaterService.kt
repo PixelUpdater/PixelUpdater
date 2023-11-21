@@ -305,8 +305,8 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
                 onlyAlertOnce = false
                 titleResId = R.string.notification_update_failed
                 message = result.errorMsg
-                showInstall = false
-                showRetry = true
+                showInstall = result.action == UpdaterThread.Action.INSTALL
+                showRetry = result.action != UpdaterThread.Action.INSTALL && result.action != UpdaterThread.Action.SWITCH_SLOT
                 showReboot = false
                 showSwitchSlots = result.action == UpdaterThread.Action.SWITCH_SLOT
                 showRevert = false
@@ -378,15 +378,20 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
 
         if (showInstall) {
             actionResIds.add(R.string.notification_action_install)
-            actionIntents.add(createScheduleIntent(this, UpdaterThread.Action.INSTALL, message))
+            if (result is UpdaterThread.UpdateFailed) {
+                // TODO: Forward target?
+                actionIntents.add(createScheduleIntent(this, UpdaterThread.Action.INSTALL))
+            } else {
+                actionIntents.add(createScheduleIntent(this, UpdaterThread.Action.INSTALL, message))
 
-            val alerts = mutableListOf<IndexedAlert>()
-            if (prefs.alertCache.isNotEmpty()) {
-                alerts.addAll(Json.decodeFromString<List<IndexedAlert>>(prefs.alertCache))
+                val alerts = mutableListOf<IndexedAlert>()
+                if (prefs.alertCache.isNotEmpty()) {
+                    alerts.addAll(Json.decodeFromString<List<IndexedAlert>>(prefs.alertCache))
+                }
+                alerts.add(IndexedAlert(message!!, id!!))
+                val cache = Json.encodeToString<List<IndexedAlert>>(alerts)
+                prefs.alertCache = cache
             }
-            alerts.add(IndexedAlert(message!!, id!!))
-            val cache = Json.encodeToString<List<IndexedAlert>>(alerts)
-            prefs.alertCache = cache
         }
         if (showRetry) {
             actionResIds.add(R.string.notification_action_retry)
