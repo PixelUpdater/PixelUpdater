@@ -540,6 +540,7 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceClic
             }
             Preferences.PREF_ALLOW_REINSTALL -> {
                 if (prefs.allowReinstall) {
+                    scheduledAction = UpdaterThread.Action.CHECK
                     performAction()
                 } else {
                     prefs.updateNotified = false

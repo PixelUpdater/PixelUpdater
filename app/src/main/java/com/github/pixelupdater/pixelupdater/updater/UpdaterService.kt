@@ -64,6 +64,18 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
                     updateForegroundNotification(false)
                     startUpdate(intent)
                 }
+                ACTION_FAIL -> {
+                    updateForegroundNotification(true)
+
+                    val extraAction = IntentCompat.getParcelableExtra(
+                        intent, EXTRA_ACTION, UpdaterThread.Action::class.java)
+                    notifications.dismissNotifications()
+
+                    notifyAlert(UpdaterThread.UpdateFailed(
+                        getString(R.string.notification_job_failed_message),
+                        extraAction
+                    ))
+                }
                 ACTION_PAUSE, ACTION_RESUME -> {
                     updaterThread?.isPaused = action == ACTION_PAUSE
                     updateForegroundNotification(true)
@@ -296,7 +308,7 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
                 showInstall = false
                 showRetry = true
                 showReboot = false
-                showSwitchSlots = false
+                showSwitchSlots = result.action == UpdaterThread.Action.SWITCH_SLOT
                 showRevert = false
             }
             is UpdaterThread.UpdatePatchFailed -> {
@@ -460,6 +472,7 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
         private val TAG = UpdaterService::class.java.simpleName
 
         private val ACTION_START = "${UpdaterService::class.java.canonicalName}.start"
+        private val ACTION_FAIL = "${UpdaterService::class.java.canonicalName}.fail"
         private val ACTION_PAUSE = "${UpdaterService::class.java.canonicalName}.pause"
         private val ACTION_RESUME = "${UpdaterService::class.java.canonicalName}.resume"
         private val ACTION_CANCEL = "${UpdaterService::class.java.canonicalName}.cancel"
@@ -485,6 +498,16 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
             val parcelableAction: Parcelable = action
             putExtra(EXTRA_ACTION, parcelableAction)
             putExtra(EXTRA_SILENT, silent)
+        }
+
+        fun createFailIntent(
+            context: Context,
+            action: UpdaterThread.Action,
+        ) = Intent(context, UpdaterService::class.java).apply {
+            this.action = ACTION_FAIL
+
+            val parcelableAction: Parcelable = action
+            putExtra(EXTRA_ACTION, parcelableAction)
         }
 
         private fun createScheduleIntent(

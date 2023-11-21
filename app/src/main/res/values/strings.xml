@@ -129,6 +129,7 @@
     <string name="notification_state_install">Installing OTA update</string>
     <string name="notification_state_verify">Verifying OTA update</string>
     <string name="notification_state_finalize">Finalizing OTA update</string>
+    <string name="notification_job_failed_message">Ensure battery is not low and connection is unmetered or otherwise toggle associated settings</string>
     <string name="notification_update_available">OTA update is available</string>
     <string name="notification_update_unnecessary">OS is already up to date</string>
     <string name="notification_update_succeeded">Successfully installed OTA update</string>

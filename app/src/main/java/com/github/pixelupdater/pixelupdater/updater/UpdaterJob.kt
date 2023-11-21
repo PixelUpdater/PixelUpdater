@@ -18,6 +18,13 @@ import android.util.Log
 import com.github.pixelupdater.pixelupdater.Notifications
 import com.github.pixelupdater.pixelupdater.Permissions
 import com.github.pixelupdater.pixelupdater.Preferences
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 
 class UpdaterJob: JobService() {
     override fun onStartJob(params: JobParameters): Boolean {
@@ -43,7 +50,7 @@ class UpdaterJob: JobService() {
         }
 
         val action = if (!isPeriodic) {
-            UpdaterThread.Action.values()[actionIndex]
+            UpdaterThread.Action.entries[actionIndex]
         } else {
             UpdaterThread.Action.CHECK
         }
@@ -74,6 +81,8 @@ class UpdaterJob: JobService() {
         // sometimes skip this to avoid unexpected operations while the user is configuring
         // settings in the UI.
         private var skipNextRun = false
+
+        private var timeout: Deferred<Unit>? = null
 
         private fun createJobBuilder(
             context: Context,
@@ -106,6 +115,7 @@ class UpdaterJob: JobService() {
             return builder.setExtras(extras)
         }
 
+        @DelicateCoroutinesApi
         private fun scheduleIfUnchanged(context: Context, jobInfo: JobInfo) {
             val jobScheduler = context.getSystemService(JobScheduler::class.java)
 
@@ -119,16 +129,38 @@ class UpdaterJob: JobService() {
                 oldJobInfo.requiredNetwork == jobInfo.requiredNetwork &&
                 oldJobInfo.isRequireBatteryNotLow == jobInfo.isRequireBatteryNotLow &&
                 oldJobInfo.isPersisted == jobInfo.isPersisted &&
+                oldJobInfo.intervalMillis == jobInfo.intervalMillis &&
+                oldJobInfo.isPeriodic == jobInfo.isPeriodic &&
                 oldJobInfo.intervalMillis == jobInfo.intervalMillis) {
                 Log.i(TAG, "Job already exists and is unchanged: $jobInfo")
                 return
             }
 
+            if (jobInfo.id == ID_IMMEDIATE) {
+                if (timeout != null) {
+                    timeout!!.cancel()
+                }
+            }
+
             Log.d(TAG, "Scheduling job: $jobInfo")
 
             when (val result = jobScheduler.schedule(jobInfo)) {
-                JobScheduler.RESULT_SUCCESS ->
+                JobScheduler.RESULT_SUCCESS -> {
                     Log.d(TAG, "Scheduled job: $jobInfo")
+                    if (jobInfo.id == ID_IMMEDIATE) {
+                        timeout = GlobalScope.async {
+                            withContext(Dispatchers.IO) {
+                                delay(2000)
+                                if (jobScheduler.getPendingJob(jobInfo.id) != null) {
+                                    jobScheduler.cancel(jobInfo.id)
+                                    val actionIndex = jobInfo.extras.getInt(EXTRA_ACTION)
+                                    val action = UpdaterThread.Action.entries[actionIndex]
+                                    context.startForegroundService(UpdaterService.createFailIntent(context, action))
+                                }
+                            }
+                        }
+                    }
+                }
                 JobScheduler.RESULT_FAILURE ->
                     Log.w(TAG, "Failed to schedule job: $jobInfo")
                 else -> throw IllegalStateException("Unexpected scheduler error: $result")

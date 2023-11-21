@@ -982,7 +982,7 @@ class UpdaterThread(
         override val isError = true
     }
 
-    data class UpdateFailed(val errorMsg: String) : Result {
+    data class UpdateFailed(val errorMsg: String, val action: Action? = null) : Result {
         override val isError = true
     }
 
