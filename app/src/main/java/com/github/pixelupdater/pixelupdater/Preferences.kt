@@ -26,7 +26,7 @@ class Preferences(context: Context) {
         const val PREF_SKIP_POSTINSTALL = "skip_postinstall"
         const val PREF_MAGISK_PATCH = "magisk_patch"
         const val PREF_VBMETA_PATCH = "vbmeta_patch"
-        const val PREF_AUTOMATIC_SWITCH = "automatic_switch"
+        const val PREF_AUTOMATIC_SWITCH_SLOT = "automatic_switch_slot"
         const val PREF_AUTOMATIC_REBOOT = "automatic_reboot"
         const val PREF_ANDROID_VERSION = "android_version"
         const val PREF_FINGERPRINT = "fingerprint"
@@ -151,10 +151,10 @@ class Preferences(context: Context) {
             }
         }
 
-    /** Whether to force switch slots on update. */
-    var automaticSwitch: Boolean
-        get() = prefs.getBoolean(PREF_AUTOMATIC_SWITCH, false)
-        set(enabled) = prefs.edit { putBoolean(PREF_AUTOMATIC_SWITCH, enabled) }
+    /** Whether to force switch slot on update. */
+    var automaticSwitchSlot: Boolean
+        get() = prefs.getBoolean(PREF_AUTOMATIC_SWITCH_SLOT, false)
+        set(enabled) = prefs.edit { putBoolean(PREF_AUTOMATIC_SWITCH_SLOT, enabled) }
 
     /** Whether to automatically reboot on successful update. */
     var automaticReboot: Boolean

@@ -561,7 +561,7 @@ class UpdaterThread(
                 put("RUN_POST_INSTALL", "0")
             }
 
-            if (!prefs.automaticSwitch) {
+            if (!prefs.automaticSwitchSlot) {
                 put("SWITCH_SLOT_ON_REBOOT", "0")
             }
         }
@@ -857,7 +857,7 @@ class UpdaterThread(
                     }
                     UpdateEngineError.UPDATED_BUT_NOT_ACTIVE -> {
                         Log.d(TAG, "Successfully completed upgrade, but not active")
-                        listener.onUpdateResult(this, UpdateNeedSwitchSlots)
+                        listener.onUpdateResult(this, UpdateNeedSwitchSlot)
                     }
                     UpdateEngineError.USER_CANCELED -> {
                         Log.w(TAG, "User cancelled upgrade")
@@ -909,6 +909,7 @@ class UpdaterThread(
         REVERT,
         SWITCH_SLOT,
         NO_ROOT,
+        REBOOT,
     }
 
     private fun List<CheckUpdateResult>.available() = filter { it.fingerprint != Build.FINGERPRINT || prefs.allowReinstall }
@@ -965,7 +966,7 @@ class UpdaterThread(
         override val isError = false
     }
 
-    data object UpdateNeedSwitchSlots : Result {
+    data object UpdateNeedSwitchSlot : Result {
         override val isError = false
     }
 
@@ -984,6 +985,10 @@ class UpdaterThread(
 
     data class UpdateFailed(val errorMsg: String, val action: Action? = null) : Result {
         override val isError = true
+    }
+
+    data class CheckSkipped(val errorMsg: String, val action: Action) : Result {
+        override val isError = false
     }
 
     data class UpdatePatchFailed(val errorMsg: String) : Result {

@@ -41,6 +41,7 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
     private var updaterAction: UpdaterThread.Action? = null
     private var silenceForPeriodic = false
     private var progressState: ProgressState? = null
+    private var prevResult: UpdaterThread.Result? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -71,8 +72,20 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
                         intent, EXTRA_ACTION, UpdaterThread.Action::class.java)
                     notifications.dismissNotifications()
 
+                    val messageResId = if (extraAction == UpdaterThread.Action.INSTALL) {
+                        if (prefs.requireUnmetered && prefs.requireBatteryNotLow) {
+                            R.string.notification_job_failed_both_message
+                        } else if (prefs.requireUnmetered) {
+                            R.string.notification_job_failed_network_message
+                        } else {
+                            R.string.notification_job_failed_battery_message
+                        }
+                    } else {
+                        R.string.notification_job_failed_battery_message
+                    }
+
                     notifyAlert(UpdaterThread.UpdateFailed(
-                        getString(R.string.notification_job_failed_message),
+                        getString(messageResId),
                         extraAction
                     ))
                 }
@@ -82,11 +95,12 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
                 }
                 ACTION_CANCEL -> {
                     updaterThread?.cancel()
+                    prevResult = null
                 }
                 ACTION_REBOOT -> {
                     getSystemService(PowerManager::class.java).reboot(null)
                 }
-                ACTION_SWITCH_SLOTS -> {
+                ACTION_SWITCH_SLOT -> {
                     updateForegroundNotification(true)
                     startUpdate(intent)
                 }
@@ -126,6 +140,38 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
             // new status without re-alerting the user when onlySendOnce is true.
             if (!silent) {
                 notifications.dismissNotifications()
+            }
+
+            if (action == UpdaterThread.Action.CHECK) {
+                val pendingSwitchSlot = when (prevResult) {
+                    is UpdaterThread.UpdateFailed -> (prevResult as UpdaterThread.UpdateFailed).action == UpdaterThread.Action.SWITCH_SLOT
+                    is UpdaterThread.CheckSkipped -> (prevResult as UpdaterThread.CheckSkipped).action == UpdaterThread.Action.SWITCH_SLOT
+                    else -> prevResult == UpdaterThread.UpdateNeedSwitchSlot
+                }
+                val pendingReboot = when (prevResult) {
+                    is UpdaterThread.CheckSkipped -> (prevResult as UpdaterThread.CheckSkipped).action == UpdaterThread.Action.REBOOT
+                    else -> prevResult == UpdaterThread.UpdateSucceeded || prevResult == UpdaterThread.UpdateNeedReboot
+                }
+                if (pendingSwitchSlot || pendingReboot) {
+                    if (!silent) {
+                        val messageResId = if (pendingSwitchSlot) {
+                            R.string.notification_check_skipped_needs_switch_slot_message
+                        } else {
+                            R.string.notification_check_skipped_needs_reboot_message
+                        }
+                        val pendingAction = if (pendingSwitchSlot) {
+                            UpdaterThread.Action.SWITCH_SLOT
+                        } else {
+                            UpdaterThread.Action.REBOOT
+                        }
+
+                        notifyAlert(UpdaterThread.CheckSkipped(
+                            getString(messageResId),
+                            pendingAction
+                        ))
+                    }
+                    return
+                }
             }
 
             updateForegroundNotification(true)
@@ -219,7 +265,7 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
         val showInstall: Boolean
         val showRetry: Boolean
         val showReboot: Boolean
-        val showSwitchSlots: Boolean
+        val showSwitchSlot: Boolean
         val showRevert: Boolean
         var id: Int? = null
 
@@ -233,7 +279,7 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
                 showInstall = true
                 showRetry = false
                 showReboot = false
-                showSwitchSlots = false
+                showSwitchSlot = false
                 showRevert = false
                 id = ID_INDEXED + result.index
             }
@@ -251,7 +297,7 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
                 showInstall = false
                 showRetry = false
                 showReboot = false
-                showSwitchSlots = false
+                showSwitchSlot = false
                 showRevert = false
             }
             UpdaterThread.UpdateSucceeded, UpdaterThread.UpdateNeedReboot -> {
@@ -263,19 +309,19 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
                 showInstall = false
                 showRetry = false
                 showReboot = true
-                showSwitchSlots = false
+                showSwitchSlot = false
                 showRevert = false
             }
-            UpdaterThread.UpdateNeedSwitchSlots -> {
+            UpdaterThread.UpdateNeedSwitchSlot -> {
                 channel = Notifications.CHANNEL_ID_SUCCESS
                 // Only bug the user once while the notification is still shown
-                onlyAlertOnce = result is UpdaterThread.UpdateNeedSwitchSlots
-                titleResId = R.string.notification_update_needs_switch_slots
+                onlyAlertOnce = result is UpdaterThread.UpdateNeedSwitchSlot
+                titleResId = R.string.notification_update_needs_switch_slot
                 message = null
                 showInstall = false
                 showRetry = false
                 showReboot = false
-                showSwitchSlots = true
+                showSwitchSlot = true
                 showRevert = false
             }
             UpdaterThread.UpdateReverted -> {
@@ -286,7 +332,7 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
                 showInstall = false
                 showRetry = false
                 showReboot = false
-                showSwitchSlots = false
+                showSwitchSlot = false
                 showRevert = false
             }
             UpdaterThread.UpdateCancelled -> {
@@ -297,7 +343,7 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
                 showInstall = false
                 showRetry = true
                 showReboot = false
-                showSwitchSlots = false
+                showSwitchSlot = false
                 showRevert = false
             }
             is UpdaterThread.UpdateFailed -> {
@@ -306,9 +352,20 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
                 titleResId = R.string.notification_update_failed
                 message = result.errorMsg
                 showInstall = result.action == UpdaterThread.Action.INSTALL
-                showRetry = result.action != UpdaterThread.Action.INSTALL && result.action != UpdaterThread.Action.SWITCH_SLOT
+                showRetry = result.action == null
                 showReboot = false
-                showSwitchSlots = result.action == UpdaterThread.Action.SWITCH_SLOT
+                showSwitchSlot = result.action == UpdaterThread.Action.SWITCH_SLOT
+                showRevert = false
+            }
+            is UpdaterThread.CheckSkipped -> {
+                channel = Notifications.CHANNEL_ID_FAILURE
+                onlyAlertOnce = false
+                titleResId = R.string.notification_check_skipped_title
+                message = result.errorMsg
+                showInstall = false
+                showRetry = false
+                showReboot = result.action == UpdaterThread.Action.REBOOT
+                showSwitchSlot = result.action == UpdaterThread.Action.SWITCH_SLOT
                 showRevert = false
             }
             is UpdaterThread.UpdatePatchFailed -> {
@@ -319,7 +376,7 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
                 showInstall = false
                 showRetry = true
                 showReboot = false
-                showSwitchSlots = false
+                showSwitchSlot = false
                 showRevert = true
             }
             UpdaterThread.UpdateMismatch, UpdaterThread.UpdateMismatchMagisk, UpdaterThread.UpdateMismatchVbmeta, UpdaterThread.UpdateMismatchRootUnavailable -> {
@@ -352,7 +409,7 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
                 showInstall = false
                 showRetry = false
                 showReboot = false
-                showSwitchSlots = false
+                showSwitchSlot = false
                 showRevert = false
             }
             UpdaterThread.RootUnavailable -> {
@@ -363,7 +420,7 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
                 showInstall = false
                 showRetry = false
                 showReboot = false
-                showSwitchSlots = false
+                showSwitchSlot = false
                 showRevert = false
             }
             UpdaterThread.RootUnnecessary -> {
@@ -404,8 +461,8 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
             actionResIds.add(R.string.notification_action_reboot)
             actionIntents.add(createActionIntent(ACTION_REBOOT))
         }
-        if (showSwitchSlots) {
-            actionResIds.add(R.string.notification_action_switch_slots)
+        if (showSwitchSlot) {
+            actionResIds.add(R.string.notification_action_switch_slot)
             actionIntents.add(createScheduleIntent(this, UpdaterThread.Action.SWITCH_SLOT))
         }
         if (showRevert) {
@@ -482,7 +539,7 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
         private val ACTION_RESUME = "${UpdaterService::class.java.canonicalName}.resume"
         private val ACTION_CANCEL = "${UpdaterService::class.java.canonicalName}.cancel"
         private val ACTION_REBOOT = "${UpdaterService::class.java.canonicalName}.reboot"
-        private val ACTION_SWITCH_SLOTS = "${UpdaterService::class.java.canonicalName}.switch_slots"
+        private val ACTION_SWITCH_SLOT = "${UpdaterService::class.java.canonicalName}.switch_slot"
         private val ACTION_SCHEDULE = "${UpdaterService::class.java.canonicalName}.schedule"
 
         private const val EXTRA_NETWORK = "network"

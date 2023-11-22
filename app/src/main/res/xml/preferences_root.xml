@@ -163,8 +163,8 @@
         <SwitchPreferenceCompat
             app:key="automatic_switch"
             app:defaultValue="false"
-            app:title="@string/pref_automatic_switch_name"
-            app:summary="@string/pref_automatic_switch_desc"
+            app:title="@string/pref_automatic_switch_slot_name"
+            app:summary="@string/pref_automatic_switch_slot_desc"
             app:iconSpaceReserved="false" />
 
         <SwitchPreferenceCompat

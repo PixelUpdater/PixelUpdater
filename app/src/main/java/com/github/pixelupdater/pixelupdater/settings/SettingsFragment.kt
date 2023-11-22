@@ -520,7 +520,7 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceClic
             Preferences.PREF_UNMETERED_ONLY, Preferences.PREF_BATTERY_NOT_LOW -> {
                 UpdaterJob.schedulePeriodic(requireContext(), true)
             }
-            Preferences.PREF_AUTOMATIC_SWITCH -> {
+            Preferences.PREF_AUTOMATIC_SWITCH_SLOT -> {
                 prefAutomaticReboot.isChecked = false
             }
             Preferences.PREF_MAGISK_PATCH, Preferences.PREF_VBMETA_PATCH, Preferences.PREF_VERITY_ONLY -> {

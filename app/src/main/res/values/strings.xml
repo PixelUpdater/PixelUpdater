@@ -49,8 +49,8 @@
     <string name="pref_magisk_patch_desc">Roots update with Magisk. Requires a functional Magisk install.</string>
     <string name="pref_vbmeta_patch_name">Disable verity and verification</string>
     <string name="pref_vbmeta_patch_desc">Patches vbmeta with disable-verity and disable-verification flags.</string>
-    <string name="pref_automatic_switch_name">Automatic slot switch</string>
-    <string name="pref_automatic_switch_desc">Automatically switch slots when the update is complete.</string>
+    <string name="pref_automatic_switch_slot_name">Automatic slot switch</string>
+    <string name="pref_automatic_switch_slot_desc">Automatically switch slot when the update is complete.</string>
     <string name="pref_automatic_reboot_name">Automatic reboot</string>
     <string name="pref_automatic_reboot_desc">Automatically reboot when the update is complete.</string>
 
@@ -96,7 +96,7 @@
     <string name="pref_allow_reinstall_name">Allow reinstall</string>
     <string name="pref_allow_reinstall_desc">If the latest OTA matches the current OS fingerprint, treat it as an update. This may cause continuous reinstalls if automatic updates are enabled.</string>
     <string name="pref_revert_completed_name">Revert completed update</string>
-    <string name="pref_revert_completed_desc">This is only possible after an update completes, but before rebooting. This prevents the device from switching slots on the next reboot. This does not undo the operations performed on the inactive slot.</string>
+    <string name="pref_revert_completed_desc">This is only possible after an update completes, but before rebooting. This prevents the device from switching slot on the next reboot. This does not undo the operations performed on the inactive slot.</string>
     <string name="pref_verity_only_name">Disable verity only</string>
     <string name="pref_verity_only_desc">Patches vbmeta with only the disable-verity flag.</string>
 
@@ -129,11 +129,16 @@
     <string name="notification_state_install">Installing OTA update</string>
     <string name="notification_state_verify">Verifying OTA update</string>
     <string name="notification_state_finalize">Finalizing OTA update</string>
-    <string name="notification_job_failed_message">Ensure battery is not low and connection is unmetered or otherwise toggle associated settings</string>
+    <string name="notification_check_skipped_title">Skipped checking for updates</string>
+    <string name="notification_check_skipped_needs_switch_slot_message">Operation unavailable when switch slot is pending</string>
+    <string name="notification_check_skipped_needs_reboot_message">Operation unavailable when reboot is pending</string>
+    <string name="notification_job_failed_both_message">Ensure battery is not low and connection is unmetered or disable associated requirements</string>
+    <string name="notification_job_failed_battery_message">Ensure battery is not low or disable the sufficient battery level requirement</string>
+    <string name="notification_job_failed_network_message">Ensure connection is unmetered or disable the unmetered network requirement</string>
     <string name="notification_update_available">OTA update is available</string>
     <string name="notification_update_unnecessary">OS is already up to date</string>
     <string name="notification_update_succeeded">Successfully installed OTA update</string>
-    <string name="notification_update_needs_switch_slots">Successfully installed OTA update, but the slot is not active</string>
+    <string name="notification_update_needs_switch_slot">Successfully installed OTA update, but the slot is not active</string>
     <string name="notification_update_cancelled">OTA update process was cancelled</string>
     <string name="notification_update_reverted">Successfully reverted OTA update</string>
     <string name="notification_update_failed">Failed to install OTA update</string>
@@ -150,7 +155,7 @@
     <string name="notification_action_resume">Resume</string>
     <string name="notification_action_cancel">Cancel</string>
     <string name="notification_action_reboot">Reboot</string>
-    <string name="notification_action_switch_slots">Switch Slots</string>
+    <string name="notification_action_switch_slot">Switch Slot</string>
     <string name="notification_action_revert">Revert</string>
     <string name="notification_action_retry">Retry</string>
 </resources>
