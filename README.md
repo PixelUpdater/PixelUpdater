@@ -105,7 +105,7 @@ There are two parts to the SELinux changes:
 
 1. There's a [`pixelupdater_selinux` native executable](./app/src/main/cpp/pixelupdater_selinux) that performs all of the policy modifications. It takes the `untrusted_app` domain and makes a copy of it as `pixelupdater_app`. Then, it adds the relevant rules to allow only `pixelupdater_app` to access `update_engine`. The domain is copied from `untrusted_app` instead of the normal `priv_app` domain that is assigned to system apps because Pixel Updater does not require any of the additional privileges that would have been granted by `priv_app`.
 
-2. An `seapp_contexts` rule is added to `/dev/selinux/apex_seapp_contexts`, which actually sets up the association between Pixel Updater (app package ID: `com.github.pixelupdater.pixelupdater`) and the new SELinux domain (`pixelupdater_app`).
+2. An `seapp_contexts` rule is added to `/system/etc/selinux/plat_seapp_contexts`, which actually sets up the association between Pixel Updater (app package ID: `com.github.pixelupdater.pixelupdater`) and the new SELinux domain (`pixelupdater_app`).
 
 These changes help limit Pixel Updater's privileges to exactly what is needed and avoids potentially increasing the attack surface via other apps.
 
