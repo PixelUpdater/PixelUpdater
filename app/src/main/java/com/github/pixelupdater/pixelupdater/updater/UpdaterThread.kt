@@ -446,7 +446,7 @@ class UpdaterThread(
         } else if (postSecurityPatchLevel < Build.VERSION.SECURITY_PATCH) {
             throw ValidationException("Downgrading to older security patch is not allowed: " +
                     "current=${Build.VERSION.SECURITY_PATCH}, ota=$postSecurityPatchLevel")
-        } else if (postTimestamp < Build.TIME) {
+        } else if (postTimestamp < Build.TIME && !prefs.allowReinstall) {
             throw ValidationException("Downgrading to older timestamp is not allowed: " +
                     "current=${Build.TIME}, ota=$postTimestamp")
         }
