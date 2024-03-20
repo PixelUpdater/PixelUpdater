@@ -153,7 +153,7 @@ class Preferences(context: Context) {
 
     /** Whether to force switch slot on update. */
     var automaticSwitchSlot: Boolean
-        get() = prefs.getBoolean(PREF_AUTOMATIC_SWITCH_SLOT, false)
+        get() = prefs.getBoolean(PREF_AUTOMATIC_SWITCH_SLOT, true)
         set(enabled) = prefs.edit { putBoolean(PREF_AUTOMATIC_SWITCH_SLOT, enabled) }
 
     /** Whether to automatically reboot on successful update. */

@@ -161,15 +161,15 @@
             app:iconSpaceReserved="false" />
 
         <SwitchPreferenceCompat
-            app:key="automatic_switch"
-            app:defaultValue="false"
+            app:key="automatic_switch_slot"
+            app:defaultValue="true"
             app:title="@string/pref_automatic_switch_slot_name"
             app:summary="@string/pref_automatic_switch_slot_desc"
             app:iconSpaceReserved="false" />
 
         <SwitchPreferenceCompat
             app:key="automatic_reboot"
-            app:dependency="automatic_switch"
+            app:dependency="automatic_switch_slot"
             app:defaultValue="false"
             app:title="@string/pref_automatic_reboot_name"
             app:summary="@string/pref_automatic_reboot_desc"
