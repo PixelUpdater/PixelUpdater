@@ -130,7 +130,7 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
             // IntentCompat is required due to an Android 13 bug that's only fixed in 14+
             // https://issuetracker.google.com/issues/274185314
             val network = IntentCompat.getParcelableExtra(
-                intent, EXTRA_NETWORK, Network::class.java)!!
+                intent, EXTRA_NETWORK, Network::class.java)
             val action = IntentCompat.getParcelableExtra(
                 intent, EXTRA_ACTION, UpdaterThread.Action::class.java)!!
             val silent = intent.getBooleanExtra(EXTRA_SILENT, false)
@@ -140,6 +140,13 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
             // new status without re-alerting the user when onlySendOnce is true.
             if (!silent) {
                 notifications.dismissNotifications()
+            }
+
+            if (action != UpdaterThread.Action.REVERT && action != UpdaterThread.Action.NO_ROOT && network == null) {
+                if (!silent) {
+                    notifyAlert(UpdaterThread.NetworkUnavailable)
+                }
+                return
             }
 
             if (action == UpdaterThread.Action.CHECK) {
@@ -423,6 +430,17 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
                 showSwitchSlot = false
                 showRevert = false
             }
+            UpdaterThread.NetworkUnavailable -> {
+                channel = Notifications.CHANNEL_ID_FAILURE
+                onlyAlertOnce = true
+                titleResId = R.string.notification_update_root_unavailable_title
+                message = getString(R.string.notification_update_root_unavailable_message)
+                showInstall = false
+                showRetry = false
+                showReboot = false
+                showSwitchSlot = false
+                showRevert = false
+            }
             UpdaterThread.RootUnnecessary -> {
                 notifications.dismissNotifications()
                 threadExited()
@@ -549,7 +567,7 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
 
         fun createStartIntent(
             context: Context,
-            network: Network,
+            network: Network?,
             action: UpdaterThread.Action,
             silent: Boolean,
         ) = Intent(context, UpdaterService::class.java).apply {

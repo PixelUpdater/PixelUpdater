@@ -56,7 +56,7 @@ class UpdaterJob: JobService() {
         }
 
         startForegroundService(UpdaterService.createStartIntent(
-            applicationContext, params.network!!, action, isPeriodic))
+            applicationContext, params.network, action, isPeriodic))
         return false
     }
 

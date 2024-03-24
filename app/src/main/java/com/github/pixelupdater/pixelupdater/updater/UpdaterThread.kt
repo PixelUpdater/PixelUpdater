@@ -954,6 +954,10 @@ class UpdaterThread(
         override val isError = false
     }
 
+    data object NetworkUnavailable : Result {
+        override val isError = true
+    }
+
     data class UpdateAvailable(val version: String, val index: Int) : Result {
         override val isError = false
     }

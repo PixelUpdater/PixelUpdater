@@ -150,6 +150,8 @@
     <string name="notification_update_mismatch_root_unavailable_message">Magisk settings differ from booted system. Root is required to detect current Vbmeta status and Vbmeta will not be patched. If verity or verification are currently disabled, this may indirectly lead to a wipe. Be sure to understand the implications before continuing.</string>
     <string name="notification_update_root_unavailable_title">Root is unavailable</string>
     <string name="notification_update_root_unavailable_message">Magisk and Vbmeta patching have been disabled</string>
+    <string name="notification_update_network_unavailable_title">Network is unavailable</string>
+    <string name="notification_update_network_unavailable_message">Job found no available networks</string>
     <string name="notification_action_install">Install</string>
     <string name="notification_action_pause">Pause</string>
     <string name="notification_action_resume">Resume</string>
