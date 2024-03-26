@@ -11,3 +11,4 @@ local.properties
 /.local/
 /.vscode/
 .env
+desktop.ini
