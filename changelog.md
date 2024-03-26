@@ -1,3 +1,7 @@
+### 2024-03-26 v0.107-release
+
+- Update release action. - add uninstall.sh to module build.
+
 ### 2024-03-26 v0.105-release
 
 add module uninstall script
