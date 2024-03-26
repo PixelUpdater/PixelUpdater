@@ -1,3 +1,7 @@
+### 2024-03-26 v0.105-release
+
+add module uninstall script
+
 ### 2023-12-06 v0.104-release
 
 build release v0.104
