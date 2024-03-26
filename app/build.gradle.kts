@@ -399,6 +399,7 @@ android.applicationVariants.all {
         from(File(moduleDir, "boot_common.sh"))
         from(File(moduleDir, "customize.sh"))
         from(File(moduleDir, "post-fs-data.sh"))
+        from(File(moduleDir, "uninstall.sh"))
 
         from(File(rootDir, "LICENSE"))
         from(File(rootDir, "README.md"))
