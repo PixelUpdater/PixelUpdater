@@ -24,7 +24,7 @@ Pixel Updater was forked from [Custota](https://github.com/chenxiaolong/Custota)
 
 ## Limitations
 
-* The device must be rooted with Magisk. KernelSU is not supported.
+* The device must be rooted with Magisk. KernelSU/APatch is not supported.
 * The device must be a Google Pixel and support A/B updates.
 * Incremental updates are not supported.
 * Pre-downloading an update to install later is not supported.
