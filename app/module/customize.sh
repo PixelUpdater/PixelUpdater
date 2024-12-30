@@ -11,6 +11,9 @@ app_name=$(grep '^name=' "${MODPATH}/module.prop" | cut -d= -f2)
 app_id=$(grep '^id=' "${MODPATH}/module.prop" | cut -d= -f2)
 apk=$(find "${MODPATH}"/system/priv-app/"${app_name}"/ -name '*.apk')
 abi=$(getprop ro.product.cpu.abi)
+APP_PACKAGE="com.github.pixelupdater.pixelupdater"
+APP_EXTERNAL_DATA_DIR="/storage/emulated/0/Android/data/${APP_PACKAGE}"
+
 
 echo "App Name: ${app_name}"
 echo "App ID: ${app_id}"
@@ -27,7 +30,13 @@ run() {
     fi
 }
 
+if [ -d $APP_EXTERNAL_DATA_DIR ]; then
+    ls -lR $APP_EXTERNAL_DATA_DIR
+    rm -rf $APP_EXTERNAL_DATA_DIR
+fi
+
 if ! run 2>&1; then
     rm -rv "${MODPATH}" 2>&1
     exit 1
 fi
+
