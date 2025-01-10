@@ -31,7 +31,6 @@ run() {
 }
 
 if [ -d $APP_EXTERNAL_DATA_DIR ]; then
-    ls -lR $APP_EXTERNAL_DATA_DIR
     rm -rf $APP_EXTERNAL_DATA_DIR
 fi
 
