@@ -37,3 +37,5 @@ fi
 cat >> "${mod_seapp_file}" << EOF
 user=_app isPrivApp=true name=${app_id} domain=pixelupdater_app type=app_data_file levelFrom=all
 EOF
+
+/system/bin/mv -f /data/local/tmp/pixelupdater_selinux.log "${mod_dir}/pixelupdater_selinux.log"
