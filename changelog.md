@@ -1,3 +1,7 @@
+### 2025-01-17 v0.108-release
+
+- Clear leftover over data on fresh install and uninstall - Move the `pixelupdater_selinux.log` out of /data/local/tmp/ so that apps don't key on that. - Update verification-metadata.xml for tensorflow-lite-metadata-0.1.0-rc2.pom
+
 ### 2024-03-26 v0.107-release
 
 - Update release action. - add uninstall.sh to module build.
