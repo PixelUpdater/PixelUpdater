@@ -6,14 +6,14 @@
 -->
 <resources>
 	<!-- Only keep app-specific strings that are defined in default strings.xml -->
-    <string name="app_name">Pixel Updater</string>
+    <!-- <string name="app_name">Pixel Updater</string> -->
 
     <!-- Dialog strings -->
     <string name="dialog_action_cancel">Отменить</string>
     <string name="dialog_action_ok">ОК</string>
     <string name="dialog_ota_url_error_bad_protocol">Только http:// и https:// URLs поддерживаются.</string>
     <string name="dialog_ota_url_error_malformed">Недействительный URL.</string>
-    <string name="dialog_ota_url_hint">https://hostname[:port]/path</string>
+    <!-- <string name="dialog_ota_url_hint">https://hostname[:port]/path</string> -->
     <string name="dialog_ota_url_message">Введите URL-адрес OTA.</string>
     <string name="dialog_ota_url_title">@string/pref_ota_url_name</string>
     <string name="dialog_vbmeta_message">Изменения этого значения могут напрямую или косвенно привести к стиранию данных. убедитесь, что вы понимаете последствия, прежде чем изменять этот параметр.\n\nПримечание: Pixel Updater не изменяет активный слот. Если вы измените конфигурацию, имейте в виду, что текущий активный слот останется неизменным.</string>

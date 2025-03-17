@@ -10,9 +10,4 @@
 		<item>Еженедельно</item>
 		<item>Ежемесячно</item>
 	</string-array>
-	<string-array name="pref_notification_frequency_entry_values">
-		<item>ежедневно</item>
-		<item>еженедельно</item>
-		<item>ежемесячно</item>
-	</string-array>
 </resources>

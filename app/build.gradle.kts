@@ -162,7 +162,7 @@ android {
         versionCode = gitVersionCode
         versionName = gitVersionName
         resourceConfigurations.addAll(listOf(
-            "en",
+            "en", "ru"
         ))
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
