@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    SPDX-FileCopyrightText: 2023 Pixel Updater contributors
+    SPDX-FileCopyrightText: 2025 Pixel Updater contributors
     SPDX-FileCopyrightText: 2023 Andrew Gunnerson
     SPDX-FileContributor: Modified by Pixel Updater contributors
     SPDX-License-Identifier: GPL-3.0-only
@@ -137,6 +137,13 @@
             app:persistent="false"
             app:title="@string/pref_open_log_dir_name"
             app:summary="@string/pref_open_log_dir_desc"
+            app:iconSpaceReserved="false" />
+
+        <Preference
+            app:key="create_support_file"
+            app:persistent="false"
+            app:title="@string/pref_create_support_file_name"
+            app:summary="@string/pref_create_support_file_desc"
             app:iconSpaceReserved="false" />
 
         <SwitchPreferenceCompat

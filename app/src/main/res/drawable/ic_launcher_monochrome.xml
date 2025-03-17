@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    SPDX-FileCopyrightText: 2025 Pixel Updater contributors
+    SPDX-FileContributor: Modified by Pixel Updater contributors
+    SPDX-License-Identifier: GPL-3.0-only
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="960"
+    android:viewportHeight="960">
+  <path
+      android:fillColor="#FF000000"
+      android:pathData="M480,480m-240,0a240,240 0,1 1,480 0a240,240 0,1 1,-480 0"
+      android:strokeWidth="60"/>
+  <path
+      android:fillColor="#FF000000"
+      android:pathData="M480,480m-120,0a120,120 0,1 1,240 0a120,120 0,1 1,-240 0"/>
+</vector>

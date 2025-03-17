@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    SPDX-FileCopyrightText: 2025 Pixel Updater contributors
+    SPDX-FileContributor: Modified by Pixel Updater contributors
+    SPDX-License-Identifier: GPL-3.0-only
+-->
+<resources>
+    <string-array name="pref_notification_frequency_entries">
+        <item>Daily</item>
+        <item>Weekly</item>
+        <item>Monthly</item>
+    </string-array>
+    <string-array name="pref_notification_frequency_entry_values">
+        <item>daily</item>
+        <item>weekly</item>
+        <item>monthly</item>
+    </string-array>
+</resources>

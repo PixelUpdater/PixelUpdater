@@ -16,6 +16,7 @@ import android.net.Network
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
+import android.os.IUpdateEngine
 import android.os.Looper
 import android.os.Parcelable
 import android.os.PowerManager
@@ -27,6 +28,8 @@ import com.github.pixelupdater.pixelupdater.Notifications.Companion.ID_INDEXED
 import com.github.pixelupdater.pixelupdater.Preferences
 import com.github.pixelupdater.pixelupdater.R
 import com.github.pixelupdater.pixelupdater.extension.toSingleLineString
+import com.github.pixelupdater.pixelupdater.wrapper.ServiceManagerProxy
+import com.github.pixelupdater.pixelupdater.updater.UpdateEngineStatus
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -70,18 +73,21 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
 
                     val extraAction = IntentCompat.getParcelableExtra(
                         intent, EXTRA_ACTION, UpdaterThread.Action::class.java)
+                    val failureReason = intent.getStringExtra(EXTRA_FAILURE_REASON)
                     notifications.dismissNotifications()
 
-                    val messageResId = if (extraAction == UpdaterThread.Action.INSTALL) {
-                        if (prefs.requireUnmetered && prefs.requireBatteryNotLow) {
-                            R.string.notification_job_failed_both_message
-                        } else if (prefs.requireUnmetered) {
-                            R.string.notification_job_failed_network_message
-                        } else {
-                            R.string.notification_job_failed_battery_message
+                    val messageResId = when (failureReason) {
+                        "battery_low" -> R.string.notification_job_failed_battery_message
+                        "network_metered", "network_unavailable" -> R.string.notification_job_failed_network_message
+                        else -> {
+                            if (extraAction == UpdaterThread.Action.INSTALL && prefs.requireUnmetered && prefs.requireBatteryNotLow) {
+                                R.string.notification_job_failed_both_message
+                            } else if (prefs.requireUnmetered) {
+                                R.string.notification_job_failed_network_message
+                            } else {
+                                R.string.notification_job_failed_battery_message
+                            }
                         }
-                    } else {
-                        R.string.notification_job_failed_battery_message
                     }
 
                     notifyAlert(UpdaterThread.UpdateFailed(
@@ -106,9 +112,34 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
                 }
                 ACTION_SCHEDULE -> {
                     val extraAction = IntentCompat.getParcelableExtra(intent, EXTRA_ACTION, UpdaterThread.Action::class.java)!!
-                    val target = intent.extras?.getString("target")
+                    val target = intent.extras?.getString(EXTRA_TARGET)
+                    Log.d(TAG, "Schedule action: $extraAction, target: $target")
+
                     if (extraAction == UpdaterThread.Action.INSTALL && target != null) {
                         prefs.targetOta = target
+
+                        // Immediately show a preparing notification and dismiss other notifications
+                        Log.d(TAG, "Dismissing alert notifications and showing preparing notification")
+                        notifications.dismissAlertNotifications()
+
+                        // Create a temporary preparing notification that will stay visible
+                        val notification = notifications.createPersistentNotification(
+                            R.string.notification_preparing_install,
+                            null,
+                            R.drawable.ic_notifications,
+                            emptyList(),
+                            null,
+                            null,
+                            true
+                        )
+                        notificationManager.notify(Notifications.ID_PREPARING, notification)
+
+                        // Add a slight delay before scheduling the job to ensure notification is visible
+                        Handler(Looper.getMainLooper()).postDelayed({
+                            UpdaterJob.scheduleImmediate(this, extraAction)
+                        }, 800) // Small delay to ensure notification shows up
+
+                        return START_NOT_STICKY
                     }
 
                     UpdaterJob.scheduleImmediate(this, extraAction)
@@ -134,6 +165,9 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
             val action = IntentCompat.getParcelableExtra(
                 intent, EXTRA_ACTION, UpdaterThread.Action::class.java)!!
             val silent = intent.getBooleanExtra(EXTRA_SILENT, false)
+
+            // Clear the preparing notification if it exists
+            notificationManager.cancel(Notifications.ID_PREPARING)
 
             // Clear all stale alert notifications when initiated by the user. For the periodic job,
             // we want to leave the existing notification visible so that it can be updated with the
@@ -275,6 +309,29 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
         val showSwitchSlot: Boolean
         val showRevert: Boolean
         var id: Int? = null
+
+        // Re-check update_engine status if we're about to show a reboot notification
+        if (result == UpdaterThread.UpdateNeedReboot || result == UpdaterThread.UpdateSucceeded) {
+            try {
+                val updateEngine = IUpdateEngine.Stub.asInterface(
+                    ServiceManagerProxy.getServiceOrThrow("android.os.UpdateEngineService"))
+                val status = UpdaterThread.getCurrentEngineStatus(updateEngine)
+
+                if (status != UpdateEngineStatus.UPDATED_NEED_REBOOT) {
+                    // Status has changed, adjust accordingly
+                    Log.w(TAG, "Update engine status changed before showing reboot notification: $status")
+
+                    // Return without showing notification or handle differently based on new status
+                    if (status == UpdateEngineStatus.IDLE) {
+                        // Already rebooted or status reset
+                        return
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to re-check update engine status", e)
+                // Continue with notification as originally intended
+            }
+        }
 
         when (result) {
             is UpdaterThread.UpdateAvailable -> {
@@ -564,6 +621,7 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
         private const val EXTRA_ACTION = "action"
         private const val EXTRA_TARGET = "target"
         private const val EXTRA_SILENT = "silent"
+        private const val EXTRA_FAILURE_REASON = "failure_reason"
 
         fun createStartIntent(
             context: Context,
@@ -583,11 +641,13 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
         fun createFailIntent(
             context: Context,
             action: UpdaterThread.Action,
+            reason: String? = null
         ) = Intent(context, UpdaterService::class.java).apply {
             this.action = ACTION_FAIL
 
             val parcelableAction: Parcelable = action
             putExtra(EXTRA_ACTION, parcelableAction)
+            putExtra(EXTRA_FAILURE_REASON, reason)
         }
 
         private fun createScheduleIntent(
