@@ -84,7 +84,7 @@
     <string name="pref_open_log_dir_desc">Відкрити директорію з логами в системному файловому менеджері (DocumentsUI).</string>
     <string name="pref_allow_reinstall_name">Дозволити перевстановлення</string>
     <string name="pref_allow_reinstall_desc">Якщо остання OTA має такий же fingerprint як в поточній ОС, вважати її оновленням. Це може призвести до постійних перевстановлень, якщо ввімкнено автоматичні оновлення.</string>
-    <string name="pref_revert_completed_name">Скасувати завершене оновлення</string>
+    <string name="pref_revert_completed_name">Відкликати завершене оновлення</string>
     <string name="pref_revert_completed_desc">Це можливо тільки після завершення оновлення, але до перезавантаження. Це запобігає перемиканню слота пристрою при наступному перезавантаженні. Це не скасовує операції, виконані на неактивному слоті.</string>
     <string name="pref_verity_only_name">Вимкнути лише verity</string>
     <string name="pref_verity_only_desc">Патчить vbmeta тільки з прапорцем disable-verity.</string>
@@ -159,7 +159,7 @@
     <string name="notification_action_cancel">Скасувати</string>
     <string name="notification_action_reboot">Перезавантажити</string>
     <string name="notification_action_switch_slot">Перемкнути слот</string>
-    <string name="notification_action_revert">Скасувати</string>
+    <string name="notification_action_revert">Відкликати</string>
     <string name="notification_action_retry">Спробувати знову</string>
     <string name="notification_preparing_install">Підготовка до встановлення оновлення…</string>
 </resources>
