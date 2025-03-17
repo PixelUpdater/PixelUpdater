@@ -1,3 +1,7 @@
+### 2025-03-17 v0.109-release
+
+- Fix: #8 Improved detection of successful Magisk patches when exit codes aren't zero. - Fix: #9 Notification icons failing on some devices with fallback icon handling. - Fix: #10 Added Russian translations contributed by @Xusysy. - Added "Preparing to install update..." notification when clicking Install. - Added support file generation tool for troubleshooting. - Added immediate toast feedback when installation constraints aren't met. - Improved update engine status verification before showing notifications. - Enhanced Magisk detection for inactive slots with fallback methods. - Fixed connectivity checking with more robust network detection.
+
 ### 2025-01-17 v0.108-release
 
 - Clear leftover over data on fresh install and uninstall - Move the `pixelupdater_selinux.log` out of /data/local/tmp/ so that apps don't key on that. - Update verification-metadata.xml for tensorflow-lite-metadata-0.1.0-rc2.pom
