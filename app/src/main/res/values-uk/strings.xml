@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    SPDX-FileCopyrightText: 2025 Pixel Updater contributors
+    SPDX-FileContributor: Modified by vladrevers
+    SPDX-License-Identifier: GPL-3.0-only
+-->
+<resources>
+    <!-- Preference headers -->
+    <string name="pref_header_general">Загальні</string>
+    <string name="pref_header_behavior">Поведінка</string>
+    <string name="pref_header_os">Операційна система</string>
+    <string name="pref_header_certificates">Цифрові сертифікати</string>
+    <string name="pref_header_about">Про застосунок</string>
+    <string name="pref_header_debug">Debug</string>
+
+    <!-- General preferences -->
+    <string name="pref_check_for_updates_name">Перевірити наявність оновлень</string>
+    <string name="pref_check_for_updates_desc">Запланувати перевірку нових OTA оновлень.</string>
+    <string name="pref_notification_frequency_name">Частота сповіщень</string>
+    <string name="pref_notification_frequency_desc">Як часто надсилати сповіщення про очікуючі оновлення.</string>
+    <string name="pref_ota_url_name">OTA URL</string>
+    <string name="pref_ota_url_desc_none">URL не встановлено.</string>
+    <string name="pref_certificate_name">Сертифікат %1$s</string>
+    <string name="pref_certificate_desc_subject">Суб’єкт: %1$s</string>
+    <string name="pref_certificate_desc_serial">Серійний номер: %1$s</string>
+    <string name="pref_certificate_desc_type">Тип: %1$s</string>
+
+    <!-- Behavior preferences -->
+    <string name="pref_automatic_check_name">Автоматично перевіряти наявність оновлень</string>
+    <string name="pref_automatic_check_desc">Автоматично перевіряти наявність нових оновлень у фоновому режимі.</string>
+    <string name="pref_unmetered_only_name">Вимагати нетарифіковану мережу</string>
+    <string name="pref_unmetered_only_desc">Дозволяти завантаження оновлень лише через нетарифіковані мережеві з’єднання (наприклад, Wi-Fi).</string>
+    <string name="pref_battery_not_low_name">Вимагати достатній рівень заряду батареї</string>
+    <string name="pref_battery_not_low_desc">Дозволяти встановлення оновлень лише якщо рівень заряду батареї не є критичним.</string>
+    <string name="pref_skip_postinstall_name">Пропускати виконання необов’язкових post-install скриптів</string>
+    <string name="pref_skip_postinstall_desc">Пропускати виконання операцій після встановлення, які позначені як необов’язкові в OTA. Зазвичай це пропускає операцію dexopt, яка попередньо компілює байт-код застосунків для швидшого завантаження.</string>
+    <string name="pref_magisk_patch_name">Патч Magisk для встановленого оновлення</string>
+    <string name="pref_magisk_patch_desc">Надає root-доступ після оновлення через Magisk. Потребує встановленого і функціоноючого Magisk.</string>
+    <string name="pref_vbmeta_patch_name">Вимкнути verity та verification</string>
+    <string name="pref_vbmeta_patch_desc">Патчить vbmeta з прапорцями disable-verity та disable-verification.</string>
+    <string name="pref_automatic_switch_slot_name">Автоматичне перемикання слоту</string>
+    <string name="pref_automatic_switch_slot_desc">Автоматично перемикати слот, коли оновлення завершено.</string>
+    <string name="pref_automatic_reboot_name">Автоматичне перезавантаження</string>
+    <string name="pref_automatic_reboot_desc">Автоматично перезавантажувати пристрій, коли оновлення завершено.</string>
+
+    <!-- OS information preferences -->
+    <string name="pref_android_version_name">Версія Android</string>
+    <string name="pref_fingerprint_name">Fingerprint</string>
+    <string name="pref_boot_slot_name">Активний слот</string>
+    <string name="pref_bootloader_status_name">Bootloader</string>
+    <string name="pref_bootloader_status_unknown">Невідомо</string>
+    <string name="pref_bootloader_status_unlocked">Розблоковано</string>
+    <string name="pref_bootloader_status_locked">Заблоковано</string>
+    <string name="pref_bootloader_status_oemlock_carrier_allowed">Розблокування OEM дозволено оператором</string>
+    <string name="pref_bootloader_status_oemlock_carrier_blocked">Розблокування OEM заблоковано оператором</string>
+    <string name="pref_bootloader_status_oemlock_user_allowed">Розблокування OEM дозволено користувачем</string>
+    <string name="pref_bootloader_status_oemlock_user_blocked">Розблокування OEM заблоковано користувачем</string>
+    <string name="pref_magisk_status_name">Статус Magisk</string>
+    <string name="pref_magisk_status_unknown">Невідомо</string>
+    <string name="pref_magisk_status_installed">Встановлено</string>
+    <string name="pref_magisk_status_not_installed">Не встановлено</string>
+    <string name="pref_magisk_ota_status_installed">Magisk буде встановлено після OTA</string>
+    <string name="pref_magisk_ota_status_not_installed">Magisk не буде встановлено після OTA</string>
+    <string name="pref_vbmeta_status_name">Статус Vbmeta</string>
+    <string name="pref_vbmeta_status_unknown">Невідомо</string>
+    <string name="pref_vbmeta_status_enabled">Verity та verification увімкнено</string>
+    <string name="pref_vbmeta_status_disabled">Verity та verification вимкнено</string>
+    <string name="pref_vbmeta_status_verity_disabled">Вимкнено лише verity</string>
+    <string name="pref_vbmeta_status_verification_disabled">Вимкнено лише verification</string>
+    <string name="pref_vbmeta_status_verification_unexpected">Неочікуване значення</string>
+    <string name="pref_vbmeta_ota_status_enabled">Verity та verification будуть увімкнені після OTA</string>
+    <string name="pref_vbmeta_ota_status_disabled">Verity та verification будуть вимкнені після OTA</string>
+    <string name="pref_vbmeta_ota_status_verity_disabled">Тільки verity буде вимкнено після OTA</string>
+
+    <!-- Certificate preferences -->
+    <string name="pref_no_certificates_name">Сертифікати не знайдено</string>
+    <string name="pref_no_certificates_desc">Не знайдено дійсних сертифікатів в %1$s.</string>
+
+    <!-- About "preference" -->
+    <string name="pref_version_name">Версія</string>
+
+    <!-- Debug preferences -->
+    <string name="pref_open_log_dir_name">Відкрити директорію логів</string>
+    <string name="pref_open_log_dir_desc">Відкрити директорію з логами в системному файловому менеджері (DocumentsUI).</string>
+    <string name="pref_allow_reinstall_name">Дозволити перевстановлення</string>
+    <string name="pref_allow_reinstall_desc">Якщо остання OTA має такий же fingerprint як в поточній ОС, вважати її оновленням. Це може призвести до постійних перевстановлень, якщо ввімкнено автоматичні оновлення.</string>
+    <string name="pref_revert_completed_name">Відкликати завершене оновлення</string>
+    <string name="pref_revert_completed_desc">Це можливо тільки після завершення оновлення, але до перезавантаження. Це запобігає перемиканню слота пристрою при наступному перезавантаженні. Це не скасовує операції, виконані на неактивному слоті.</string>
+    <string name="pref_verity_only_name">Вимкнути лише verity</string>
+    <string name="pref_verity_only_desc">Патчить vbmeta тільки з прапорцем disable-verity.</string>
+    <string name="pref_create_support_file_name">Створити файл для підтримки</string>
+    <string name="pref_create_support_file_desc">Створити ZIP-файл з логами та інформацією про систему для усунення несправностей</string>
+    <string name="toast_support_file_success">Файл для підтримки успішно створено в %s</string>
+    <string name="toast_support_file_failure">Не вдалося створити файл для підтримки: %s</string>
+    <string name="dialog_support_file_title">Створити файл для підтримки</string>
+    <string name="dialog_support_file_processing">Створення файлу для підтримки…</string>
+
+    <!-- Toast messages -->
+    <string name="toast_battery_low">Неможливо встановити: Батарея розряджена</string>
+    <string name="toast_network_metered">Неможливо встановити: Мережа тарифікована</string>
+    <string name="toast_network_unavailable">Неможливо встановити: Мережа недоступна</string>
+    <string name="toast_constraints_not_met">Неможливо встановити: Вимоги не виконано</string>
+
+    <!-- Dialogs -->
+    <string name="dialog_ota_url_title">@string/pref_ota_url_name</string>
+    <string name="dialog_ota_url_message">Введіть URL-адресу OTA.</string>
+    <string name="dialog_ota_url_error_bad_protocol">Підтримуються лише URL з http:// та https://.</string>
+    <string name="dialog_ota_url_error_malformed">Некоректний URL.</string>
+    <string name="dialog_vbmeta_title">Зміна налаштувань патчу Vbmeta</string>
+    <string name="dialog_vbmeta_message">Зміни цього значення можуть прямо чи опосередковано призвести до видалення даних. Переконайтеся, що розумієте наслідки перед зміною цього налаштування.\n\nПримітка: Pixel Updater не патчить активний слот. Якщо ви змінюєте конфігурацію, майте на увазі, що поточний активний слот залишиться без змін.</string>
+    <string name="dialog_action_ok">OK</string>
+    <string name="dialog_action_cancel">Скасувати</string>
+
+    <!-- Snackbar -->
+    <string name="snackbar_notifications_disabled">Сповіщення вимкнено</string>
+    <string name="snackbar_network_restricted">Мережа обмежена</string>
+    <string name="snackbar_battery_low">Батарея розряджена</string>
+
+    <!-- Notifications -->
+    <string name="notification_channel_persistent_name">Фонові служби</string>
+    <string name="notification_channel_persistent_desc">Постійне сповіщення про процес оновлення</string>
+    <string name="notification_channel_check_name">Сповіщення про перевірку оновлень</string>
+    <string name="notification_channel_check_desc">Сповіщення про доступність оновлень</string>
+    <string name="notification_channel_failure_name">Сповіщення про помилки</string>
+    <string name="notification_channel_failure_desc">Сповіщення про помилки під час оновлення</string>
+    <string name="notification_channel_success_name">Сповіщення про успіх</string>
+    <string name="notification_channel_success_desc">Сповіщення про успішне оновлення</string>
+    <string name="notification_state_init">Ініціалізація оновлення</string>
+    <string name="notification_state_check">Перевірка наявності оновлень</string>
+    <string name="notification_state_install">Встановлення оновлення</string>
+    <string name="notification_state_verify">Верифікація оновлення</string>
+    <string name="notification_state_finalize">Завершення оновлення</string>
+    <string name="notification_check_skipped_title">Пропущено перевірку оновлень</string>
+    <string name="notification_check_skipped_needs_switch_slot_message">Операція недоступна, під час очікування перемикання слоту</string>
+    <string name="notification_check_skipped_needs_reboot_message">Операція недоступна, під час очікування перезавантаження</string>
+    <string name="notification_job_failed_both_message">Переконайтеся, що батарея не розряджена і підключення нетарифіковане, або вимкніть відповідні вимоги</string>
+    <string name="notification_job_failed_battery_message">Переконайтеся, що батарея не розряджена, або вимкніть вимогу достатнього рівня заряду</string>
+    <string name="notification_job_failed_network_message">Переконайтеся, що підключення нетарифіковане, або вимкніть вимогу нетарифікованого підключення</string>
+    <string name="notification_update_available">Доступне оновлення</string>
+    <string name="notification_update_unnecessary">ОС не потребує оновлення</string>
+    <string name="notification_update_succeeded">Оновлення успішно встановлено</string>
+    <string name="notification_update_needs_switch_slot">Оновлення успішно встановлено, але слот не активний</string>
+    <string name="notification_update_cancelled">Процес оновлення було скасовано</string>
+    <string name="notification_update_reverted">Оновлення успішно скасовано</string>
+    <string name="notification_update_failed">Не вдалося встановити оновлення</string>
+    <string name="notification_update_patch_failed">Не вдалося застосувати патч оновлення</string>
+    <string name="notification_update_mismatch_title">Невідповідність конфігурації</string>
+    <string name="notification_update_mismatch_message">Налаштування Magisk та Vbmeta відрізняються від завантаженої системи. Зміна налаштувань Vbmeta може прямо чи опосередковано призвести до видалення даних. Переконайтеся, що розумієте наслідки перед зміною цього налаштування.</string>
+    <string name="notification_update_mismatch_magisk_message">Налаштування Magisk відрізняються від завантаженої системи.</string>
+    <string name="notification_update_mismatch_vbmeta_message">Налаштування Vbmeta відрізняються від завантаженої системи. Зміна налаштувань Vbmeta може прямо чи опосередковано призвести до видалення даних. Переконайтеся, що розумієте наслідки перед зміною цього налаштування.</string>
+    <string name="notification_update_mismatch_root_unavailable_message">Налаштування Magisk відрізняються від завантаженої системи. Root потрібен для виявлення поточного статусу Vbmeta, але Vbmeta не буде патчений. Якщо verity або verification наразі вимкнені, це може опосередковано призвести до видалення даних. Переконайтеся, що розумієте наслідки перед тим, як продовжити.</string>
+    <string name="notification_update_root_unavailable_title">Root недоступний</string>
+    <string name="notification_update_root_unavailable_message">Патчі Magisk та Vbmeta вимкнено</string>
+    <string name="notification_update_network_unavailable_title">Мережа недоступна</string>
+    <string name="notification_update_network_unavailable_message">Немає доступних мереж для виконання завдання</string>
+    <string name="notification_action_install">Встановити</string>
+    <string name="notification_action_pause">Пауза</string>
+    <string name="notification_action_resume">Відновити</string>
+    <string name="notification_action_cancel">Скасувати</string>
+    <string name="notification_action_reboot">Перезавантажити</string>
+    <string name="notification_action_switch_slot">Перемкнути слот</string>
+    <string name="notification_action_revert">Відкликати</string>
+    <string name="notification_action_retry">Спробувати знову</string>
+    <string name="notification_preparing_install">Підготовка до встановлення оновлення…</string>
+</resources>
