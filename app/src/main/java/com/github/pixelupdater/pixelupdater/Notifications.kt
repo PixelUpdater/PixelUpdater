@@ -127,8 +127,6 @@ class Notifications(
         // Finally fall back to a system icon
         Log.d(TAG, "Using system fallback icon")
         return android.R.drawable.ic_dialog_info
-        // Comment the block and uncomment next line to always use our specific notification icon for status bar
-        // return R.drawable.ic_notification
     }
 
     /** Create a persistent notification for background services. */

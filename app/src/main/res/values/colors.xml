@@ -11,4 +11,10 @@
     <color name="logo_yellow">#fbbc05</color>
     <color name="logo_green">#34a853</color>
     <color name="ic_launcher_background">#474347</color>
+    
+    <!-- Monochrome variants for adaptive icon -->
+    <color name="logo_mono_blue">#7D7D7D</color>
+    <color name="logo_mono_red">#737373</color>
+    <color name="logo_mono_yellow">#BABABA</color>
+    <color name="logo_mono_green">#7C7C7C</color>
 </resources>
