@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2023 Pixel Updater contributors
+ * SPDX-FileCopyrightText: 2025 Pixel Updater contributors
  * SPDX-FileCopyrightText: 2023 Andrew Gunnerson
  * SPDX-FileContributor: Modified by Pixel Updater contributors
  * SPDX-License-Identifier: GPL-3.0-only
@@ -41,6 +41,7 @@ class Preferences(context: Context) {
         const val PREF_ALLOW_REINSTALL = "allow_reinstall"
         const val PREF_REVERT_COMPLETED = "revert_completed"
         const val PREF_VERITY_ONLY = "verity_only"
+        const val PREF_CREATE_SUPPORT_FILE = "create_support_file"
 
         // Not associated with a UI preference
         private const val PREF_OTA_CACHE = "ota_cache"

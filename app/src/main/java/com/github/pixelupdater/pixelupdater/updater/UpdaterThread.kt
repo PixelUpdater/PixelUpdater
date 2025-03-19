@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2023 Pixel Updater contributors
+ * SPDX-FileCopyrightText: 2025 Pixel Updater contributors
  * SPDX-FileCopyrightText: 2023 Andrew Gunnerson
  * SPDX-FileContributor: Modified by Pixel Updater contributors
  * SPDX-License-Identifier: GPL-3.0-only
@@ -46,6 +46,8 @@ import java.util.regex.Pattern
 import kotlin.concurrent.withLock
 import kotlin.experimental.or
 import kotlin.math.roundToInt
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 
 class UpdaterThread(
     private val context: Context,
@@ -600,8 +602,40 @@ class UpdaterThread(
     private fun flashSecondSlot() =
         findSecondary() && flashBoot()
 
-    private fun checkSecondSlot() =
-        findSecondary() && checkBoot()
+    private fun checkSecondSlot(): Boolean {
+        if (!findSecondary()) {
+            return false
+        }
+
+        Log.d(TAG, "Checking if Magisk is installed on inactive slot")
+
+        // First try normal check which may fail for init_boot partitions
+        val standardCheck = checkBoot()
+        if (standardCheck) {
+            Log.d(TAG, "Magisk detected through standard check")
+            return true
+        }
+
+        Log.d(TAG, "Standard check failed, trying direct detection")
+
+        // Direct detection on both boot and init_boot partitions (init_boot prioritized)
+        val slot = SystemPropertiesProxy.get("ro.boot.slot_suffix")
+        val target = if (slot == "_a") "_b" else "_a"
+
+        val result = Shell.cmd(
+            "for PART in init_boot$target boot$target; do " +
+            "  if [ -e /dev/block/by-name/\$PART ]; then " +
+            "    dd if=/dev/block/by-name/\$PART bs=4096 count=10 2>/dev/null | " +
+            "    strings | grep -q 'Magisk' && echo \"found_magisk_in_\$PART\" || echo \"not_found_in_\$PART\"; " +
+            "  fi; " +
+            "done"
+        ).exec()
+
+        val output = result.out.joinToString("\n")
+        Log.d(TAG, "Direct detection results: $output")
+
+        return output.contains("found_magisk")
+    }
 
     // https://github.com/topjohnwu/Magisk/blob/v26.3/app/src/main/java/com/topjohnwu/magisk/core/tasks/MagiskInstaller.kt#L78-L94
     private fun findSecondary(): Boolean {
@@ -610,25 +644,70 @@ class UpdaterThread(
         }
         val slot = Shell.cmd("echo \$SLOT").exec().out.first()
         val target = if (slot == "_a") "_b" else "_a"
+
+        // First check for init_boot partition
+        Log.d(TAG, "Checking for init_boot$target partition")
+        val initBootExists = Shell.cmd("[ -e /dev/block/by-name/init_boot$target ] && echo 1 || echo 0").exec().out.firstOrNull() == "1"
+
+        if (initBootExists) {
+            Log.d(TAG, "Found init_boot$target partition")
+            val result = Shell.cmd(
+                "SLOT=$target",
+                "export BOOTIMAGE=/dev/block/by-name/init_boot$target",
+                "echo \"\$BOOTIMAGE\""
+            ).exec()
+
+            if (result.isSuccess && result.out.firstOrNull() != null) {
+                Log.d(TAG, "Using init_boot partition: ${result.out.first()}")
+                return true
+            }
+        }
+
+        // Fall back to standard boot partition lookup
+        Log.d(TAG, "Falling back to boot partition")
         val bootPath = Shell.cmd(
             "SLOT=$target",
             "find_boot_image",
             "SLOT=$slot",
-            "echo \"\$BOOTIMAGE\"").exec().out.firstOrNull()
+            "echo \"\$BOOTIMAGE\""
+        ).exec().out.firstOrNull()
+
         if (bootPath == null) {
             Log.e(TAG, "! Unable to detect target image")
             return false
         }
+
+        Log.d(TAG, "Using boot image: $bootPath")
         return true
     }
 
     private fun flashBoot(): Boolean {
+        Log.d(TAG, "Flashing boot image with Magisk")
         val result = Shell.cmd("install_magisk").exec()
-        File(context.getExternalFilesDir(null), "magisk.log").writeText(result.out.joinToString("\n"))
-        return result.isSuccess
+        val output = result.out.joinToString("\n")
+        File(context.getExternalFilesDir(null), "magisk.log").writeText(output)
+
+        // Log detailed results for debugging
+        Log.d(TAG, "Magisk install exit code: ${result.code}")
+        Log.d(TAG, "Magisk install success flag: ${result.isSuccess}")
+
+        // Check for specific success indicators in the output even if the command reports failure
+        val success = result.isSuccess || (
+            output.contains("Flashing new boot image") &&
+            !output.contains("Installation failed") &&
+            !output.contains("Abort") &&
+            !output.contains("Error:") &&
+            !output.contains("fatal:")
+        )
+
+        // The "Unable to find preinit dir" is a warning, not an error
+        Log.d(TAG, "Determined success: $success")
+
+        return success
     }
 
     private fun checkBoot(): Boolean {
+        Log.d(TAG, "Checking boot image for Magisk")
         val status = Shell.cmd(
             "./magiskboot unpack \"\$BOOTIMAGE\"",
             "if [ -e ramdisk.cpio ]; then ./magiskboot cpio ramdisk.cpio test; else (exit 0); fi"
@@ -1067,6 +1146,35 @@ class UpdaterThread(
                 return false
             }
             return magicResult.out[0] == VBMETA_MAGIC
+        }
+
+        /**
+         * Get the current status from update engine synchronously
+         */
+        fun getCurrentEngineStatus(updateEngine: IUpdateEngine): Int {
+            // Using a CountDownLatch to wait for the status callback
+            val latch = java.util.concurrent.CountDownLatch(1)
+            val statusHolder = AtomicInteger(-1)
+
+            val callback = object : IUpdateEngineCallback.Stub() {
+                override fun onStatusUpdate(status: Int, percentage: Float) {
+                    statusHolder.set(status)
+                    latch.countDown()
+                }
+
+                override fun onPayloadApplicationComplete(errorCode: Int) {
+                    // Not needed for status check
+                }
+            }
+
+            try {
+                updateEngine.bind(callback)
+                // Wait up to 2 seconds for the status - should be nearly instant
+                latch.await(2, TimeUnit.SECONDS)
+                return statusHolder.get()
+            } finally {
+                updateEngine.unbind(callback)
+            }
         }
     }
 }

@@ -1,7 +1,7 @@
 /*
  * SPDX-FileCopyrightText: 2023 Pixel Updater contributors
  * SPDX-FileCopyrightText: 2022-2023 Andrew Gunnerson
- * SPDX-FileContributor: Modified by Pixel Updater contributors
+ * SPDX-License-Identifier: Modified by Pixel Updater contributors
  * SPDX-License-Identifier: GPL-3.0-only
  * Based on BCR code.
  */
@@ -68,27 +68,33 @@ fun describeVersion(git: Git): VersionTriple {
 
 fun getVersionCode(triple: VersionTriple): Int {
     val tag = triple.first
-    val (major, minor) = if (tag != null) {
+    val (major, minor, build) = if (tag != null) {
         if (!tag.startsWith('v')) {
             throw IllegalArgumentException("Tag does not begin with 'v': $tag")
         }
 
         val pieces = tag.substring(1).split('.')
-        if (pieces.size != 2) {
-            throw IllegalArgumentException("Tag is not in the form 'v<major>.<minor>': $tag")
+        if (pieces.size < 2 || pieces.size > 3) {
+            throw IllegalArgumentException("Tag is not in the form 'v<major>.<minor>[.<build>]': $tag")
         }
 
-        Pair(pieces[0].toInt(), pieces[1].toInt())
+        // If we have 3 parts, use the build number, otherwise default to 0
+        val buildNumber = if (pieces.size == 3) pieces[2].toInt() else 0
+        Triple(pieces[0].toInt(), pieces[1].toInt(), buildNumber)
     } else {
-        Pair(0, 0)
+        Triple(0, 0, 0)
     }
 
-    // 8 bits for major version, 8 bits for minor version, and 8 bits for git commit count
+    // 8 bits for major version, 8 bits for minor version, 8 bits for build, and 8 bits for git commit count
+    // We need to ensure each component fits within 8 bits (0-255)
     assert(major in 0 until 1.shl(8))
     assert(minor in 0 until 1.shl(8))
-    assert(triple.second in 0 until 1.shl(8))
+    assert(build in 0 until 1.shl(8))
+    assert(triple.second in 0 until 1.shl(8)) // commit count
 
-    return major.shl(16) or minor.shl(8) or triple.second
+    // Combine all components into a single integer
+    // Use different bit allocation: major(8) | minor(8) | build(8) | commit count(8)
+    return major.shl(24) or minor.shl(16) or build.shl(8) or (triple.second and 0xFF)
 }
 
 fun getVersionName(git: Git, triple: VersionTriple): String {
@@ -162,7 +168,7 @@ android {
         versionCode = gitVersionCode
         versionName = gitVersionName
         resourceConfigurations.addAll(listOf(
-            "en",
+            "en", "ru", "uk"
         ))
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

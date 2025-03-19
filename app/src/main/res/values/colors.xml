@@ -1,8 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    SPDX-FileCopyrightText: 2025 Pixel Updater contributors
+    SPDX-FileContributor: Modified by Pixel Updater contributors
+    SPDX-License-Identifier: GPL-3.0-only
+-->
 <resources>
 
     <color name="logo_blue">#4184f4</color>
     <color name="logo_red">#ea4335</color>
     <color name="logo_yellow">#fbbc05</color>
     <color name="logo_green">#34a853</color>
+    <color name="ic_launcher_background">#474347</color>
+    
+    <!-- Monochrome variants for adaptive icon -->
+    <color name="logo_mono_blue">#7D7D7D</color>
+    <color name="logo_mono_red">#737373</color>
+    <color name="logo_mono_yellow">#BABABA</color>
+    <color name="logo_mono_green">#7C7C7C</color>
 </resources>

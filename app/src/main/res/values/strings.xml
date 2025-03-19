@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    SPDX-FileCopyrightText: 2023 Pixel Updater contributors
+    SPDX-FileCopyrightText: 2025 Pixel Updater contributors
     SPDX-FileCopyrightText: 2023 Andrew Gunnerson
     SPDX-FileContributor: Modified by Pixel Updater contributors
     SPDX-License-Identifier: GPL-3.0-only
@@ -19,16 +19,6 @@
     <string name="pref_check_for_updates_desc">Schedule a check for new OTA updates.</string>
     <string name="pref_notification_frequency_name">Notification frequency</string>
     <string name="pref_notification_frequency_desc">How frequently to send notifications about pending updates.</string>
-    <string-array name="pref_notification_frequency_entries">
-        <item>Daily</item>
-        <item>Weekly</item>
-        <item>Monthly</item>
-    </string-array>
-    <string-array name="pref_notification_frequency_entry_values">
-        <item>daily</item>
-        <item>weekly</item>
-        <item>monthly</item>
-    </string-array>
     <string name="pref_ota_url_name">OTA URL</string>
     <string name="pref_ota_url_desc_none">No URL set.</string>
     <string name="pref_certificate_name">Certificate %1$s</string>
@@ -99,6 +89,18 @@
     <string name="pref_revert_completed_desc">This is only possible after an update completes, but before rebooting. This prevents the device from switching slot on the next reboot. This does not undo the operations performed on the inactive slot.</string>
     <string name="pref_verity_only_name">Disable verity only</string>
     <string name="pref_verity_only_desc">Patches vbmeta with only the disable-verity flag.</string>
+    <string name="pref_create_support_file_name">Create support file</string>
+    <string name="pref_create_support_file_desc">Create a ZIP file with logs and system information for troubleshooting</string>
+    <string name="toast_support_file_success">Support file created successfully at %s</string>
+    <string name="toast_support_file_failure">Failed to create support file: %s</string>
+    <string name="dialog_support_file_title">Create support file</string>
+    <string name="dialog_support_file_processing">Creating support file...</string>
+
+    <!-- Toast messages -->
+    <string name="toast_battery_low">Cannot install: Battery is too low</string>
+    <string name="toast_network_metered">Cannot install: Network is metered</string>
+    <string name="toast_network_unavailable">Cannot install: Network is unavailable</string>
+    <string name="toast_constraints_not_met">Cannot install: Requirements not met</string>
 
     <!-- Dialogs -->
     <string name="dialog_ota_url_title">@string/pref_ota_url_name</string>
@@ -160,4 +162,5 @@
     <string name="notification_action_switch_slot">Switch Slot</string>
     <string name="notification_action_revert">Revert</string>
     <string name="notification_action_retry">Retry</string>
+    <string name="notification_preparing_install">Preparing to install update...</string>
 </resources>

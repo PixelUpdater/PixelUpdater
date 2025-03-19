@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    SPDX-FileCopyrightText: 2025 Pixel Updater contributors
+    SPDX-FileContributor: Created by vladrevers
+    SPDX-License-Identifier: GPL-3.0-only
+-->
+<resources>
+	<plurals name="mtrl_badge_content_description">
+		<item quantity="one">%d нове сповіщення</item>
+		<item quantity="few">%d нові сповіщення</item>
+		<item quantity="many">%d нових сповіщень</item>
+		<item quantity="other">%d нових сповіщень</item>
+	</plurals>
+</resources>

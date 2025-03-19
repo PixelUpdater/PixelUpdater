@@ -13,11 +13,17 @@ import android.app.job.JobScheduler
 import android.app.job.JobService
 import android.content.ComponentName
 import android.content.Context
+import android.content.Intent
+import android.os.BatteryManager
+import android.os.Handler
+import android.os.Looper
 import android.os.PersistableBundle
 import android.util.Log
+import android.widget.Toast
 import com.github.pixelupdater.pixelupdater.Notifications
 import com.github.pixelupdater.pixelupdater.Permissions
 import com.github.pixelupdater.pixelupdater.Preferences
+import com.github.pixelupdater.pixelupdater.R
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
@@ -71,6 +77,9 @@ class UpdaterJob: JobService() {
         private const val ID_PERIODIC = 2
 
         private const val EXTRA_ACTION = "action"
+
+        // Consider 15% or lower as "low battery"
+        private const val LOW_BATTERY_THRESHOLD = 15
 
         private const val PERIODIC_INTERVAL_MS = 6L * 60 * 60 * 1000
         private const val DAILY_INTERVAL_MS = 24L * 60 * 60 * 1000
@@ -137,8 +146,109 @@ class UpdaterJob: JobService() {
             }
 
             if (jobInfo.id == ID_IMMEDIATE) {
+                // Cancel any existing timeout
                 if (timeout != null) {
                     timeout!!.cancel()
+                    timeout = null
+                }
+
+                // Check constraints directly before scheduling
+                val actionIndex = jobInfo.extras.getInt(EXTRA_ACTION, -1)
+                val action = if (actionIndex >= 0) UpdaterThread.Action.entries[actionIndex] else null
+
+                var constraintsFailed = false
+                var errorReason: String? = null
+
+                // Check battery constraint manually if needed
+                if (jobInfo.isRequireBatteryNotLow && action == UpdaterThread.Action.INSTALL) {
+                    val batteryManager = context.getSystemService(BatteryManager::class.java)
+                    val batteryLevel = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
+                    val isLow = batteryLevel <= LOW_BATTERY_THRESHOLD
+
+                    if (isLow) {
+                        constraintsFailed = true
+                        errorReason = "battery_low"
+                        Log.d(TAG, "Battery constraint not met: level=$batteryLevel%")
+                    }
+                }
+
+                // Check network constraint manually
+                val networkType = try {
+                    val method = jobInfo.javaClass.getDeclaredMethod("getRequiredNetworkType")
+                    method.isAccessible = true
+                    method.invoke(jobInfo) as Int
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to get required network type", e)
+                    JobInfo.NETWORK_TYPE_NONE
+                }
+
+                if (!constraintsFailed && networkType == JobInfo.NETWORK_TYPE_UNMETERED && action == UpdaterThread.Action.INSTALL) {
+                    // Use system service to check if we have unmetered network
+                    val connectivityIntent = context.registerReceiver(null,
+                        android.content.IntentFilter(android.net.ConnectivityManager.CONNECTIVITY_ACTION))
+
+                    if (connectivityIntent == null) {
+                        constraintsFailed = true
+                        errorReason = "network_unavailable"
+                        Log.d(TAG, "Network constraint not met: no connectivity info available")
+                    } else {
+                        val noConnectivity = connectivityIntent.getBooleanExtra(
+                            android.net.ConnectivityManager.EXTRA_NO_CONNECTIVITY, false)
+
+                        if (noConnectivity) {
+                            constraintsFailed = true
+                            errorReason = "network_unavailable"
+                            Log.d(TAG, "Network constraint not met: no connectivity")
+                        } else {
+                            // Check if connection is metered
+                            val netInfo = connectivityIntent.getParcelableExtra<android.net.NetworkInfo>(
+                                android.net.ConnectivityManager.EXTRA_NETWORK_INFO)
+
+                            if (netInfo == null || !netInfo.isConnected) {
+                                constraintsFailed = true
+                                errorReason = "network_unavailable"
+                                Log.d(TAG, "Network constraint not met: no active network")
+                            } else {
+                                // On newer Android versions, we need to use a system service
+                                // to check if the network is metered
+                                try {
+                                    val service = context.getSystemService("connectivity")
+                                    val isMeteredMethod = service.javaClass.getMethod(
+                                        "isActiveNetworkMetered")
+                                    val isMetered = isMeteredMethod.invoke(service) as Boolean
+
+                                    if (isMetered) {
+                                        constraintsFailed = true
+                                        errorReason = "network_metered"
+                                        Log.d(TAG, "Network constraint not met: network is metered")
+                                    }
+                                } catch (e: Exception) {
+                                    Log.e(TAG, "Failed to check if network is metered", e)
+                                    // Fall back to assume network is unmetered to avoid blocking updates
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (constraintsFailed && action != null) {
+                    // Show an immediate toast message to provide feedback to the user
+                    val toastText = when (errorReason) {
+                        "battery_low" -> context.getString(R.string.toast_battery_low)
+                        "network_metered" -> context.getString(R.string.toast_network_metered)
+                        "network_unavailable" -> context.getString(R.string.toast_network_unavailable)
+                        else -> context.getString(R.string.toast_constraints_not_met)
+                    }
+
+                    // Post toast on the main thread
+                    Handler(Looper.getMainLooper()).post {
+                        Toast.makeText(context, toastText, Toast.LENGTH_LONG).show()
+                    }
+
+                    // Immediately fail with the specific reason
+                    Log.d(TAG, "Job constraints not met: $errorReason, not scheduling job")
+                    context.startForegroundService(UpdaterService.createFailIntent(context, action, errorReason))
+                    return
                 }
             }
 
@@ -147,19 +257,6 @@ class UpdaterJob: JobService() {
             when (val result = jobScheduler.schedule(jobInfo)) {
                 JobScheduler.RESULT_SUCCESS -> {
                     Log.d(TAG, "Scheduled job: $jobInfo")
-                    if (jobInfo.id == ID_IMMEDIATE) {
-                        timeout = GlobalScope.async {
-                            withContext(Dispatchers.IO) {
-                                delay(2000)
-                                if (jobScheduler.getPendingJob(jobInfo.id) != null) {
-                                    jobScheduler.cancel(jobInfo.id)
-                                    val actionIndex = jobInfo.extras.getInt(EXTRA_ACTION)
-                                    val action = UpdaterThread.Action.entries[actionIndex]
-                                    context.startForegroundService(UpdaterService.createFailIntent(context, action))
-                                }
-                            }
-                        }
-                    }
                 }
                 JobScheduler.RESULT_FAILURE ->
                     Log.w(TAG, "Failed to schedule job: $jobInfo")

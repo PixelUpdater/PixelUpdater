@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2023 Pixel Updater contributors
+ * SPDX-FileCopyrightText: 2025 Pixel Updater contributors
  * SPDX-FileCopyrightText: 2022-2023 Andrew Gunnerson
  * SPDX-FileContributor: Modified by Pixel Updater contributors
  * SPDX-License-Identifier: GPL-3.0-only
@@ -40,6 +40,7 @@ class Notifications(
         const val ID_PERSISTENT = 1
         const val ID_ALERT = 2
         const val ID_INDEXED = 3
+        const val ID_PREPARING = 4
 
         // https://stackoverflow.com/a/57769424/434343
         fun areEnabled(context: Context): Boolean {
@@ -100,6 +101,34 @@ class Notifications(
         LEGACY_CHANNEL_IDS.forEach { notificationManager.deleteNotificationChannel(it) }
     }
 
+    // Helper method to safely get the notification icon resource
+    private fun getSafeIcon(iconResId: Int): Int {
+        try {
+            // First try using the provided icon
+            if (iconResId != 0) {
+                context.resources.getDrawable(iconResId, null)
+                Log.d(TAG, "Using provided icon: $iconResId")
+                return iconResId
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to load icon: $iconResId", e)
+        }
+
+        try {
+            // Then try our backup icon
+            val safeIcon = R.drawable.ic_notification_safe
+            context.resources.getDrawable(safeIcon, null)
+            Log.d(TAG, "Using safe fallback icon")
+            return safeIcon
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to load safe icon", e)
+        }
+
+        // Finally fall back to a system icon
+        Log.d(TAG, "Using system fallback icon")
+        return android.R.drawable.ic_dialog_info
+    }
+
     /** Create a persistent notification for background services. */
     fun createPersistentNotification(
         @StringRes titleResId: Int,
@@ -114,6 +143,8 @@ class Notifications(
             "Must specify both current and max progress or neither"
         }
 
+        val safeIconResId = getSafeIcon(iconResId)
+
         val notificationIntent = Intent(context, SettingsActivity::class.java)
         val pendingIntent = PendingIntent.getActivity(
             context, 0, notificationIntent, PendingIntent.FLAG_IMMUTABLE
@@ -125,7 +156,7 @@ class Notifications(
                 setContentText(message)
                 style = Notification.BigTextStyle().bigText(message)
             }
-            setSmallIcon(iconResId)
+            setSmallIcon(safeIconResId)
             setContentIntent(pendingIntent)
             setOngoing(true)
             setOnlyAlertOnce(true)
@@ -178,6 +209,8 @@ class Notifications(
         actions: List<Pair<Int, Intent>>,
         id: Int?,
     ) {
+        val safeIconResId = getSafeIcon(icon)
+
         val notification = Notification.Builder(context, channel).run {
             val text = buildString {
                 val errorMsgTrimmed = errorMsg?.trim()
@@ -191,7 +224,7 @@ class Notifications(
                 setContentText(text)
                 style = Notification.BigTextStyle()
             }
-            setSmallIcon(icon)
+            setSmallIcon(safeIconResId)
             setOnlyAlertOnce(onlyAlertOnce)
 
             for ((i, pair) in actions.withIndex()) {
@@ -228,7 +261,7 @@ class Notifications(
      */
     fun sendSummaryNotification() {
         val notification = Notification.Builder(context, CHANNEL_ID_CHECK).run {
-            setSmallIcon(R.drawable.ic_notifications)
+            setSmallIcon(getSafeIcon(R.drawable.ic_notifications))
             setGroup(GROUP_KEY_UPDATES)
             setGroupSummary(true)
             Log.d(TAG, "notification $ID_SUMMARY")
@@ -238,7 +271,7 @@ class Notifications(
         notificationManager.notify(ID_SUMMARY, notification)
     }
 
-    fun dismissNotifications() {
+    fun dismissAlertNotifications() {
         notificationManager.cancel(ID_ALERT)
         val prefs = Preferences(context)
         if (prefs.alertCache.isNotEmpty()) {
@@ -249,5 +282,10 @@ class Notifications(
             prefs.alertCache = ""
             notificationManager.cancel(ID_SUMMARY)
         }
+    }
+
+    // This is a duplicate for backward compatibility - will eventually be removed
+    fun dismissNotifications() {
+        dismissAlertNotifications()
     }
 }

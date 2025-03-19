@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2023 Pixel Updater contributors
+ * SPDX-FileCopyrightText: 2025 Pixel Updater contributors
  * SPDX-FileCopyrightText: 2022-2023 Andrew Gunnerson
  * SPDX-FileContributor: Modified by Pixel Updater contributors
  * SPDX-License-Identifier: GPL-3.0-only
@@ -18,7 +18,9 @@ import android.provider.DocumentsContract
 import android.provider.Settings
 import android.text.SpannableStringBuilder
 import android.text.style.ForegroundColorSpan
+import android.util.Log
 import android.view.View
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.AttrRes
 import androidx.annotation.ColorInt
@@ -50,13 +52,26 @@ import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.topjohnwu.superuser.Shell
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.BufferedInputStream
+import java.io.BufferedOutputStream
+import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
 import java.security.PublicKey
 import java.security.cert.Certificate
 import java.security.cert.X509Certificate
 import java.security.interfaces.DSAPublicKey
 import java.security.interfaces.ECPublicKey
 import java.security.interfaces.RSAPublicKey
+import java.util.zip.ZipEntry
+import java.util.zip.ZipOutputStream
+import java.text.SimpleDateFormat
+import java.util.Locale
+import java.util.Date
+import java.util.concurrent.TimeUnit
 
 
 class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceClickListener,
@@ -83,6 +98,7 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceClic
     private lateinit var prefVbmetaPatch: SwitchPreferenceCompat
     private lateinit var prefAutomaticReboot: SwitchPreferenceCompat
     private lateinit var prefVerityOnly: SwitchPreferenceCompat
+    private lateinit var prefCreateSupportFile: Preference
 
     private lateinit var snackbar: Snackbar
 
@@ -96,6 +112,15 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceClic
                 startActivity(Permissions.getAppInfoIntent(requireContext()))
             }
         }
+
+    // Create a file picker launcher for saving the support file
+    private val createDocumentLauncher = registerForActivityResult(
+        ActivityResultContracts.CreateDocument("application/zip")
+    ) { uri ->
+        uri?.let {
+            createSupportFile(it)
+        }
+    }
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         setPreferencesFromResource(R.xml.preferences_root, rootKey)
@@ -152,6 +177,9 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceClic
 
         prefVerityOnly = findPreference(Preferences.PREF_VERITY_ONLY)!!
         prefVerityOnly.onPreferenceChangeListener = this
+
+        prefCreateSupportFile = findPreference(Preferences.PREF_CREATE_SUPPORT_FILE)!!
+        prefCreateSupportFile.onPreferenceClickListener = this
 
         if (UpdaterThread.getVbmetaFlags(active = true) == 0.toByte()) {
             prefVbmetaPatch.isChecked = false
@@ -379,7 +407,7 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceClic
                     error = status !is SettingsViewModel.VbmetaStatus.Success || status.patch != SettingsViewModel.VbmetaStatus.PatchState.VerityDisabled
                 } else {
                     if (status is SettingsViewModel.VbmetaStatus.Success) {
-                        println("status.patch: ${status.patch}")
+                        Log.d(TAG, "VBMeta patch state: ${status.patch}")
                     }
                     statusRes = R.string.pref_vbmeta_ota_status_disabled
                     error = status !is SettingsViewModel.VbmetaStatus.Success || status.patch != SettingsViewModel.VbmetaStatus.PatchState.Disabled
@@ -458,6 +486,13 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceClic
             prefRevertCompleted -> {
                 scheduledAction = UpdaterThread.Action.REVERT
                 performAction()
+                return true
+            }
+            prefCreateSupportFile -> {
+                // Launch file picker with suggested filename
+                val timestamp = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.US).format(Date())
+                val filename = "pu_support_$timestamp.zip"
+                createDocumentLauncher.launch(filename)
                 return true
             }
         }
@@ -585,34 +620,141 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceClic
         }
     }
 
-    companion object {
-        private const val DOCUMENTSUI_AUTHORITY = "com.android.externalstorage.documents"
+    // Function to create the support file
+    private fun createSupportFile(destUri: Uri) {
+        // Show progress dialog FIRST before starting any work
+        val progressDialog = MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.dialog_support_file_title)
+            .setMessage(R.string.dialog_support_file_processing)
+            .setCancelable(false)
+            .create()
+        progressDialog.show()
 
-        private const val PREF_CERT_PREFIX = "certificate_"
+        // Use a coroutine to perform the file operations off the main thread
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val filesDir = requireContext().getExternalFilesDir(null)!!
+                val logcatFile = File(filesDir, "logcat.log")
 
-        private val PublicKey.keyLength: Int
-            get() {
-                when (this) {
-                    is ECPublicKey -> params?.order?.bitLength()?.let { return it }
-                    is RSAPublicKey -> return modulus.bitLength()
-                    is DSAPublicKey -> return if (params != null) {
-                        params.p.bitLength()
-                    } else {
-                        y.bitLength()
+                // Get PIDs for update_engine and pixelupdater
+                val updateEnginePid = Shell.cmd("ps -A | grep update_engine | grep -v grep | awk '{print $2}'").exec().out.firstOrNull()?.trim() ?: ""
+                val appPid = Shell.cmd("ps -A | grep ${BuildConfig.APPLICATION_ID} | grep -v grep | awk '{print $2}'").exec().out.firstOrNull()?.trim() ?: ""
+
+                // Get filtered logcat output
+                val command = "logcat -d -b all -v threadtime | grep -i -E '(update_engine|pixelupdater|PixelUpdater|${BuildConfig.APPLICATION_ID}" +
+                        (if (updateEnginePid.isNotEmpty()) "|$updateEnginePid" else "") +
+                        (if (appPid.isNotEmpty()) "|$appPid" else "") +
+                        ")' > ${logcatFile.absolutePath}"
+
+                Shell.cmd(command).exec()
+
+                // Create support.zip file
+                val timestamp = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.US).format(Date())
+                val filename = "pu_support_$timestamp.zip"
+
+                // Get the content resolver and try to create the file
+                val contentResolver = requireContext().contentResolver
+                val finalUri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    try {
+                        DocumentsContract.renameDocument(contentResolver, destUri, filename) ?: destUri
+                    } catch (e: Exception) {
+                        destUri
+                    }
+                } else {
+                    destUri
+                }
+
+                // ZIP
+                contentResolver.openOutputStream(finalUri)?.use { outputStream ->
+                    ZipOutputStream(BufferedOutputStream(outputStream)).use { zipOut ->
+                        zipDirectory(filesDir, filesDir.name, zipOut)
                     }
                 }
 
-                return -1
-            }
-
-        private val Certificate.typeName: String
-            get() = buildString {
-                append(publicKey.algorithm)
-                val keyLength = publicKey.keyLength
-                if (keyLength >= 0) {
-                    append(' ')
-                    append(keyLength)
+                // Show success message
+                withContext(Dispatchers.Main) {
+                    progressDialog.dismiss()
+                    Toast.makeText(
+                        requireContext(),
+                        getString(R.string.toast_support_file_success, filename),
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    progressDialog.dismiss()
+                    Toast.makeText(
+                        requireContext(),
+                        getString(R.string.toast_support_file_failure, e.message),
+                        Toast.LENGTH_LONG
+                    ).show()
                 }
             }
+        }
+    }
+
+    // zip directory function
+    private fun zipDirectory(fileOrDir: File, path: String, zipOut: ZipOutputStream) {
+        if (fileOrDir.isDirectory) {
+            if (path.isNotEmpty()) {
+                val entry = ZipEntry("$path/")
+                zipOut.putNextEntry(entry)
+                zipOut.closeEntry()
+            }
+
+            fileOrDir.listFiles()?.forEach { childFile ->
+                val childPath = if (path.isEmpty()) childFile.name else "$path/${childFile.name}"
+                zipDirectory(childFile, childPath, zipOut)
+            }
+        } else {
+            try {
+                FileInputStream(fileOrDir).use { input ->
+                    val entry = ZipEntry(path)
+                    zipOut.putNextEntry(entry)
+                    BufferedInputStream(input).use { bufferedInput ->
+                        val buffer = ByteArray(8192) // Larger buffer for better performance
+                        var len: Int
+                        while (bufferedInput.read(buffer).also { len = it } > 0) {
+                            zipOut.write(buffer, 0, len)
+                        }
+                    }
+                    zipOut.closeEntry()
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to add file to ZIP: ${fileOrDir.absolutePath}", e)
+            }
+        }
+    }
+
+    private val Certificate.typeName: String
+        get() = buildString {
+            append(type)
+            append(' ')
+            append(publicKey.algorithm)
+            val keyLength = publicKey.keyLength
+            if (keyLength >= 0) {
+                append(' ')
+                append(keyLength)
+            }
+        }
+
+    private val PublicKey.keyLength: Int
+        get() {
+            when (this) {
+                is RSAPublicKey -> return modulus.bitLength()
+                is ECPublicKey -> params?.order?.bitLength()?.let { return it }
+                is DSAPublicKey -> return if (params != null) {
+                    params.p.bitLength()
+                } else {
+                    y.bitLength()
+                }
+            }
+            return -1
+        }
+
+    companion object {
+        private const val DOCUMENTSUI_AUTHORITY = "com.android.externalstorage.documents"
+        private const val PREF_CERT_PREFIX = "certificate_"
+        private val TAG = SettingsFragment::class.java.simpleName
     }
 }

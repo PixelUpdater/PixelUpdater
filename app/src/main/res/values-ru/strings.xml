@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    SPDX-FileCopyrightText: 2025 Pixel Updater contributors
+    SPDX-FileContributor: Modified by Pixel Updater contributors
+    SPDX-License-Identifier: GPL-3.0-only
+-->
+<resources>
+	<!-- Only keep app-specific strings that are defined in default strings.xml -->
+    <!-- <string name="app_name">Pixel Updater</string> -->
+
+    <!-- Dialog strings -->
+    <string name="dialog_action_cancel">Отменить</string>
+    <string name="dialog_action_ok">ОК</string>
+    <string name="dialog_ota_url_error_bad_protocol">Только http:// и https:// URLs поддерживаются.</string>
+    <string name="dialog_ota_url_error_malformed">Недействительный URL.</string>
+    <!-- <string name="dialog_ota_url_hint">https://hostname[:port]/path</string> -->
+    <string name="dialog_ota_url_message">Введите URL-адрес OTA.</string>
+    <string name="dialog_ota_url_title">@string/pref_ota_url_name</string>
+    <string name="dialog_vbmeta_message">Изменения этого значения могут напрямую или косвенно привести к стиранию данных. убедитесь, что вы понимаете последствия, прежде чем изменять этот параметр.\n\nПримечание: Pixel Updater не изменяет активный слот. Если вы измените конфигурацию, имейте в виду, что текущий активный слот останется неизменным.</string>
+    <string name="dialog_vbmeta_title">Изменение настроек патча Vbmeta</string>
+    <string name="dialog_support_file_title">Создать файл поддержки</string>
+    <string name="dialog_support_file_processing">Создание файла поддержки...</string>
+
+    <!-- Toast messages -->
+    <string name="toast_battery_low">Невозможно установить: Батарея разряжена</string>
+    <string name="toast_network_metered">Невозможно установить: Сеть тарифицируемая</string>
+    <string name="toast_network_unavailable">Невозможно установить: Сеть недоступна</string>
+    <string name="toast_constraints_not_met">Невозможно установить: Условия не соблюдены</string>
+
+    <!-- Notification strings -->
+    <string name="notification_action_cancel">Отменить</string>
+    <string name="notification_action_install">Установить</string>
+    <string name="notification_action_pause">Пауза</string>
+    <string name="notification_action_reboot">Перезагрузить</string>
+    <string name="notification_action_resume">Возобновить</string>
+    <string name="notification_action_retry">Повторить</string>
+    <string name="notification_action_revert">Вернуться</string>
+    <string name="notification_action_switch_slot">Переключить слот</string>
+    <string name="notification_channel_check_desc">Оповещения о доступных обновлениях</string>
+    <string name="notification_channel_check_name">Оповещения о проверке обновлений</string>
+    <string name="notification_channel_failure_desc">Оповещения об ошибках во время обновления</string>
+    <string name="notification_channel_failure_name">Оповещения о сбоях</string>
+    <string name="notification_channel_persistent_desc">Постоянное уведомление о ходе обновления</string>
+    <string name="notification_channel_persistent_name">Фоновые службы</string>
+    <string name="notification_channel_success_desc">Оповещения об успешном обновлении</string>
+    <string name="notification_channel_success_name">Оповещения об успехе</string>
+    <string name="notification_check_skipped_needs_reboot_message">Операция недоступна, пока ожидается перезагрузка</string>
+    <string name="notification_check_skipped_needs_switch_slot_message">Операция недоступна, когда переключаемый слот находится в режиме ожидания</string>
+    <string name="notification_check_skipped_title">Пропущена проверка обновлений</string>
+    <string name="notification_job_failed_battery_message">Убедитесь, что батарея не разряжена, или отключите требование достаточного уровня заряда батареи.</string>
+    <string name="notification_job_failed_both_message">Убедитесь, что заряд батареи не низкий, а подключение не тарифицируется, или отключите соответствующие требования.</string>
+    <string name="notification_job_failed_network_message">Убедитесь, что подключение не тарифицируется, или отключите требование безлимитного подключения к сети.</string>
+    <string name="notification_state_check">Проверка наличия обновлений...</string>
+    <string name="notification_state_finalize">Завершение обновления</string>
+    <string name="notification_state_init">Инициализация обновления</string>
+    <string name="notification_state_install">Установка обновления</string>
+    <string name="notification_state_verify">Проверка обновления</string>
+    <string name="notification_update_available">Доступно обновление</string>
+    <string name="notification_update_cancelled">Процесс обновления был отменен</string>
+    <string name="notification_update_failed">Не удалось установить обновление</string>
+    <string name="notification_update_mismatch_magisk_message">Настройки Magisk отличаются от загруженной системы.</string>
+    <string name="notification_update_mismatch_message">Настройки Magisk и Vbmeta отличаются от загруженной системы. Изменение настроек Vbmeta может напрямую или косвенно привести к удалению данных. Обязательно осознайте последствия перед изменением этой настройки.</string>
+    <string name="notification_update_mismatch_root_unavailable_message">Настройки Magisk отличаются от загруженной системы. Для определения текущего статуса Vbmeta требуется root, а Vbmeta не пропатчен. Если Verity или Verification в настоящее время отключены, это может косвенно привести к стиранию. Обязательно поймите последствия, прежде чем продолжить.</string>
+    <string name="notification_update_mismatch_title">Несоответствие конфигурации</string>
+    <string name="notification_update_mismatch_vbmeta_message">Настройки Vbmeta отличаются от загруженной системы. Изменение настроек Vbmeta может напрямую или косвенно привести к удалению данных. Обязательно осознайте последствия перед изменением этой настройки.</string>
+    <string name="notification_update_needs_switch_slot">Обновление успешно установлено, но слот не активен</string>
+    <string name="notification_update_network_unavailable_message">Задание не найдено, нет доступных сетей</string>
+    <string name="notification_update_network_unavailable_title">Сеть недоступна</string>
+    <string name="notification_update_patch_failed">Не удалось установить обновление</string>
+    <string name="notification_update_reverted">Обновление успешно отменено</string>
+    <string name="notification_update_root_unavailable_message">Патч Magisk и Vbmeta отключены</string>
+    <string name="notification_update_root_unavailable_title">Root не доступен</string>
+    <string name="notification_update_succeeded">Обновление успешно установлено</string>
+    <string name="notification_update_unnecessary">Последняя версия уже установлена</string>
+    <string name="notification_preparing_install">Подготовка к установке обновления...</string>
+    <string name="pref_allow_reinstall_desc">Если последняя OTA совпадает с текущим отпечатком ОС, воспринимать ее как обновление. Это может привести к постоянным переустановкам, если включены автоматические обновления.</string>
+    <string name="pref_allow_reinstall_name">Разрешить переустановку</string>
+    <string name="pref_android_version_name">Версия Android</string>
+    <string name="pref_automatic_check_desc">Автоматически проверять наличие новых обновлений в фоновом режиме.</string>
+    <string name="pref_automatic_check_name">Автоматически проверять наличие обновлений</string>
+    <string name="pref_automatic_reboot_desc">Автоматическая перезагрузка после завершения обновления.</string>
+    <string name="pref_automatic_reboot_name">Автоматическая перезагрузка</string>
+    <string name="pref_automatic_switch_slot_desc">Автоматически переключать слот после завершения обновления.</string>
+    <string name="pref_automatic_switch_slot_name">Автоматически переключать слот</string>
+    <string name="pref_battery_not_low_desc">Разрешайте установку обновлений только в том случае, если уровень заряда батареи не является критическим.</string>
+    <string name="pref_battery_not_low_name">Требовать достаточного уровня заряда батареи</string>
+    <string name="pref_boot_slot_name">Активный слот</string>
+    <string name="pref_bootloader_status_locked">Разблокирован</string>
+    <string name="pref_bootloader_status_name">Статус загрузчика</string>
+    <string name="pref_bootloader_status_oemlock_carrier_allowed">Разблокировка загрузчика разрешена оператором</string>
+    <string name="pref_bootloader_status_oemlock_carrier_blocked">Разблокировка загрузчика заблокирована оператором</string>
+    <string name="pref_bootloader_status_oemlock_user_allowed">Разблокировка загрузчика разрешена пользователем</string>
+    <string name="pref_bootloader_status_oemlock_user_blocked">Разблокировка загрузчика заблокирована пользователем</string>
+    <string name="pref_bootloader_status_unknown">Неизвестно</string>
+    <string name="pref_bootloader_status_unlocked">Разблокирован</string>
+    <string name="pref_certificate_desc_serial">Серийный номер: %1$s</string>
+    <string name="pref_certificate_desc_subject">Объект: %1$s</string>
+    <string name="pref_certificate_desc_type">Тип: %1$s</string>
+    <string name="pref_certificate_name">Сертификат %1$s</string>
+    <string name="pref_check_for_updates_desc">Проверить наличие новых обновлений.</string>
+    <string name="pref_check_for_updates_name">Проверить наличие обновления</string>
+    <string name="pref_create_support_file_name">Создать файл поддержки</string>
+    <string name="pref_create_support_file_desc">Создать ZIP-файл с логами и информацией о системе для устранения неполадок</string>
+    <string name="pref_fingerprint_name">Отпечаток</string>
+    <string name="pref_header_about">О приложении</string>
+    <string name="pref_header_behavior">Настройки обновления</string>
+    <string name="pref_header_certificates">Сертификаты</string>
+    <string name="pref_header_debug">Откладка</string>
+    <string name="pref_header_general">Главное</string>
+    <string name="pref_header_os">Операционная система</string>
+    <string name="pref_magisk_ota_status_installed">Magisk будет установлен после обновления</string>
+    <string name="pref_magisk_ota_status_not_installed">Magisk не будет установлен после OTA</string>
+    <string name="pref_magisk_patch_desc">Переустановка Magisk после обновления.\nТребуется расширенная установка Magisk</string>
+    <string name="pref_magisk_patch_name">Переустановка Magisk</string>
+    <string name="pref_magisk_status_installed">Установлен</string>
+    <string name="pref_magisk_status_name">Статус Magisk</string>
+    <string name="pref_magisk_status_not_installed">Не установлен</string>
+    <string name="pref_magisk_status_unknown">Неизвестно</string>
+    <string name="pref_no_certificates_desc">Действительных сертификатов не найдено в %1$s.</string>
+    <string name="pref_no_certificates_name">Сертификаты не найдены</string>
+    <string name="pref_notification_frequency_desc">Как часто отправлять уведомления об ожидающих обновлениях.</string>
+    <string name="pref_notification_frequency_name">Частота уведомлений</string>
+    <string name="pref_open_log_dir_desc">Откройте каталог журнала в системном файловом менеджере (DocumentsUI).</string>
+    <string name="pref_open_log_dir_name">Открыть каталог с логами</string>
+    <string name="pref_ota_url_desc_none">URL-адрес не установлен.</string>
+    <string name="pref_ota_url_name">OTA URL</string>
+    <string name="pref_revert_completed_desc">Это возможно только после завершения обновления, но до перезагрузки. Это предотвращает переключение слота устройства при следующей перезагрузке. Это не отменяет операции, выполненные в неактивном слоте.</string>
+    <string name="pref_revert_completed_name">Отменить завершенное обновление</string>
+    <string name="pref_skip_postinstall_desc">Пропустить выполнение операций после установки, которые отмечены как необязательные в OTA. Это пропускает операцию dexopt, которая предварительно компилирует байт-код приложения для более быстрой загрузки.</string>
+    <string name="pref_skip_postinstall_name">Пропустить необязательные скрипты после установки</string>
+    <string name="pref_unmetered_only_desc">Разрешить загрузку обновлений только через безлимитные сетевые соединения (например, Wi-Fi).</string>
+    <string name="pref_unmetered_only_name">Требовать безлимитную сеть</string>
+    <string name="pref_vbmeta_ota_status_disabled">Verity и Verification будут отключены после обновления</string>
+    <string name="pref_vbmeta_ota_status_enabled">Verity и Verification будут включены после обновления</string>
+    <string name="pref_vbmeta_ota_status_verity_disabled">Только Verity будет отключен после обновления</string>
+    <string name="pref_vbmeta_patch_desc">Патчит Vbmeta с помощью флагов disable-verity и disable-verification.</string>
+    <string name="pref_vbmeta_patch_name">Отключить проверку Verity и Verification</string>
+    <string name="pref_vbmeta_status_disabled">Verity и Verification отключены</string>
+    <string name="pref_vbmeta_status_enabled">Verity и Verification включены</string>
+    <string name="pref_vbmeta_status_name">Статус Vbmeta</string>
+    <string name="pref_vbmeta_status_unknown">Неизвестно</string>
+    <string name="pref_vbmeta_status_verification_disabled">Только verification отключена</string>
+    <string name="pref_vbmeta_status_verification_unexpected">Неизвестное значение</string>
+    <string name="pref_vbmeta_status_verity_disabled">Только Verity отключена</string>
+    <string name="pref_verity_only_desc">Патчит Vbmeta только с флагом disable-verity.</string>
+    <string name="pref_verity_only_name">Отключить только Verity</string>
+    <string name="pref_version_name">(Удерживайте для открытия дополнительных настроек)\nВерсия</string>
+
+    <!-- Snackbar strings -->
+    <string name="snackbar_battery_low">Батарея разряжена</string>
+    <string name="snackbar_network_restricted">Сеть ограничена</string>
+    <string name="snackbar_notifications_disabled">Уведомления отключены</string>
+    <string name="toast_support_file_success">Файл поддержки успешно создан в %s</string>
+    <string name="toast_support_file_failure">Не удалось создать файл поддержки: %s</string>
+</resources>
