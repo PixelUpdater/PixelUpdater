@@ -26,13 +26,13 @@
     <string name="pref_certificate_desc_type">Тип: %1$s</string>
 
     <!-- Behavior preferences -->
-    <string name="pref_automatic_check_name">Автоматично перевіряти наявність оновлень</string>
+    <string name="pref_automatic_check_name">Перевіряти наявність оновлень</string>
     <string name="pref_automatic_check_desc">Автоматично перевіряти наявність нових оновлень у фоновому режимі.</string>
     <string name="pref_unmetered_only_name">Вимагати нетарифіковану мережу</string>
     <string name="pref_unmetered_only_desc">Дозволяти завантаження оновлень лише через нетарифіковані мережеві з’єднання (наприклад, Wi-Fi).</string>
-    <string name="pref_battery_not_low_name">Вимагати достатній рівень заряду батареї</string>
+    <string name="pref_battery_not_low_name">Вимагати достатній заряд батареї</string>
     <string name="pref_battery_not_low_desc">Дозволяти встановлення оновлень лише якщо рівень заряду батареї не є критичним.</string>
-    <string name="pref_skip_postinstall_name">Пропускати виконання необов’язкових post-install скриптів</string>
+    <string name="pref_skip_postinstall_name">Пропускати необов’язкові post-install скрипти</string>
     <string name="pref_skip_postinstall_desc">Пропускати виконання операцій після встановлення, які позначені як необов’язкові в OTA. Зазвичай це пропускає операцію dexopt, яка попередньо компілює байт-код застосунків для швидшого завантаження.</string>
     <string name="pref_magisk_patch_name">Патч Magisk для встановленого оновлення</string>
     <string name="pref_magisk_patch_desc">Надає root-доступ після оновлення через Magisk. Потребує встановленого і функціоноючого Magisk.</string>
