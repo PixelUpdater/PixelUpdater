@@ -1,0 +1,64 @@
+name: PR Build
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+
+jobs:
+  build:
+    name: Build Pull Request
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+          fetch-depth: 0
+
+      - name: Get version
+        id: get_version
+        run: |
+          # For PR builds, use PR number + SHA
+          pr_number="${{ github.event.pull_request.number }}"
+          short_sha=$(git rev-parse --short HEAD)
+          version="pr-${pr_number}-${short_sha}"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Using version: $version"
+
+      - name: Validate gradle wrapper checksum
+        uses: gradle/wrapper-validation-action@v2
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+
+      - name: Generate debug keystore
+        run: |
+          keytool -genkey -v -keystore debug.keystore -storetype PKCS12 -storepass android -alias androiddebugkey \
+            -keypass android -keyalg RSA -keysize 2048 -validity 10000 \
+            -dname "CN=Android Debug,O=Android,C=US"
+          echo "RELEASE_KEYSTORE=${{ github.workspace }}/debug.keystore" >> $GITHUB_ENV
+          echo "RELEASE_KEY_ALIAS=androiddebugkey" >> $GITHUB_ENV
+          echo "RELEASE_KEY_PASSPHRASE=android" >> $GITHUB_ENV
+          echo "RELEASE_KEYSTORE_PASSPHRASE=android" >> $GITHUB_ENV
+
+      - name: Build PR
+        run: |
+          ./gradlew zipRelease
+
+      - name: Debug list artifacts
+        run: |
+          ls -lR app/build/distributions/release
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: PixelUpdater-${{ steps.get_version.outputs.version }}
+          path: app/build/distributions/release/*.zip

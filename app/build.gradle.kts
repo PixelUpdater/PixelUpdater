@@ -201,7 +201,10 @@ android {
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
 
-            signingConfig = signingConfigs.getByName("release")
+            // Only use signing config if storeFile exists
+            if (signingConfigs.getByName("release").storeFile?.exists() == true) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
     compileOptions {
@@ -392,6 +395,8 @@ android.applicationVariants.all {
         }
         from(variant.outputs.map { it.outputFile }) {
             into("system/priv-app/${rootProject.name}")
+            // Ensure consistent APK naming in zip file
+            rename { "${rootProject.name}.apk" }
         }
 
         val moduleDir = File(projectDir, "module")
