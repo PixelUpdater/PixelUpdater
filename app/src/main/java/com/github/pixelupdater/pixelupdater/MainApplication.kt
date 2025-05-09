@@ -9,13 +9,24 @@
 package com.github.pixelupdater.pixelupdater
 
 import android.app.Application
+import android.content.Context
 import android.util.Log
 import com.github.pixelupdater.pixelupdater.updater.UpdaterJob
 import com.google.android.material.color.DynamicColors
 import com.topjohnwu.superuser.Shell
+import kotlinx.coroutines.DelicateCoroutinesApi
 import java.io.File
 
 class MainApplication : Application() {
+    private val TAG = MainApplication::class.java.simpleName
+
+    companion object {
+        init {
+            Shell.enableVerboseLogging = BuildConfig.DEBUG
+            Shell.setDefaultBuilder(Shell.Builder.create().setFlags(Shell.FLAG_MOUNT_MASTER or Shell.FLAG_REDIRECT_STDERR).setTimeout(10))
+        }
+    }
+
     override fun onCreate() {
         super.onCreate()
 
@@ -45,11 +56,28 @@ class MainApplication : Application() {
         UpdaterJob.schedulePeriodic(this, false)
     }
 
-    companion object {
-        private val TAG = MainApplication::class.java.simpleName
+    override fun onTerminate() {
+        super.onTerminate()
+        // This is only called in emulator, but added for completeness
+        cleanupScheduledJobs()
+    }
 
-        init {
-            Shell.setDefaultBuilder(Shell.Builder.create().setFlags(Shell.FLAG_MOUNT_MASTER or Shell.FLAG_REDIRECT_STDERR))
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+
+        // Clean up jobs when app is being forcefully removed from memory
+        if (level == TRIM_MEMORY_COMPLETE || level == TRIM_MEMORY_MODERATE) {
+            cleanupScheduledJobs()
+        }
+    }
+
+    @OptIn(DelicateCoroutinesApi::class)
+    private fun cleanupScheduledJobs() {
+        Log.d(TAG, "Application terminating, cleaning up scheduled jobs")
+        try {
+            UpdaterJob.cancelAllJobs(applicationContext)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to clean up scheduled jobs", e)
         }
     }
 }

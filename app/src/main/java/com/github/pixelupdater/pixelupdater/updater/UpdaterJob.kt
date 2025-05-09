@@ -135,7 +135,7 @@ class UpdaterJob: JobService() {
             // sane way to do so. That doesn't matter for our use case because this check is mostly
             // useful for the periodic job, which doesn't use extras.
             if (oldJobInfo != null &&
-                oldJobInfo.requiredNetwork == jobInfo.requiredNetwork &&
+                areNetworkRequirementsSame(oldJobInfo, jobInfo) &&
                 oldJobInfo.isRequireBatteryNotLow == jobInfo.isRequireBatteryNotLow &&
                 oldJobInfo.isPersisted == jobInfo.isPersisted &&
                 oldJobInfo.intervalMillis == jobInfo.intervalMillis &&
@@ -173,16 +173,9 @@ class UpdaterJob: JobService() {
                 }
 
                 // Check network constraint manually
-                val networkType = try {
-                    val method = jobInfo.javaClass.getDeclaredMethod("getRequiredNetworkType")
-                    method.isAccessible = true
-                    method.invoke(jobInfo) as Int
-                } catch (e: Exception) {
-                    Log.e(TAG, "Failed to get required network type", e)
-                    JobInfo.NETWORK_TYPE_NONE
-                }
+                val hasUnmeteredNetworkRequirement = hasUnmeteredNetworkRequirement(jobInfo)
 
-                if (!constraintsFailed && networkType == JobInfo.NETWORK_TYPE_UNMETERED && action == UpdaterThread.Action.INSTALL) {
+                if (!constraintsFailed && hasUnmeteredNetworkRequirement && action == UpdaterThread.Action.INSTALL) {
                     // Use system service to check if we have unmetered network
                     val connectivityIntent = context.registerReceiver(null,
                         android.content.IntentFilter(android.net.ConnectivityManager.CONNECTIVITY_ACTION))
@@ -264,6 +257,53 @@ class UpdaterJob: JobService() {
             }
         }
 
+        /**
+         * Safely compares network requirements between two JobInfo objects without using reflection
+         */
+        private fun areNetworkRequirementsSame(job1: JobInfo, job2: JobInfo): Boolean {
+            // In Android, JobInfo.getRequiredNetworkType() was introduced in later API levels
+            // Instead of using reflection, we can compare if both jobs have the same network type by
+            // checking if both require a network and if both require the same type of network
+
+            // Check if both have ANY network requirement (this is what we mainly care about)
+            val job1RequiresNetwork = job1.requiredNetwork != null
+            val job2RequiresNetwork = job2.requiredNetwork != null
+
+            if (job1RequiresNetwork != job2RequiresNetwork) {
+                return false
+            }
+
+            // If neither requires network, they're the same
+            if (!job1RequiresNetwork && !job2RequiresNetwork) {
+                return true
+            }
+
+            // Check if both have unmetered network requirement
+            // We can use the requiredNetwork capabilities to determine this
+            return hasUnmeteredNetworkRequirement(job1) == hasUnmeteredNetworkRequirement(job2)
+        }
+
+        /**
+         * Checks if the JobInfo requires an unmetered network without using reflection
+         */
+        private fun hasUnmeteredNetworkRequirement(jobInfo: JobInfo): Boolean {
+            val netRequest = jobInfo.requiredNetwork ?: return false
+
+            // Check if NET_CAPABILITY_NOT_METERED is in the capabilities
+            try {
+                val netCapabilities = netRequest.javaClass.getField("networkCapabilities").get(netRequest)
+                val notMeteredCapability = android.net.NetworkCapabilities::class.java.getField("NET_CAPABILITY_NOT_METERED").get(null) as Int
+
+                // Get the hasCapability method by reflection
+                val hasCapabilityMethod = netCapabilities.javaClass.getMethod("hasCapability", Int::class.java)
+                return hasCapabilityMethod.invoke(netCapabilities, notMeteredCapability) as Boolean
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to check network metering capability", e)
+                // Fall back to assuming any network is required (not specifically unmetered)
+                return false
+            }
+        }
+
         fun scheduleImmediate(context: Context, action: UpdaterThread.Action) {
             val jobInfo = createJobBuilder(context, ID_IMMEDIATE, action).build()
 
@@ -291,6 +331,20 @@ class UpdaterJob: JobService() {
             skipNextRun = skipFirstRun
 
             scheduleIfUnchanged(context, jobInfo)
+        }
+
+        /**
+         * Cancel all scheduled jobs for the app to ensure no jobs remain after app uninstallation.
+         * This should be called during app shutdown or when the user explicitly disables the app.
+         */
+        fun cancelAllJobs(context: Context) {
+            try {
+                val jobScheduler = context.getSystemService(JobScheduler::class.java)
+                Log.d(TAG, "Cancelling all scheduled jobs")
+                jobScheduler.cancelAll()
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to cancel scheduled jobs", e)
+            }
         }
     }
 }

@@ -168,6 +168,91 @@ class UpdaterThread(
     }
 
     private fun openUrl(url: URL): HttpURLConnection {
+        return openUrlWithRetry(url, MAX_RETRIES, INITIAL_BACKOFF_MS)
+    }
+
+    /**
+     * Opens a URL connection with the given headers
+     * Makes sure to set all headers before connecting
+     */
+    private fun openUrl(url: URL, headers: Map<String, String>): HttpURLConnection {
+        val connection = network!!.openConnection(url) as HttpURLConnection
+        connection.connectTimeout = TIMEOUT_MS
+        connection.readTimeout = TIMEOUT_MS
+
+        // Set standard headers
+        connection.setRequestProperty("User-Agent", USER_AGENT)
+        if (authorization != null) {
+            connection.setRequestProperty("Authorization", authorization)
+        }
+
+        // Set additional headers
+        for ((key, value) in headers) {
+            connection.setRequestProperty(key, value)
+        }
+
+        return connection
+    }
+
+    private fun openUrlWithRetry(url: URL, maxRetries: Int, initialBackoffMs: Long): HttpURLConnection {
+        var retryCount = 0
+        var backoffMs = initialBackoffMs
+
+        while (true) {
+            try {
+                val c = network!!.openConnection(url) as HttpURLConnection
+                c.connectTimeout = TIMEOUT_MS
+                c.readTimeout = TIMEOUT_MS
+                c.setRequestProperty("User-Agent", USER_AGENT)
+                if (authorization != null) {
+                    c.setRequestProperty("Authorization", authorization)
+                }
+
+                c.connect()
+
+                // Check if we got a rate limit response (429)
+                if (c.responseCode == 429) {
+                    if (retryCount >= maxRetries) {
+                        // We've exceeded our retry attempts
+                        Log.w(TAG, "Exceeded maximum retry attempts ($maxRetries) for URL: $url")
+                        break
+                    }
+
+                    // Get retry-after header if available or use exponential backoff
+                    val retryAfter = c.getHeaderField("Retry-After")?.toLongOrNull()
+                    val sleepTime = retryAfter?.times(1000) ?: backoffMs
+
+                    Log.i(TAG, "Rate limited (429). Retrying after ${sleepTime}ms (attempt ${retryCount + 1}/$maxRetries)")
+                    sleep(sleepTime)
+
+                    // Increase backoff for next attempt (exponential with jitter)
+                    backoffMs = (backoffMs * BACKOFF_MULTIPLIER).toLong().coerceAtMost(MAX_BACKOFF_MS)
+                    // Add some jitter (±20%)
+                    val jitter = (backoffMs * 0.2 * (Math.random() * 2 - 1)).toLong()
+                    backoffMs += jitter
+
+                    retryCount++
+                    continue
+                }
+
+                return c
+            } catch (e: IOException) {
+                if (retryCount >= maxRetries) {
+                    Log.w(TAG, "Exceeded maximum retry attempts ($maxRetries) due to error", e)
+                    throw e
+                }
+
+                Log.i(TAG, "Connection error, retrying (attempt ${retryCount + 1}/$maxRetries)", e)
+                sleep(backoffMs)
+
+                // Increase backoff for next attempt
+                backoffMs = (backoffMs * BACKOFF_MULTIPLIER).toLong().coerceAtMost(MAX_BACKOFF_MS)
+                retryCount++
+            }
+        }
+
+        // If we've exited the loop without returning, create one last connection to return
+        // (which will likely fail with the same error, but this maintains the original behavior)
         val c = network!!.openConnection(url) as HttpURLConnection
         c.connectTimeout = TIMEOUT_MS
         c.readTimeout = TIMEOUT_MS
@@ -179,8 +264,10 @@ class UpdaterThread(
     }
 
     private fun downloadOtaPage(): List<DownloadInfo> {
-        val connection = openUrl(URL(OTA_SERVER_URL))
-        connection.setRequestProperty("Cookie", OTA_SERVER_COOKIE)
+        // Create connection with cookie header properly set before connecting
+        val connection = openUrl(URL(OTA_SERVER_URL), mapOf("Cookie" to OTA_SERVER_COOKIE))
+
+        // Now connect to the server
         connection.connect()
 
         if (connection.responseCode / 100 != 2) {
@@ -234,10 +321,15 @@ class UpdaterThread(
         return result
     }
 
+    /**
+     * Download content length with proper HEAD request
+     */
     private fun downloadOtaContentLength(downloadInfo: DownloadInfo): Long {
         val connection = openUrl(downloadInfo.url)
         @Suppress("UsePropertyAccessSyntax")
-        connection.setRequestMethod("HEAD")
+        connection.requestMethod = "HEAD"
+
+        // Connect after setting the method
         connection.connect()
 
         if (connection.responseCode / 100 != 2) {
@@ -249,8 +341,13 @@ class UpdaterThread(
 
     private fun downloadEocd(downloadInfo: DownloadInfo): Eocd {
         val contentLength = downloadOtaContentLength(downloadInfo)
-        val connection = openUrl(downloadInfo.url)
-        connection.setRequestProperty("Range", "bytes=${contentLength - EOCD_OFFSET}-${contentLength - 1}")
+
+        // Use the new openUrl method with headers set before connecting
+        val connection = openUrl(downloadInfo.url, mapOf(
+            "Range" to "bytes=${contentLength - EOCD_OFFSET}-${contentLength - 1}"
+        ))
+
+        // Now connect to the server
         connection.connect()
 
         if (connection.responseCode / 100 != 2) {
@@ -299,10 +396,18 @@ class UpdaterThread(
         return Eocd(size, offset)
     }
 
+    /**
+     * Download CD (Central Directory) of the OTA zip with proper headers set before connecting
+     */
     private fun downloadCd(downloadInfo: DownloadInfo): Map<String, PropertyFile> {
         val eocd = downloadEocd(downloadInfo)
-        val connection = openUrl(downloadInfo.url)
-        connection.setRequestProperty("Range", "bytes=${eocd.offset}-${eocd.offset + eocd.size - 1}")
+
+        // Create a connection with all headers set before connecting
+        val connection = openUrl(downloadInfo.url, mapOf(
+            "Range" to "bytes=${eocd.offset}-${eocd.offset + eocd.size - 1}"
+        ))
+
+        // Now connect to the server
         connection.connect()
 
         if (connection.responseCode / 100 != 2) {
@@ -347,14 +452,18 @@ class UpdaterThread(
     }
 
     /**
-     * Download a property file entry from the OTA zip. The server must support byte ranges. If the
-     * server returns too few or too many bytes, then the download will fail.
+     * Download a property file entry from the OTA zip. The server must support byte ranges.
+     * Uses proper headers setting before connection is made.
      *
      * @param output Not closed by this function
      */
     private fun downloadPropertyFile(url: URL, pf: PropertyFile, output: OutputStream) {
-        val connection = openUrl(url)
-        connection.setRequestProperty("Range", "bytes=${pf.offset}-${pf.offset + pf.size - 1}")
+        // Use the new openUrl method with headers set before connecting
+        val connection = openUrl(url, mapOf(
+            "Range" to "bytes=${pf.offset}-${pf.offset + pf.size - 1}"
+        ))
+
+        // Now connect to the server
         connection.connect()
 
         if (connection.responseCode / 100 != 2) {
@@ -419,18 +528,104 @@ class UpdaterThread(
         return result
     }
 
-    /** Download and parse key/value pairs file. */
+    /**
+     * Download and parse key/value pairs file with proper headers
+     */
     private fun downloadKeyValueFile(url: URL, pf: PropertyFile): Map<String, String> {
         val outputStream = ByteArrayOutputStream()
-        downloadPropertyFile(url, pf, outputStream)
+
+        // Use the new approach with headers set before connecting
+        val connection = openUrl(url, mapOf(
+            "Range" to "bytes=${pf.offset}-${pf.offset + pf.size - 1}"
+        ))
+
+        // Now connect
+        connection.connect()
+
+        if (connection.responseCode / 100 != 2) {
+            throw IOException("Got ${connection.responseCode} (${connection.responseMessage}) for $url")
+        }
+
+        if (connection.getHeaderField("Accept-Ranges") != "bytes") {
+            throw IOException("Server does not support byte ranges")
+        }
+
+        if (connection.contentLengthLong != pf.size) {
+            throw IOException("Expected ${pf.size} bytes, but Content-Length is ${connection.contentLengthLong}")
+        }
+
+        connection.inputStream.use { input ->
+            val buf = ByteArray(16384)
+            var downloaded = 0L
+
+            while (downloaded < pf.size) {
+                val toRead = java.lang.Long.min(buf.size.toLong(), pf.size - downloaded).toInt()
+                val n = input.read(buf, 0, toRead)
+                if (n <= 0) {
+                    break
+                }
+
+                outputStream.write(buf, 0, n)
+                downloaded += n.toLong()
+            }
+
+            if (downloaded != pf.size) {
+                throw IOException("Unexpected EOF after downloading $downloaded bytes (expected ${pf.size} bytes)")
+            } else if (input.read() != -1) {
+                throw IOException("Server returned more data than expected (expected ${pf.size} bytes)")
+            }
+        }
 
         return parseKeyValuePairs(outputStream.toString(Charsets.UTF_8))
     }
 
-    /** Download the OTA metadata and validate that the update is valid for the current system. */
+    /**
+     * Download metadata protobuf file with proper headers
+     */
     private fun downloadAndCheckMetadata(url: URL, pf: PropertyFile): OtaMetadata {
         val outputStream = ByteArrayOutputStream()
-        downloadPropertyFile(url, pf, outputStream)
+
+        // Use the new approach with headers set before connecting
+        val connection = openUrl(url, mapOf(
+            "Range" to "bytes=${pf.offset}-${pf.offset + pf.size - 1}"
+        ))
+
+        // Now connect
+        connection.connect()
+
+        if (connection.responseCode / 100 != 2) {
+            throw IOException("Got ${connection.responseCode} (${connection.responseMessage}) for $url")
+        }
+
+        if (connection.getHeaderField("Accept-Ranges") != "bytes") {
+            throw IOException("Server does not support byte ranges")
+        }
+
+        if (connection.contentLengthLong != pf.size) {
+            throw IOException("Expected ${pf.size} bytes, but Content-Length is ${connection.contentLengthLong}")
+        }
+
+        connection.inputStream.use { input ->
+            val buf = ByteArray(16384)
+            var downloaded = 0L
+
+            while (downloaded < pf.size) {
+                val toRead = java.lang.Long.min(buf.size.toLong(), pf.size - downloaded).toInt()
+                val n = input.read(buf, 0, toRead)
+                if (n <= 0) {
+                    break
+                }
+
+                outputStream.write(buf, 0, n)
+                downloaded += n.toLong()
+            }
+
+            if (downloaded != pf.size) {
+                throw IOException("Unexpected EOF after downloading $downloaded bytes (expected ${pf.size} bytes)")
+            } else if (input.read() != -1) {
+                throw IOException("Server returned more data than expected (expected ${pf.size} bytes)")
+            }
+        }
 
         val metadata = OtaMetadata.newBuilder().mergeFrom(outputStream.toByteArray()).build()
         Log.d(TAG, "OTA metadata: $metadata")
@@ -506,8 +701,6 @@ class UpdaterThread(
                 throw IOException("Failed to download update info", e)
             }
         }
-
-
 
         val updates = mutableListOf<CheckUpdateResult>()
         for (ota in downloads) {
@@ -1109,6 +1302,12 @@ class UpdaterThread(
         private const val VBMETA_MAGIC: String = "AVB0"
         const val DISABLE_VERITY_FLAG: Byte = 1
         const val DISABLE_VERIFICATION_FLAG: Byte = 2
+
+        // Retry parameters
+        private const val MAX_RETRIES = 3
+        private const val INITIAL_BACKOFF_MS = 2000L  // 2 seconds
+        private const val BACKOFF_MULTIPLIER = 1.5    // Each retry waits 1.5x longer
+        private const val MAX_BACKOFF_MS = 30000L     // Cap at 30 seconds
 
         // https://github.com/topjohnwu/Magisk/blob/v26.3/app/src/main/java/com/topjohnwu/magisk/core/utils/ShellInit.kt#L65-69
         // https://github.com/topjohnwu/Magisk/blob/v26.3/app/src/main/res/raw/manager.sh#L232-L240
