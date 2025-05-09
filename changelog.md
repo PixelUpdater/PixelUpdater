@@ -1,3 +1,7 @@
+### 2025-05-09 v0.110-release
+
+- cleaner uninstall - Improved network detection - Use use exponential backoff when retrying connection.
+
 ### 2025-03-18 v0.109.1-release
 
 - Fix: #13 Cleanup resources - Update the tag format
