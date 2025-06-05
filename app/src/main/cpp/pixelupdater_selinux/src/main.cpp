@@ -164,7 +164,7 @@ static bool write_policy(
         free(data);
     });
 
-    int fd = open(path.c_str(), O_CREAT | O_TRUNC | O_RDWR | O_CLOEXEC, 0644);
+    int fd = open(path.c_str(), O_CREAT | O_RDWR | O_CLOEXEC, 0644);
     if (fd < 0) {
         errors.push_back(format("%s: Failed to open sepolicy: %s",
             path.c_str(), strerror(errno)));
