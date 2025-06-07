@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    SPDX-FileCopyrightText: 2025 Pixel Updater contributors
+    SPDX-FileContributor: Modified by Pixel Updater contributors
+    SPDX-License-Identifier: GPL-3.0-only
+-->
+<resources>
+    <!-- Preference headers -->
+    <string name="pref_header_general">通用</string>
+    <string name="pref_header_behavior">行为</string>
+    <string name="pref_header_os">系统</string>
+    <string name="pref_header_certificates">证书</string>
+    <string name="pref_header_about">关于</string>
+    <string name="pref_header_debug">调试</string>
+
+    <!-- General preferences -->
+    <string name="pref_check_for_updates_name">检查更新</string>
+    <string name="pref_check_for_updates_desc">安排检查新的 OTA 更新。</string>
+    <string name="pref_notification_frequency_name">通知频率</string>
+    <string name="pref_notification_frequency_desc">发送待更新通知的频率。</string>
+    <string name="pref_certificate_name">证书 %1$s</string>
+    <string name="pref_certificate_desc_subject">颁发对象: %1$s</string>
+    <string name="pref_certificate_desc_serial">序列号: %1$s</string>
+    <string name="pref_certificate_desc_type">证书类型: %1$s</string>
+
+    <!-- Behavior preferences -->
+    <string name="pref_automatic_check_name">自动检查更新</string>
+    <string name="pref_automatic_check_desc">在后台自动检查更新。</string>
+    <string name="pref_unmetered_only_name">要求网络连接不计流量</string>
+    <string name="pref_unmetered_only_desc">仅在 Wi-Fi 环境下更新。</string>
+    <string name="pref_battery_not_low_name">电量充足时更新</string>
+    <string name="pref_battery_not_low_desc">仅在电量未低于临界值时安装更新。</string>
+    <string name="pref_skip_postinstall_name">跳过可选安装后脚本</string>
+    <string name="pref_skip_postinstall_desc">跳过 OTA 中标记为可选的后安装操作，通常跳过 dexopt 操作(预编译应用字节码以提高加载速度)。</string>
+
+    <!-- OS information preferences -->
+    <string name="pref_android_version_name">Android 版本</string>
+    <string name="pref_fingerprint_name">构建指纹</string>
+    <string name="pref_boot_slot_name">启动槽</string>
+    <string name="pref_bootloader_status_name">Bootloader 状态</string>
+    <string name="pref_bootloader_status_unknown">未知</string>
+    <string name="pref_bootloader_status_unlocked">已解锁</string>
+    <string name="pref_bootloader_status_locked">未解锁</string>
+    <string name="pref_bootloader_status_oemlock_carrier_allowed">运营商允许 OEM 解锁</string>
+    <string name="pref_bootloader_status_oemlock_carrier_blocked">运营商禁止 OEM 解锁</string>
+    <string name="pref_bootloader_status_oemlock_user_allowed">用户允许 OEM 解锁</string>
+    <string name="pref_bootloader_status_oemlock_user_blocked">用户禁止 OEM 解锁</string>
+    <string name="pref_magisk_status_name">Magisk 状态</string>
+    <string name="pref_magisk_status_unknown">未知</string>
+    <string name="pref_magisk_status_installed">已安装</string>
+    <string name="pref_magisk_status_not_installed">未安装</string>
+    <string name="pref_magisk_ota_status_installed">OTA 后将安装 Magisk</string>
+    <string name="pref_magisk_ota_status_not_installed">OTA 后将不安装 Magisk</string>
+    <string name="pref_vbmeta_status_name">Vbmeta 状态</string>
+    <string name="pref_vbmeta_status_unknown">未知</string>
+    <string name="pref_vbmeta_status_enabled">Verity 和验证启动已启用</string>
+    <string name="pref_vbmeta_status_disabled">Verity 和验证启动已禁用</string>
+    <string name="pref_vbmeta_status_verity_disabled">仅 Verity 已禁用</string>
+    <string name="pref_vbmeta_status_verification_disabled">仅验证启动已禁用</string>
+    <string name="pref_vbmeta_status_verification_unexpected">意外值</string>
+    <string name="pref_vbmeta_ota_status_enabled">将在 OTA 后启用 Verity 和验证启动</string>
+    <string name="pref_vbmeta_ota_status_disabled">将在 OTA 后禁用 Verity 和验证启动</string>
+    <string name="pref_vbmeta_ota_status_verity_disabled">将在 OTA 后仅禁用 Verity</string>
+
+    <!-- Certificate preferences -->
+    <string name="pref_no_certificates_name">证书未找到</string>
+    <string name="pref_no_certificates_desc">在 %1$s 中未发现有效证书。</string>
+
+    <!-- About "preference" -->
+    <string name="pref_version_name">版本</string>
+
+    <!-- Debug preferences -->
+    <string name="pref_open_log_dir_name">打开日志目录</string>
+    <string name="pref_open_log_dir_desc">在系统文件管理器中打开日志目录。</string>
+    <string name="pref_allow_reinstall_name">允许重新安装</string>
+    <string name="pref_allow_reinstall_desc">当最新 OTA 匹配当前系统构建指纹时，将其视为更新。若启用自动更新，可能导致连续重装。</string>
+    <string name="pref_revert_completed_name">还原已完成的更新</string>
+    <string name="pref_revert_completed_desc">仅在更新完成后但重启前可用。阻止设备下次重启时切换启动槽，但不会撤销在非活动槽上执行的操作。</string>
+    <string name="pref_ota_url_name">OTA URL</string>
+    <string name="pref_ota_url_desc_none">未设置 URL。</string>
+    <string name="pref_automatic_switch_slot_name">自动切换启动槽</string>
+    <string name="pref_automatic_switch_slot_desc">更新完成后自动切换启动槽。</string>
+    <string name="pref_automatic_reboot_name">自动重启</string>
+    <string name="pref_automatic_reboot_desc">更新完成后自动重启设备。</string>
+    <string name="pref_magisk_patch_name">Magisk 修补已安装更新</string>
+    <string name="pref_magisk_patch_desc">使用 Magisk 为更新获取 Root 权限。需 Magisk 正常运行。</string>
+    <string name="pref_vbmeta_patch_name">禁用 Verity 和验证启动</string>
+    <string name="pref_vbmeta_patch_desc">使用禁用 Verity 和验证启动标志修补 vbmeta。</string>
+    <string name="pref_verity_only_name">仅禁用 Verity</string>
+    <string name="pref_verity_only_desc">仅使用禁用 Verity 标志修补 vbmeta。</string>
+    <string name="pref_create_support_file_name">创建支持文件</string>
+    <string name="pref_create_support_file_desc">创建包含日志和系统信息的 ZIP 文件用于故障排除。</string>
+    <string name="toast_support_file_success">成功创建支持文件: %s</string>
+    <string name="toast_support_file_failure">无法创建支持文件: %s</string>
+    <string name="dialog_support_file_title">创建支持文件</string>
+    <string name="dialog_support_file_processing">创建支持文件...</string>
+
+    <!-- Toast messages -->
+    <string name="toast_battery_low">无法安装：电量过低</string>
+    <string name="toast_network_metered">无法安装：当前为计费网络</string>
+    <string name="toast_network_unavailable">无法安装：网络不可用</string>
+    <string name="toast_constraints_not_met">无法安装：未满足条件</string>
+
+    <!-- Dialogs -->
+    <string name="dialog_ota_url_title">@string/pref_ota_url_name</string>
+    <string name="dialog_ota_url_message">输入 OTA 的 URL。</string>
+    <string name="dialog_ota_url_error_bad_protocol">仅支持 http:// 和 https:// 协议的 URL。</string>
+    <string name="dialog_ota_url_error_malformed">不是有效的 URL。</string>
+    <string name="dialog_vbmeta_title">修改 Vbmeta 修补设置</string>
+    <string name="dialog_vbmeta_message">修改此设置可能直接或间接导致数据被清除。更改前请务必了解其影响。\n\n注意：Pixel Updater 不会修补活动槽位。若更改配置，当前活动槽位将保持不变。</string>
+    <string name="dialog_action_ok">确认</string>
+    <string name="dialog_action_cancel">取消</string>
+
+    <!-- Snackbar -->
+    <string name="snackbar_notifications_disabled">通知已禁用</string>
+    <string name="snackbar_network_restricted">网络受限</string>
+    <string name="snackbar_battery_low">电量不足</string>
+
+    <!-- Notifications -->
+    <string name="notification_channel_persistent_name">后台服务</string>
+    <string name="notification_channel_persistent_desc">更新进度常驻通知</string>
+    <string name="notification_channel_check_name">更新提醒</string>
+    <string name="notification_channel_check_desc">更新可用时提醒</string>
+    <string name="notification_channel_failure_name">失败提醒</string>
+    <string name="notification_channel_failure_desc">更新错误时提醒</string>
+    <string name="notification_channel_success_name">成功提醒</string>
+    <string name="notification_channel_success_desc">更新成功时提醒</string>
+    <string name="notification_state_init">正在初始化 OTA 更新程序</string>
+    <string name="notification_state_check">正在检查 OTA 更新</string>
+    <string name="notification_state_install">正在安装 OTA 更新</string>
+    <string name="notification_state_verify">正在验证 OTA 更新</string>
+    <string name="notification_state_finalize">正在完成 OTA 更新</string>
+    <string name="notification_check_skipped_title">已跳过更新检查</string>
+    <string name="notification_check_skipped_needs_switch_slot_message">操作不可用：启动槽切换挂起中</string>
+    <string name="notification_check_skipped_needs_reboot_message">操作不可用：重启挂起中</string>
+    <string name="notification_job_failed_both_message">请确保电量充足且连接 Wi-Fi，或禁用相关要求</string>
+    <string name="notification_job_failed_battery_message">请确保电量充足或禁用电量充足要求</string>
+    <string name="notification_job_failed_network_message">请确保连接 Wi-Fi 或禁用不限流量网络要求</string>
+    <string name="notification_update_available">OTA 更新可用</string>
+    <string name="notification_update_unnecessary">操作系统已是最新版本</string>
+    <string name="notification_update_succeeded">已成功安装 OTA 更新</string>
+    <string name="notification_update_needs_switch_slot">已成功安装 OTA 更新，但启动槽未激活</string>
+    <string name="notification_update_cancelled">OTA 更新进程已取消</string>
+    <string name="notification_update_reverted">已成功还原 OTA 更新</string>
+    <string name="notification_update_failed">OTA 更新安装失败</string>
+    <string name="notification_update_patch_failed">更新修补失败</string>
+    <string name="notification_update_mismatch_title">配置不匹配</string>
+    <string name="notification_update_mismatch_message">Magisk 和 Vbmeta 设置与当前系统不同。更改 Vbmeta 设置可能直接或间接导致数据清除。更改前请务必了解其影响。</string>
+    <string name="notification_update_mismatch_magisk_message">Magisk 设置与当前系统不同。</string>
+    <string name="notification_update_mismatch_vbmeta_message">Vbmeta 设置与当前系统不同。更改 Vbmeta 设置可能直接或间接导致数据清除。更改前请务必了解其影响。</string>
+    <string name="notification_update_mismatch_root_unavailable_message">Magisk 设置与当前系统不同。需要 Root 权限检测当前 Vbmeta 状态，且 Vbmeta 将不会被修补。如果当前 Verity 或验证启动已禁用，这可能间接导致数据清除。继续操作前请务必了解其影响。</string>
+    <string name="notification_update_root_unavailable_title">Root 权限不可用</string>
+    <string name="notification_update_root_unavailable_message">Magisk 和 Vbmeta 修补已被禁用</string>
+    <string name="notification_update_network_unavailable_title">网络不可用</string>
+    <string name="notification_update_network_unavailable_message">任务未找到可用网络</string>
+    <string name="notification_action_install">安装</string>
+    <string name="notification_action_pause">暂停</string>
+    <string name="notification_action_resume">继续</string>
+    <string name="notification_action_cancel">取消</string>
+    <string name="notification_action_reboot">重启</string>
+    <string name="notification_action_switch_slot">切换启动槽</string>
+    <string name="notification_action_revert">还原</string>
+    <string name="notification_action_retry">重试</string>
+    <string name="notification_preparing_install">正在准备安装更新...</string>
+</resources>
