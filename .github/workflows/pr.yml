@@ -47,6 +47,12 @@ jobs:
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "Using version: $version"
 
+      - name: Show what we're building
+        run: |
+          echo "Current HEAD: $(git rev-parse HEAD)"
+          echo "Current branch: $(git rev-parse --abbrev-ref HEAD || echo 'detached')"
+          echo "Last commit: $(git log -1 --oneline)"
+
       - name: Validate gradle wrapper checksum
         uses: gradle/wrapper-validation-action@v2
 
