@@ -6,6 +6,11 @@ on:
       - main
       - development
   workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to build (leave empty for current branch)'
+        required: false
+        type: string
 
 jobs:
   build:
@@ -19,13 +24,19 @@ jobs:
         with:
           submodules: true
           fetch-depth: 0
+          # If PR number is provided, checkout the PR branch
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.pr_number != '' && format('refs/pull/{0}/head', inputs.pr_number) || github.ref }}
 
       - name: Get version
         id: get_version
         run: |
-          # For PR builds, use PR number + SHA; for manual builds, use branch + SHA
+          # For PR builds or manual with PR number, use PR number + SHA
           if [ "${{ github.event_name }}" == "pull_request" ]; then
             pr_number="${{ github.event.pull_request.number }}"
+            short_sha=$(git rev-parse --short HEAD)
+            version="pr-${pr_number}-${short_sha}"
+          elif [ "${{ inputs.pr_number }}" != "" ]; then
+            pr_number="${{ inputs.pr_number }}"
             short_sha=$(git rev-parse --short HEAD)
             version="pr-${pr_number}-${short_sha}"
           else
