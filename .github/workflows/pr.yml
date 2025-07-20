@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - development
+  workflow_dispatch:
 
 jobs:
   build:
@@ -22,10 +23,16 @@ jobs:
       - name: Get version
         id: get_version
         run: |
-          # For PR builds, use PR number + SHA
-          pr_number="${{ github.event.pull_request.number }}"
-          short_sha=$(git rev-parse --short HEAD)
-          version="pr-${pr_number}-${short_sha}"
+          # For PR builds, use PR number + SHA; for manual builds, use branch + SHA
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            pr_number="${{ github.event.pull_request.number }}"
+            short_sha=$(git rev-parse --short HEAD)
+            version="pr-${pr_number}-${short_sha}"
+          else
+            branch_name=$(git rev-parse --abbrev-ref HEAD | sed 's/[^a-zA-Z0-9]/-/g')
+            short_sha=$(git rev-parse --short HEAD)
+            version="manual-${branch_name}-${short_sha}"
+          fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "Using version: $version"
 
