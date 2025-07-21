@@ -164,9 +164,9 @@ static bool write_policy(
         free(data);
     });
 
-    int fd = open(path.c_str(), O_CREAT | O_TRUNC | O_RDWR | O_CLOEXEC, 0644);
+    int fd = open(path.c_str(), O_CREAT | O_RDWR | O_CLOEXEC, 0644);
     if (fd < 0) {
-        errors.push_back(format("%s: Failed to open sepolicy: %s",
+        errors.push_back(format("%s: Failed to open sepolicy for writing: %s",
             path.c_str(), strerror(errno)));
         return false;
     }
@@ -175,9 +175,32 @@ static bool write_policy(
         close(fd);
     });
 
-    if (write(fd, data, len) < 0) {
+    // Truncate only if needed. Some apps detect if the policy is modified
+    // by looking at the modification timestamp of /sys/fs/selinux/load. A
+    // write() syscall does not change mtime, but O_TRUNC does. Also, utimensat
+    // does not work on selinuxfs.
+    struct stat sb;
+    if (fstat(fd, &sb) < 0) {
+        errors.push_back(format("%s: Failed to stat sepolicy: %s",
+                                path.c_str(), strerror(errno)));
+        return false;
+    }
+    if (sb.st_size > 0) {
+        if (ftruncate(fd, 0) < 0) {
+            errors.push_back(format("%s: Failed to truncate sepolicy: %s",
+                                    path.c_str(), strerror(errno)));
+            return false;
+        }
+    }
+
+    ssize_t n = write(fd, data, len);
+    if (n < 0) {
         errors.push_back(format("%s: Failed to write sepolicy: %s",
             path.c_str(), strerror(errno)));
+        return false;
+    }
+    if (static_cast<size_t>(n) != len) {
+        errors.push_back(format("%s: Failed to write complete sepolicy", path.c_str()));
         return false;
     }
 
