@@ -1,6 +1,6 @@
 {
-    "zipUrl": "https://github.com/PixelUpdater/PixelUpdater/releases/download/v0.110/PixelUpdater-v0.110-release.zip",
+    "zipUrl": "https://github.com/PixelUpdater/PixelUpdater/releases/download/v0.120/PixelUpdater-v0.120-release.zip",
     "changelog": "https://github.com/PixelUpdater/PixelUpdater/raw/update-links/changelog.md",
-    "version": "v0.110",
-    "versionCode": 7208960
+    "version": "v0.120",
+    "versionCode": 7864320
 }

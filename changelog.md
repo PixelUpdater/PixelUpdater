@@ -1,3 +1,7 @@
+### 2025-07-21 v0.120-release
+
+Merge pull request to address selinux timestamp modification detection.
+
 ### 2025-05-09 v0.110-release
 
 - cleaner uninstall - Improved network detection - Use use exponential backoff when retrying connection.
