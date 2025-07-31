@@ -1,3 +1,7 @@
+### 2025-07-31 v0.121-release
+
+- Fix #2 VPN network binding failures by adding fallback to default connection
+
 ### 2025-07-21 v0.120-release
 
 Merge pull request to address selinux timestamp modification detection.
