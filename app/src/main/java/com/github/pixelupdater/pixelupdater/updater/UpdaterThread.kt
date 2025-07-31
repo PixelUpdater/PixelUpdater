@@ -172,26 +172,82 @@ class UpdaterThread(
     }
 
     /**
+     * Opens a URL connection with VPN fallback support
+     */
+    private fun openUrlWithVpnFallback(url: URL, headers: Map<String, String> = emptyMap()): HttpURLConnection {
+        return try {
+            val connection = network!!.openConnection(url) as HttpURLConnection
+            connection.connectTimeout = TIMEOUT_MS
+            connection.readTimeout = TIMEOUT_MS
+            connection.setRequestProperty("User-Agent", USER_AGENT)
+            if (authorization != null) {
+                connection.setRequestProperty("Authorization", authorization)
+            }
+            // Set additional headers
+            for ((key, value) in headers) {
+                connection.setRequestProperty(key, value)
+            }
+            connection
+        } catch (e: Exception) {
+            // If network binding fails (example: due to VPN), fall back to default connection
+            if (e.message?.contains("EPERM") == true || e.message?.contains("Operation not permitted") == true) {
+                Log.w(TAG, "Network binding failed (likely due to VPN), falling back to default connection", e)
+                val fallbackConnection = url.openConnection() as HttpURLConnection
+                fallbackConnection.connectTimeout = TIMEOUT_MS
+                fallbackConnection.readTimeout = TIMEOUT_MS
+                fallbackConnection.setRequestProperty("User-Agent", USER_AGENT)
+                if (authorization != null) {
+                    fallbackConnection.setRequestProperty("Authorization", authorization)
+                }
+                // Set additional headers
+                for ((key, value) in headers) {
+                    fallbackConnection.setRequestProperty(key, value)
+                }
+                fallbackConnection
+            } else {
+                throw e
+            }
+        }
+    }
+
+    /**
+     * Opens and connects to a URL with VPN fallback support
+     */
+    private fun openAndConnectWithVpnFallback(url: URL, headers: Map<String, String> = emptyMap()): HttpURLConnection {
+        var connection = openUrlWithVpnFallback(url, headers)
+
+        try {
+            connection.connect()
+            return connection
+        } catch (e: Exception) {
+            // If connect fails due to VPN binding issue, try with default connection
+            if (e.message?.contains("EPERM") == true || e.message?.contains("Operation not permitted") == true) {
+                Log.w(TAG, "Connection failed due to VPN binding issue, retrying with default connection", e)
+                val fallbackConnection = url.openConnection() as HttpURLConnection
+                fallbackConnection.connectTimeout = TIMEOUT_MS
+                fallbackConnection.readTimeout = TIMEOUT_MS
+                fallbackConnection.setRequestProperty("User-Agent", USER_AGENT)
+                if (authorization != null) {
+                    fallbackConnection.setRequestProperty("Authorization", authorization)
+                }
+                // Set additional headers
+                for ((key, value) in headers) {
+                    fallbackConnection.setRequestProperty(key, value)
+                }
+                fallbackConnection.connect()
+                return fallbackConnection
+            } else {
+                throw e
+            }
+        }
+    }
+
+    /**
      * Opens a URL connection with the given headers
      * Makes sure to set all headers before connecting
      */
     private fun openUrl(url: URL, headers: Map<String, String>): HttpURLConnection {
-        val connection = network!!.openConnection(url) as HttpURLConnection
-        connection.connectTimeout = TIMEOUT_MS
-        connection.readTimeout = TIMEOUT_MS
-
-        // Set standard headers
-        connection.setRequestProperty("User-Agent", USER_AGENT)
-        if (authorization != null) {
-            connection.setRequestProperty("Authorization", authorization)
-        }
-
-        // Set additional headers
-        for ((key, value) in headers) {
-            connection.setRequestProperty(key, value)
-        }
-
-        return connection
+        return openUrlWithVpnFallback(url, headers)
     }
 
     private fun openUrlWithRetry(url: URL, maxRetries: Int, initialBackoffMs: Long): HttpURLConnection {
@@ -200,15 +256,7 @@ class UpdaterThread(
 
         while (true) {
             try {
-                val c = network!!.openConnection(url) as HttpURLConnection
-                c.connectTimeout = TIMEOUT_MS
-                c.readTimeout = TIMEOUT_MS
-                c.setRequestProperty("User-Agent", USER_AGENT)
-                if (authorization != null) {
-                    c.setRequestProperty("Authorization", authorization)
-                }
-
-                c.connect()
+                val c = openAndConnectWithVpnFallback(url)
 
                 // Check if we got a rate limit response (429)
                 if (c.responseCode == 429) {
@@ -253,22 +301,12 @@ class UpdaterThread(
 
         // If we've exited the loop without returning, create one last connection to return
         // (which will likely fail with the same error, but this maintains the original behavior)
-        val c = network!!.openConnection(url) as HttpURLConnection
-        c.connectTimeout = TIMEOUT_MS
-        c.readTimeout = TIMEOUT_MS
-        c.setRequestProperty("User-Agent", USER_AGENT)
-        if (authorization != null) {
-            c.setRequestProperty("Authorization", authorization)
-        }
-        return c
+        return openAndConnectWithVpnFallback(url)
     }
 
     private fun downloadOtaPage(): List<DownloadInfo> {
-        // Create connection with cookie header properly set before connecting
-        val connection = openUrl(URL(OTA_SERVER_URL), mapOf("Cookie" to OTA_SERVER_COOKIE))
-
-        // Now connect to the server
-        connection.connect()
+        // Create connection with cookie header and connect with VPN fallback
+        val connection = openAndConnectWithVpnFallback(URL(OTA_SERVER_URL), mapOf("Cookie" to OTA_SERVER_COOKIE))
 
         if (connection.responseCode / 100 != 2) {
             throw IOException("Got ${connection.responseCode} (${connection.responseMessage}) for $OTA_SERVER_URL")
@@ -325,12 +363,35 @@ class UpdaterThread(
      * Download content length with proper HEAD request
      */
     private fun downloadOtaContentLength(downloadInfo: DownloadInfo): Long {
-        val connection = openUrl(downloadInfo.url)
+        val connection = openUrlWithVpnFallback(downloadInfo.url)
         @Suppress("UsePropertyAccessSyntax")
         connection.requestMethod = "HEAD"
 
-        // Connect after setting the method
-        connection.connect()
+        // Connect with VPN fallback
+        try {
+            connection.connect()
+        } catch (e: Exception) {
+            if (e.message?.contains("EPERM") == true || e.message?.contains("Operation not permitted") == true) {
+                Log.w(TAG, "HEAD request failed due to VPN, retrying with default connection", e)
+                val fallbackConnection = downloadInfo.url.openConnection() as HttpURLConnection
+                fallbackConnection.connectTimeout = TIMEOUT_MS
+                fallbackConnection.readTimeout = TIMEOUT_MS
+                fallbackConnection.setRequestProperty("User-Agent", USER_AGENT)
+                if (authorization != null) {
+                    fallbackConnection.setRequestProperty("Authorization", authorization)
+                }
+                @Suppress("UsePropertyAccessSyntax")
+                fallbackConnection.requestMethod = "HEAD"
+                fallbackConnection.connect()
+
+                if (fallbackConnection.responseCode / 100 != 2) {
+                    throw IOException("Got ${fallbackConnection.responseCode} (${fallbackConnection.responseMessage}) for ${downloadInfo.url}")
+                }
+                return fallbackConnection.contentLengthLong
+            } else {
+                throw e
+            }
+        }
 
         if (connection.responseCode / 100 != 2) {
             throw IOException("Got ${connection.responseCode} (${connection.responseMessage}) for ${downloadInfo.url}")
@@ -342,13 +403,10 @@ class UpdaterThread(
     private fun downloadEocd(downloadInfo: DownloadInfo): Eocd {
         val contentLength = downloadOtaContentLength(downloadInfo)
 
-        // Use the new openUrl method with headers set before connecting
-        val connection = openUrl(downloadInfo.url, mapOf(
+        // Use VPN fallback connection with headers
+        val connection = openAndConnectWithVpnFallback(downloadInfo.url, mapOf(
             "Range" to "bytes=${contentLength - EOCD_OFFSET}-${contentLength - 1}"
         ))
-
-        // Now connect to the server
-        connection.connect()
 
         if (connection.responseCode / 100 != 2) {
             throw IOException("Got ${connection.responseCode} (${connection.responseMessage}) for ${downloadInfo.url}")
@@ -402,13 +460,10 @@ class UpdaterThread(
     private fun downloadCd(downloadInfo: DownloadInfo): Map<String, PropertyFile> {
         val eocd = downloadEocd(downloadInfo)
 
-        // Create a connection with all headers set before connecting
-        val connection = openUrl(downloadInfo.url, mapOf(
+        // Create a connection with all headers set and connect with VPN fallback
+        val connection = openAndConnectWithVpnFallback(downloadInfo.url, mapOf(
             "Range" to "bytes=${eocd.offset}-${eocd.offset + eocd.size - 1}"
         ))
-
-        // Now connect to the server
-        connection.connect()
 
         if (connection.responseCode / 100 != 2) {
             throw IOException("Got ${connection.responseCode} (${connection.responseMessage}) for ${downloadInfo.url}")
@@ -458,13 +513,10 @@ class UpdaterThread(
      * @param output Not closed by this function
      */
     private fun downloadPropertyFile(url: URL, pf: PropertyFile, output: OutputStream) {
-        // Use the new openUrl method with headers set before connecting
-        val connection = openUrl(url, mapOf(
+        // Use VPN fallback approach with headers set and connect
+        val connection = openAndConnectWithVpnFallback(url, mapOf(
             "Range" to "bytes=${pf.offset}-${pf.offset + pf.size - 1}"
         ))
-
-        // Now connect to the server
-        connection.connect()
 
         if (connection.responseCode / 100 != 2) {
             throw IOException("Got ${connection.responseCode} (${connection.responseMessage}) for $url")
@@ -534,13 +586,10 @@ class UpdaterThread(
     private fun downloadKeyValueFile(url: URL, pf: PropertyFile): Map<String, String> {
         val outputStream = ByteArrayOutputStream()
 
-        // Use the new approach with headers set before connecting
-        val connection = openUrl(url, mapOf(
+        // Use VPN fallback approach with headers set and connect
+        val connection = openAndConnectWithVpnFallback(url, mapOf(
             "Range" to "bytes=${pf.offset}-${pf.offset + pf.size - 1}"
         ))
-
-        // Now connect
-        connection.connect()
 
         if (connection.responseCode / 100 != 2) {
             throw IOException("Got ${connection.responseCode} (${connection.responseMessage}) for $url")
@@ -585,13 +634,10 @@ class UpdaterThread(
     private fun downloadAndCheckMetadata(url: URL, pf: PropertyFile): OtaMetadata {
         val outputStream = ByteArrayOutputStream()
 
-        // Use the new approach with headers set before connecting
-        val connection = openUrl(url, mapOf(
+        // Use VPN fallback approach with headers set and connect
+        val connection = openAndConnectWithVpnFallback(url, mapOf(
             "Range" to "bytes=${pf.offset}-${pf.offset + pf.size - 1}"
         ))
-
-        // Now connect
-        connection.connect()
 
         if (connection.responseCode / 100 != 2) {
             throw IOException("Got ${connection.responseCode} (${connection.responseMessage}) for $url")
