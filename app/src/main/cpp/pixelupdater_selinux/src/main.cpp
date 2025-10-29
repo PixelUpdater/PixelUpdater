@@ -612,6 +612,29 @@ static bool add_rule(
         pdb, source_str, target_str, class_str, perm_str, false, errors);
 }
 
+// Safe rule addition that doesn't fail the entire patching process
+static void add_rule_safe(
+    policydb_t *pdb,
+    const char *source_str,
+    const char *target_str,
+    const char *class_str,
+    const char *perm_str,
+    std::vector<std::string> &errors [[maybe_unused]])
+{
+    // Don't use ff() macro - just try to add the rule and continue if it fails
+    std::vector<std::string> temp_errors;
+    if (!add_rule(pdb, source_str, target_str, class_str, perm_str, temp_errors))
+    {
+        // Log the failure but don't abort the entire patching process
+        printf("Warning: Failed to add rule: allow %s %s:%s %s;\n",
+               source_str, target_str, class_str, perm_str);
+        for (const auto &error : temp_errors)
+        {
+            printf("  %s\n", error.c_str());
+        }
+    }
+}
+
 static SELinuxResult create_type(
     policydb_t *pdb,
     const char *name,
@@ -862,6 +885,77 @@ static bool apply_patches(
 
     // allow pixelupdater_app oem_lock_service:service_manager find;
     ff(add_rule(pdb, target_type, "oem_lock_service", "service_manager", "find", errors));
+
+    // Additional rules for privileged app compatibility across Android versions
+    // Use safe rule addition that won't crash the patcher on missing types/permissions
+
+    printf("Adding version-compatible rules for privileged app...\n");
+
+    // Core privileged app rules (essential for all versions)
+
+    // PowerManager service access for reboot functionality
+    add_rule_safe(pdb, target_type, "power_service", "service_manager", "find", errors);
+
+    // Basic system property read access (needed for device info)
+    add_rule_safe(pdb, target_type, "system_prop", "file", "read", errors);
+    add_rule_safe(pdb, target_type, "system_prop", "file", "getattr", errors);
+    add_rule_safe(pdb, target_type, "build_prop", "file", "read", errors);
+    add_rule_safe(pdb, target_type, "build_prop", "file", "getattr", errors);
+
+    // External storage access for logs and temporary files
+    add_rule_safe(pdb, target_type, "media_rw_data_file", "dir", "read", errors);
+    add_rule_safe(pdb, target_type, "media_rw_data_file", "dir", "write", errors);
+    add_rule_safe(pdb, target_type, "media_rw_data_file", "dir", "create", errors);
+    add_rule_safe(pdb, target_type, "media_rw_data_file", "file", "read", errors);
+    add_rule_safe(pdb, target_type, "media_rw_data_file", "file", "write", errors);
+    add_rule_safe(pdb, target_type, "media_rw_data_file", "file", "create", errors);
+
+    // Essential capabilities for privileged operations
+    add_rule_safe(pdb, target_type, target_type, "capability", "dac_override", errors);
+
+    // Version-specific rules (these may not exist on all Android versions)
+    // Using safe addition so missing types/permissions won't cause crashes
+
+    // QPR2 Beta2 and newer: System property write access
+    add_rule_safe(pdb, target_type, "system_prop", "property_service", "set", errors);
+    add_rule_safe(pdb, target_type, "default_prop", "property_service", "set", errors);
+
+    // Block device access for vbmeta operations (Android 10+)
+    add_rule_safe(pdb, target_type, "block_device", "dir", "search", errors);
+    add_rule_safe(pdb, target_type, "block_device", "dir", "getattr", errors);
+    add_rule_safe(pdb, target_type, "block_device", "lnk_file", "read", errors);
+    add_rule_safe(pdb, target_type, "block_device", "lnk_file", "getattr", errors);
+
+    // Shell execution for root operations (Magisk integration)
+    add_rule_safe(pdb, target_type, "shell_exec", "file", "read", errors);
+    add_rule_safe(pdb, target_type, "shell_exec", "file", "execute", errors);
+    add_rule_safe(pdb, target_type, "shell_exec", "file", "execute_no_trans", errors);
+    add_rule_safe(pdb, target_type, "system_file", "file", "execute", errors);
+
+    // QPR2 Beta2 specific: Unlabeled block file access
+    // This is specific to QPR2 Beta2's stricter policies
+    add_rule_safe(pdb, target_type, "unlabeled", "blk_file", "read", errors);
+    add_rule_safe(pdb, target_type, "unlabeled", "blk_file", "write", errors);
+    add_rule_safe(pdb, target_type, "unlabeled", "blk_file", "getattr", errors);
+    add_rule_safe(pdb, target_type, "unlabeled", "blk_file", "setattr", errors);
+    add_rule_safe(pdb, target_type, "unlabeled", "blk_file", "ioctl", errors);
+
+    // Additional system capabilities that may be needed
+    add_rule_safe(pdb, target_type, target_type, "capability", "sys_admin", errors);
+    add_rule_safe(pdb, target_type, target_type, "capability", "net_admin", errors);
+
+    // Network access (inherited from untrusted_app, but adding safely)
+    add_rule_safe(pdb, target_type, "node", "tcp_socket", "create", errors);
+    add_rule_safe(pdb, target_type, "node", "tcp_socket", "connect", errors);
+    add_rule_safe(pdb, target_type, "node", "udp_socket", "create", errors);
+
+    // Additional storage types that may exist
+    add_rule_safe(pdb, target_type, "sdcard_type", "dir", "read", errors);
+    add_rule_safe(pdb, target_type, "sdcard_type", "dir", "write", errors);
+    add_rule_safe(pdb, target_type, "sdcard_type", "file", "read", errors);
+    add_rule_safe(pdb, target_type, "sdcard_type", "file", "write", errors);
+
+    printf("Completed adding version-compatible rules.\n");
 
     if (strip_no_audit) {
         ff(raw_strip_no_audit(pdb) != SELinuxResult::Error);
