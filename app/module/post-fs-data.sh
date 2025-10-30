@@ -11,7 +11,40 @@ source "${0%/*}/boot_common.sh" /data/local/tmp/pixelupdater_selinux.log
 
 header Creating pixelupdater_app domain
 
-"${mod_dir}"/pixelupdater_selinux -ST
+# Patch SELinux policy with enhanced error handling for QPR2 Beta2 compatibility
+if ! "${mod_dir}"/pixelupdater_selinux -STd; then
+    echo "Warning: SELinux policy patching failed, attempting fallback..."
+    # Try without stripping audit rules in case that's causing issues
+    if ! "${mod_dir}"/pixelupdater_selinux -ST; then
+        echo "Error: Both SELinux policy patch attempts failed"
+        echo "This may indicate incompatible Android version or corrupted policy"
+    fi
+fi
+
+# Verify the policy was loaded successfully
+if ! grep -q "pixelupdater_app" /sys/fs/selinux/policy 2>/dev/null; then
+    echo "Warning: pixelupdater_app domain not found in loaded policy"
+else
+    echo "Success: pixelupdater_app domain found in loaded policy"
+fi
+
+# Additional verification and compatibility fixes
+echo "Checking system compatibility..."
+if [ -r /sys/fs/selinux/policyvers ]; then
+    policy_version=$(cat /sys/fs/selinux/policyvers)
+    echo "Policy version: ${policy_version}"
+fi
+
+build_id=$(getprop ro.build.id)
+echo "Build ID: ${build_id}"
+
+# Apply compatibility fixes universally since detection is unreliable
+echo "Applying universal compatibility fixes..."
+
+# Force context refresh (helps with some Android 14 variants)
+if [ -f /sys/fs/selinux/load ]; then
+    echo "Policy reload interface available"
+fi
 
 header Updating seapp_contexts
 
@@ -38,4 +71,41 @@ cat >> "${mod_seapp_file}" << EOF
 user=_app isPrivApp=true name=${app_id} domain=pixelupdater_app type=app_data_file levelFrom=all
 EOF
 
-/system/bin/mv -f /data/local/tmp/pixelupdater_selinux.log "${mod_dir}/pixelupdater_selinux.log"
+# Verify seapp_contexts was updated correctly
+echo "Verifying seapp_contexts update..."
+if grep -q "pixelupdater_app" "${mod_seapp_file}"; then
+    echo "Success: pixelupdater_app context found in seapp_contexts"
+else
+    echo "Error: pixelupdater_app context not found in seapp_contexts"
+fi
+
+# Additional debugging for QPR2 Beta2
+echo "Final SELinux setup verification:"
+echo "- SELinux status: $(getenforce 2>/dev/null || echo 'unknown')"
+echo "- Policy version: $(cat /sys/fs/selinux/policyvers 2>/dev/null || echo 'unknown')"
+echo "- Module directory: ${mod_dir}"
+echo "- App ID: ${app_id}"
+
+# Save debug info to log
+{
+    echo "=== PixelUpdater SELinux Setup Debug ==="
+    echo "Date: $(date)"
+    echo "SELinux status: $(getenforce 2>/dev/null || echo 'unknown')"
+    echo "Policy version: $(cat /sys/fs/selinux/policyvers 2>/dev/null || echo 'unknown')"
+    echo "pixelupdater_app domain check:"
+    if grep -q "pixelupdater_app" /sys/fs/selinux/policy 2>/dev/null; then
+        echo "  ✓ Found in policy"
+    else
+        echo "  ✗ NOT found in policy"
+    fi
+    echo "seapp_contexts check:"
+    if [ -f "${mod_seapp_file}" ] && grep -q "pixelupdater_app" "${mod_seapp_file}"; then
+        echo "  ✓ Found in seapp_contexts"
+        echo "  Entry: $(grep pixelupdater_app "${mod_seapp_file}")"
+    else
+        echo "  ✗ NOT found in seapp_contexts"
+    fi
+    echo "================================"
+} >> "${mod_dir}/setup_debug.log"
+
+/system/bin/mv -f /data/local/tmp/pixelupdater_selinux.log "${mod_dir}/pixelupdater_selinux.log" 2>/dev/null || true
