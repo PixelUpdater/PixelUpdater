@@ -12,7 +12,6 @@ import org.eclipse.jgit.api.ArchiveCommand
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.archive.TarFormat
 import org.eclipse.jgit.lib.ObjectId
-import org.jetbrains.kotlin.backend.common.pop
 import org.json.JSONObject
 import java.io.BufferedReader
 import java.io.InputStreamReader
@@ -47,8 +46,8 @@ fun describeVersion(git: Git): VersionTriple {
 
     return if (describeStr != null) {
         val pieces = describeStr.split('-').toMutableList()
-        val commit = git.repository.resolve(pieces.pop().substring(1))
-        val count = pieces.pop().toInt()
+        val commit = git.repository.resolve(pieces.removeLast().substring(1))
+        val count = pieces.removeLast().toInt()
         val tag = pieces.joinToString("-")
 
         Triple(tag, count, commit)
@@ -157,20 +156,21 @@ val archiveDir = extraDir.map { it.dir("archive") }
 android {
     namespace = "com.github.pixelupdater.pixelupdater"
 
-    compileSdk = 34
-    buildToolsVersion = "34.0.0"
-    ndkVersion = "26.0.10792818"
+    compileSdk = 36
+    buildToolsVersion = "36.0.0"
+    ndkVersion = "29.0.14206865"
 
     defaultConfig {
         applicationId = "com.github.pixelupdater.pixelupdater"
         minSdk = 33
-        targetSdk = 34
+        targetSdk = 36
         versionCode = gitVersionCode
         versionName = gitVersionName
-        resourceConfigurations.addAll(listOf(
-            "en", "ru", "uk", "zh-rCN"
-        ))
-
+        androidResources {
+            localeFilters.addAll(listOf(
+                "en", "ru", "uk", "zh-rCN"
+            ))
+        }
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField("String", "PROJECT_URL_AT_COMMIT",
@@ -211,9 +211,6 @@ android {
         sourceCompatibility(JavaVersion.VERSION_17)
         targetCompatibility(JavaVersion.VERSION_17)
     }
-    kotlinOptions {
-        jvmTarget = "17"
-    }
     externalNativeBuild {
         cmake {
             path("src/main/cpp/CMakeLists.txt")
@@ -228,6 +225,12 @@ android {
         // The translations are always going to lag behind new strings being
         // added to values/strings.xml
         disable += "MissingTranslation"
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
     }
 }
 
@@ -424,9 +427,9 @@ android.applicationVariants.all {
             if (sig.exists()) {
                 sig.delete()
             }
-            exec {
+            providers.exec {
                 commandLine("ssh-keygen", "-Y", "sign", "-f", System.getenv("SIGNING_KEY"), "-P", System.getenv("SIGNING_KEY_PASSPHRASE"), "-n", "file", output)
-            }
+            }.result.get()
         }
     }
 
@@ -439,18 +442,18 @@ android.applicationVariants.all {
         val output = variant.outputs.map { it.outputFile }[0]
         doLast {
             val selectedDevice = getSelectedDevice()
-            exec {
+            providers.exec {
                 commandLine(android.adbExecutable, "-s", selectedDevice, "push", output, "/data/local/tmp")
-            }
-            exec {
+            }.result.get()
+            providers.exec {
                 commandLine(android.adbExecutable, "-s", selectedDevice, "shell", "su", "-c", "cp", "/data/local/tmp/${output.name}", "/data/adb/modules/${variant.applicationId}/system/priv-app/${rootProject.name}")
-            }
-            exec {
+            }.result.get()
+            providers.exec {
                 commandLine(android.adbExecutable, "-s", selectedDevice, "shell", "am", "force-stop", variant.applicationId)
-            }
-            exec {
+            }.result.get()
+            providers.exec {
                 commandLine(android.adbExecutable, "-s", selectedDevice, "shell", "am", "start", "-n", "${variant.applicationId}/${variant.applicationId}.settings.SettingsActivity")
-            }
+            }.result.get()
         }
     }
 
@@ -459,10 +462,10 @@ android.applicationVariants.all {
         val output = tasks.named("zip${capitalized}").get().outputs.files.singleFile
         doLast {
             val selectedDevice = getSelectedDevice()
-            exec {
+            providers.exec {
                 println("Pushing ${output.name} to /data/local/tmp on device $selectedDevice ...")
                 commandLine(android.adbExecutable, "-s", selectedDevice, "push", output, "/data/local/tmp")
-            }
+            }.result.get()
         }
     }
 
@@ -471,14 +474,14 @@ android.applicationVariants.all {
         val output = tasks.named("zip${capitalized}").get().outputs.files.singleFile
         doLast {
             val selectedDevice = getSelectedDevice()
-            exec {
+            providers.exec {
                 println("Flashing ${output.name} to device $selectedDevice ...")
                 commandLine(android.adbExecutable, "-s", selectedDevice, "shell", "su", "-c", "magisk --install-module /data/local/tmp/${output.name}")
-            }
-            exec {
+            }.result.get()
+            providers.exec {
                 println("Rebooting device $selectedDevice ...")
                 commandLine(android.adbExecutable, "-s", selectedDevice, "reboot")
-            }
+            }.result.get()
         }
     }
 
