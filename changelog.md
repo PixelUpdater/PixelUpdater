@@ -1,3 +1,7 @@
+### 2025-12-05 v0.200-release
+
+- Merge pull request #37 from @isaac-tng for Android 16 QPR2 fix (much appreciated).
+
 ### 2025-07-31 v0.121-release
 
 - Fix #2 VPN network binding failures by adding fallback to default connection
