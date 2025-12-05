@@ -424,13 +424,13 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceClic
         val coloredSpannable = SpannableStringBuilder(getString(statusRes))
         @AttrRes
         val colorRes = if (error) {
-            com.google.android.material.R.attr.colorError
+            com.google.android.material.R.attr.colorOnError
         } else {
             com.google.android.material.R.attr.colorOnSurface
         }
         @ColorInt
         val colorId = MaterialColors.getColor(requireView(), colorRes)
-        val opacity = if (colorRes == com.google.android.material.R.attr.colorError) 192 else 128
+        val opacity = if (colorRes == com.google.android.material.R.attr.colorOnError) 192 else 128
         val foreground = ForegroundColorSpan(ColorUtils.setAlphaComponent(colorId, opacity))
         coloredSpannable.setSpan(foreground, 0, coloredSpannable.length, 0)
         return coloredSpannable

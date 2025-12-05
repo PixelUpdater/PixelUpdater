@@ -886,6 +886,10 @@ static bool apply_patches(
     // allow pixelupdater_app oem_lock_service:service_manager find;
     ff(add_rule(pdb, target_type, "oem_lock_service", "service_manager", "find", errors));
 
+    // Allow userfaultfd creation for ART heap compaction
+    ff(add_rule(pdb, target_type, target_type, "anon_inode", "create", errors));
+    ff(add_rule(pdb, target_type, target_type, "anon_inode", "read", errors));
+    ff(add_rule(pdb, target_type, target_type, "anon_inode", "ioctl", errors));
     // Additional rules for privileged app compatibility across Android versions
     // Use safe rule addition that won't crash the patcher on missing types/permissions
 

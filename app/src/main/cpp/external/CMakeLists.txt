@@ -50,6 +50,7 @@ add_library(
     selinux/libsepol/cil/src/cil_build_ast.c
     selinux/libsepol/cil/src/cil.c
     selinux/libsepol/cil/src/cil_copy_ast.c
+    selinux/libsepol/cil/src/cil_deny.c
     selinux/libsepol/cil/src/cil_find.c
     selinux/libsepol/cil/src/cil_fqn.c
     selinux/libsepol/cil/src/cil_lexer.l
