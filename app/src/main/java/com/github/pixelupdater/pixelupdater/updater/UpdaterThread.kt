@@ -23,6 +23,7 @@ import com.github.pixelupdater.pixelupdater.Preferences
 import com.github.pixelupdater.pixelupdater.extension.toSingleLineString
 import com.github.pixelupdater.pixelupdater.wrapper.ServiceManagerProxy
 import com.github.pixelupdater.pixelupdater.wrapper.SystemPropertiesProxy
+import android.os.IBinder
 import com.topjohnwu.superuser.Shell
 import kotlinx.parcelize.Parcelize
 import kotlinx.serialization.Serializable
@@ -55,8 +56,28 @@ class UpdaterThread(
     private val action: Action,
     private val listener: UpdaterThreadListener,
 ) : Thread() {
-    private val updateEngine = IUpdateEngine.Stub.asInterface(
-        ServiceManagerProxy.getServiceOrThrow("android.os.UpdateEngineService"))
+    private val updateEngine: IUpdateEngine by lazy {
+        IUpdateEngine.Stub.asInterface(
+            try {
+                ServiceManagerProxy.getServiceOrThrow("android.os.UpdateEngineService")
+            } catch (e: NoSuchMethodException) {
+                // Fall back to reflection-based ServiceManager access if getServiceOrThrow is not available
+                Log.w(TAG, "getServiceOrThrow not available, falling back to reflection-based ServiceManager.getService", e)
+                getServiceViaReflection("android.os.UpdateEngineService")
+                    ?: throw IllegalStateException("UpdateEngineService is not available")
+            } catch (e: ExceptionInInitializerError) {
+                // ServiceManagerProxy failed to initialize, try direct ServiceManager access via reflection
+                Log.w(TAG, "ServiceManagerProxy failed to initialize, using ServiceManager directly via reflection", e)
+                getServiceViaReflection("android.os.UpdateEngineService")
+                    ?: throw IllegalStateException("UpdateEngineService is not available", e)
+            } catch (e: Exception) {
+                // Catch any other exceptions that might occur on QPR2 Beta2
+                Log.w(TAG, "Failed to get UpdateEngineService through ServiceManagerProxy", e)
+                getServiceViaReflection("android.os.UpdateEngineService")
+                    ?: throw IllegalStateException("UpdateEngineService is not available", e)
+            }
+        )
+    }
 
     private val prefs = Preferences(context)
     // NOTE: This is not implemented.
@@ -165,6 +186,20 @@ class UpdaterThread(
 
     fun cancel() {
         updateEngine.cancel()
+    }
+
+    /**
+     * Get a system service via reflection as a fallback when ServiceManagerProxy fails
+     */
+    private fun getServiceViaReflection(serviceName: String): IBinder? {
+        return try {
+            val serviceManagerClass = Class.forName("android.os.ServiceManager")
+            val getServiceMethod = serviceManagerClass.getMethod("getService", String::class.java)
+            getServiceMethod.invoke(null, serviceName) as IBinder?
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to get service via reflection: $serviceName", e)
+            null
+        }
     }
 
     private fun openUrl(url: URL): HttpURLConnection {
