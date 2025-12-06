@@ -75,6 +75,7 @@ jobs:
 
       - name: Build PR
         run: |
+          ./gradlew --write-verification-metadata sha256,sha512 help
           ./gradlew zipRelease
 
       - name: Debug list artifacts

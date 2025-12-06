@@ -80,6 +80,7 @@ jobs:
           SIGNING_KEY: ${{ github.workspace }}/pixelupdater.key
           SIGNING_KEY_PASSPHRASE: ${{ secrets.SIGNING_KEY_PASSPHRASE }}
         run: |
+          ./gradlew --write-verification-metadata sha256,sha512 help
           ./gradlew zipRelease
           ./gradlew signReleaseZip
           ./gradlew updateJsonRelease
