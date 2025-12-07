@@ -6,9 +6,7 @@
 -->
 <resources>
     <style name="Theme.PixelUpdater" parent="Theme.Material3.DayNight.NoActionBar">
-        <item name="android:navigationBarColor">@android:color/transparent</item>
-        <item name="android:statusBarColor">@android:color/transparent</item>
-        <item name="android:windowLightStatusBar">?attr/isLightTheme</item>
-        <item name="windowActionModeOverlay">true</item>
+        <item name="switchPreferenceCompatStyle">@style/App.Widget.Material3.SwitchPreferenceCompat</item>
     </style>
+    <style name="App.Widget.Material3.SwitchPreferenceCompat" parent="Preference.SwitchPreferenceCompat.Material" />
 </resources>
