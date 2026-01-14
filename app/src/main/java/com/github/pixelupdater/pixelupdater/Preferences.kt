@@ -39,6 +39,7 @@ class Preferences(context: Context) {
         const val PREF_OPEN_LOG_DIR = "open_log_dir"
         const val PREF_OTA_URL = "ota_url"
         const val PREF_ALLOW_REINSTALL = "allow_reinstall"
+        const val PREF_SHOW_CARRIER_BUILDS = "show_carrier_builds"
         const val PREF_REVERT_COMPLETED = "revert_completed"
         const val PREF_VERITY_ONLY = "verity_only"
         const val PREF_CREATE_SUPPORT_FILE = "create_support_file"
@@ -140,6 +141,11 @@ class Preferences(context: Context) {
     var allowReinstall: Boolean
         get() = prefs.getBoolean(PREF_ALLOW_REINSTALL, false)
         set(enabled) = prefs.edit { putBoolean(PREF_ALLOW_REINSTALL, enabled) }
+
+    /** Whether to show carrier builds. */
+    var showCarrierBuilds: Boolean
+        get() = prefs.getBoolean(PREF_SHOW_CARRIER_BUILDS, false)
+        set(enabled) = prefs.edit { putBoolean(PREF_SHOW_CARRIER_BUILDS, enabled) }
 
     /** URL of OTA update. */
     var otaUrl: URL?
