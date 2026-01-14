@@ -74,6 +74,8 @@
     <string name="pref_open_log_dir_desc">在系统文件管理器中打开日志目录。</string>
     <string name="pref_allow_reinstall_name">允许重新安装</string>
     <string name="pref_allow_reinstall_desc">当最新 OTA 匹配当前系统构建指纹时，将其视为更新。若启用自动更新，可能导致连续重装。</string>
+    <string name="pref_show_carrier_builds_name">显示运营商版本</string>
+    <string name="pref_show_carrier_builds_desc">显示来自运营商设备的版本。</string>
     <string name="pref_revert_completed_name">还原已完成的更新</string>
     <string name="pref_revert_completed_desc">仅在更新完成后但重启前可用。阻止设备下次重启时切换启动槽，但不会撤销在非活动槽上执行的操作。</string>
     <string name="pref_ota_url_name">OTA URL</string>

@@ -75,6 +75,8 @@
     <string name="notification_preparing_install">Подготовка к установке обновления...</string>
     <string name="pref_allow_reinstall_desc">Если последняя OTA совпадает с текущим отпечатком ОС, воспринимать ее как обновление. Это может привести к постоянным переустановкам, если включены автоматические обновления.</string>
     <string name="pref_allow_reinstall_name">Разрешить переустановку</string>
+    <string name="pref_show_carrier_builds_name">Показывать операторские сборки</string>
+    <string name="pref_show_carrier_builds_desc">Показывать сборки для устройств операторов связи.</string>
     <string name="pref_android_version_name">Версия Android</string>
     <string name="pref_automatic_check_desc">Автоматически проверять наличие новых обновлений в фоновом режиме.</string>
     <string name="pref_automatic_check_name">Автоматически проверять наличие обновлений</string>

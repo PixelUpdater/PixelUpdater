@@ -153,6 +153,13 @@
             app:summary="@string/pref_allow_reinstall_desc"
             app:iconSpaceReserved="false" />
 
+        <SwitchPreferenceCompat
+            app:key="show_carrier_builds"
+            app:defaultValue="false"
+            app:title="@string/pref_show_carrier_builds_name"
+            app:summary="@string/pref_show_carrier_builds_desc"
+            app:iconSpaceReserved="false" />
+
         <Preference
             app:key="revert_completed"
             app:persistent="false"

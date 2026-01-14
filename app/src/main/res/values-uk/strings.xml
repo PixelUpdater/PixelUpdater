@@ -84,6 +84,8 @@
     <string name="pref_open_log_dir_desc">Відкрити директорію з логами в системному файловому менеджері (DocumentsUI).</string>
     <string name="pref_allow_reinstall_name">Дозволити перевстановлення</string>
     <string name="pref_allow_reinstall_desc">Якщо остання OTA має такий же fingerprint як в поточній ОС, вважати її оновленням. Це може призвести до постійних перевстановлень, якщо ввімкнено автоматичні оновлення.</string>
+    <string name="pref_show_carrier_builds_name">Показувати операторські збірки</string>
+    <string name="pref_show_carrier_builds_desc">Показувати збірки для пристроїв операторів зв’язку.</string>
     <string name="pref_revert_completed_name">Відкликати завершене оновлення</string>
     <string name="pref_revert_completed_desc">Це можливо тільки після завершення оновлення, але до перезавантаження. Це запобігає перемиканню слота пристрою при наступному перезавантаженні. Це не скасовує операції, виконані на неактивному слоті.</string>
     <string name="pref_verity_only_name">Вимкнути лише verity</string>

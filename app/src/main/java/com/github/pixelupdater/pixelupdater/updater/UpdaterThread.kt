@@ -377,20 +377,39 @@ class UpdaterThread(
                 val columns = row.select("td")
                 val version = columns[0].text().trim()
                 val downloadUrl = columns[1].select("a").attr("href")
-                val dateMatch = Pattern.compile("\\b(\\d{6})\\b").matcher(version)
-                dateMatch.find()
+
+                val parenContent = version.substringAfter("(").substringBefore(")")
+                val parts = parenContent.split(",").map { it.trim() }
+
+                val fullBuildId = parts[0]
+                val isCarrierBuild = parts.size > 2
+
+                val dateMatch = Pattern.compile("\\b(\\d{6})\\b").matcher(fullBuildId)
+                if (!dateMatch.find()) continue
                 val date: String = dateMatch.group(1)!!
 
-                if (!prefs.allowReinstall && date.toInt() <= buildDate.toInt()) {
-                    continue
-                } else if (date.toInt() < buildDate.toInt()) {
+                if (isCarrierBuild && !prefs.showCarrierBuilds) {
                     continue
                 }
 
-                result.add(DownloadInfo(version, URL(downloadUrl), date))
+                val isNewerDate = date.toInt() > buildDate.toInt()
+                val isSameMonthDifferentBuild = (date == buildDate && fullBuildId != Build.ID)
+                val isExactSameBuild = (fullBuildId == Build.ID)
+
+                val shouldAdd = when {
+                    isNewerDate -> true
+                    isSameMonthDifferentBuild -> true
+                    isExactSameBuild && prefs.allowReinstall -> true
+                    // If date is same but it's the exact same ID, only allow if reinstall is on
+                    date == buildDate -> prefs.allowReinstall
+                    else -> false
+                }
+
+                if (shouldAdd) {
+                    result.add(DownloadInfo(version, URL(downloadUrl), date))
+                }
             }
         }
-
         return result
     }
 

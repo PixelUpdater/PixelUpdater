@@ -85,6 +85,8 @@
     <string name="pref_open_log_dir_desc">Open the log directory in the system file manager (DocumentsUI).</string>
     <string name="pref_allow_reinstall_name">Allow reinstall</string>
     <string name="pref_allow_reinstall_desc">If the latest OTA matches the current OS fingerprint, treat it as an update. This may cause continuous reinstalls if automatic updates are enabled.</string>
+    <string name="pref_show_carrier_builds_name">Show carrier builds</string>
+    <string name="pref_show_carrier_builds_desc">Show builds from carrier devices.</string>
     <string name="pref_revert_completed_name">Revert completed update</string>
     <string name="pref_revert_completed_desc">This is only possible after an update completes, but before rebooting. This prevents the device from switching slot on the next reboot. This does not undo the operations performed on the inactive slot.</string>
     <string name="pref_verity_only_name">Disable verity only</string>
