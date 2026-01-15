@@ -88,6 +88,8 @@
     <string name="pref_show_carrier_builds_desc">Показувати збірки для пристроїв операторів зв’язку.</string>
     <string name="pref_revert_completed_name">Відкликати завершене оновлення</string>
     <string name="pref_revert_completed_desc">Це можливо тільки після завершення оновлення, але до перезавантаження. Це запобігає перемиканню слота пристрою при наступному перезавантаженні. Це не скасовує операції, виконані на неактивному слоті.</string>
+    <string name="pref_use_beta_channel_name">Використовувати бета-канал</string>
+    <string name="pref_use_beta_channel_desc">Використовувати бета-канал під час перевірки оновлень.</string>
     <string name="pref_verity_only_name">Вимкнути лише verity</string>
     <string name="pref_verity_only_desc">Патчить vbmeta тільки з прапорцем disable-verity.</string>
     <string name="pref_create_support_file_name">Створити файл для підтримки</string>

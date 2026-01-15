@@ -128,6 +128,8 @@
     <string name="pref_ota_url_name">OTA URL</string>
     <string name="pref_revert_completed_desc">Это возможно только после завершения обновления, но до перезагрузки. Это предотвращает переключение слота устройства при следующей перезагрузке. Это не отменяет операции, выполненные в неактивном слоте.</string>
     <string name="pref_revert_completed_name">Отменить завершенное обновление</string>
+    <string name="pref_use_beta_channel_name">Использовать бета-канал</string>
+    <string name="pref_use_beta_channel_desc">Использовать бета-канал при проверке обновлений.</string>
     <string name="pref_skip_postinstall_desc">Пропустить выполнение операций после установки, которые отмечены как необязательные в OTA. Это пропускает операцию dexopt, которая предварительно компилирует байт-код приложения для более быстрой загрузки.</string>
     <string name="pref_skip_postinstall_name">Пропустить необязательные скрипты после установки</string>
     <string name="pref_unmetered_only_desc">Разрешить загрузку обновлений только через безлимитные сетевые соединения (например, Wi-Fi).</string>

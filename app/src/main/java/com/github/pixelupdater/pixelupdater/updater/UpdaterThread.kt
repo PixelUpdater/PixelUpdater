@@ -414,6 +414,97 @@ class UpdaterThread(
     }
 
     /**
+     * Main entry point to get Beta/Preview builds.
+     * This crawls the site to find 15, 16, and future version paths dynamically.
+     */
+    private fun downloadBetaOtaPage(): List<DownloadInfo> {
+        val results = mutableListOf<DownloadInfo>()
+        try {
+            val indexDoc = fetchAndParse(VERSIONS_INDEX_URL)
+            val versionPaths = indexDoc.select("a[href^=/about/versions/]")
+                .map { it.attr("href") }
+                .filter { it.matches(Regex("/about/versions/\\d+")) }
+                .distinct()
+
+            for (path in versionPaths) {
+                val versionDoc = fetchAndParse("$ANDROID_DEVELOPER_BASE$path")
+                val otaPageLinks = versionDoc.select("a[href*=download-ota]")
+                    .map { it.attr("href") }
+                    .distinct()
+
+                for (otaPath in otaPageLinks) {
+                    val fullOtaUrl = if (otaPath.startsWith("http")) otaPath else "$ANDROID_DEVELOPER_BASE$otaPath"
+                    val otaPageHtml = fetchHtmlString(fullOtaUrl)
+                    results.addAll(scrapeBetaOtaHtml(otaPageHtml))
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to crawl for beta builds", e)
+        }
+        return results.distinctBy { it.url }.sortedByDescending { it.date }
+    }
+
+    /**
+     * Parses the specific "Download OTA" page layout used for Previews/Betas.
+     */
+    private fun scrapeBetaOtaHtml(html: String): List<DownloadInfo> {
+        val result = mutableListOf<DownloadInfo>()
+        val doc: Document = Jsoup.parse(html)
+
+        val buildDateMatch = Pattern.compile("\\b(\\d{6})\\b").matcher(Build.ID)
+        if (!buildDateMatch.find()) return result
+        val currentBuildDate = buildDateMatch.group(1)!!
+
+        val deviceRow = doc.select("tr#${Build.DEVICE}").first() ?: return result
+        val button = deviceRow.select("button[data-modal-dialog-id]").first() ?: return result
+        val modalId = button.attr("data-modal-dialog-id")
+        val buttonText = button.text().trim()
+
+        // Extract Build ID from filenames like: oriole_beta-ota-bp11.241210.004-14938039.zip
+        val fullBuildId = buttonText.substringAfter("-ota-").substringBeforeLast("-")
+        val dateMatch = Pattern.compile("\\b(\\d{6})\\b").matcher(fullBuildId)
+        if (!dateMatch.find()) return result
+        val date = dateMatch.group(1)!!
+
+        // Carrier logic for beta: check for typical alpha-numeric carrier suffixes
+        val isCarrierBuild = fullBuildId.contains(Regex("\\.[A-Z][0-9]"))
+        if (isCarrierBuild && !prefs.showCarrierBuilds) return result
+
+        val isNewerDate = date.toInt() > currentBuildDate.toInt()
+        val isSameMonthDifferentBuild = (date == currentBuildDate && fullBuildId != Build.ID)
+        val isExactSameBuild = (fullBuildId == Build.ID)
+
+        val shouldAdd = when {
+            isNewerDate -> true
+            isSameMonthDifferentBuild -> true
+            isExactSameBuild && prefs.allowReinstall -> true
+            date == currentBuildDate -> prefs.allowReinstall
+            else -> false
+        }
+
+        if (shouldAdd) {
+            val modalDialog = doc.select("div#$modalId").first()
+            val downloadUrl = modalDialog?.select("a[href^=https://dl.google.com]")?.attr("href")
+            if (!downloadUrl.isNullOrEmpty()) {
+                result.add(DownloadInfo(buttonText.removeSuffix(".zip"), URL(downloadUrl), date))
+            }
+        }
+        return result
+    }
+
+    /**
+     * Helper to fetch HTML and parse with Jsoup
+     */
+    private fun fetchAndParse(url: String): Document {
+        return Jsoup.parse(fetchHtmlString(url), url)
+    }
+
+    private fun fetchHtmlString(url: String): String {
+        val connection = openAndConnectWithVpnFallback(URL(url), emptyMap())
+        return connection.inputStream.bufferedReader().readText()
+    }
+
+    /**
      * Download content length with proper HEAD request
      */
     private fun downloadOtaContentLength(downloadInfo: DownloadInfo): Long {
@@ -796,8 +887,14 @@ class UpdaterThread(
             mutableListOf(DownloadInfo(uri.lastPathSegment!!, prefs.otaUrl!!))
         } else {
             try {
-                downloadOtaPage()
+                // Check preference to decide which scraping logic to use
+                if (prefs.useBetaChannel) {
+                    downloadBetaOtaPage()
+                } else {
+                    downloadOtaPage()
+                }
             } catch (e: Exception) {
+                Log.e(TAG, "Update check failed", e)
                 throw IOException("Failed to download update info", e)
             }
         }
@@ -805,22 +902,28 @@ class UpdaterThread(
         val updates = mutableListOf<CheckUpdateResult>()
         for (ota in downloads) {
             Log.d(TAG, "OTA URL: ${ota.url}")
-            val cd = downloadCd(ota)
-            val pfMetadata = cd[OtaPaths.METADATA_NAME]!!
-            val metadata = downloadAndCheckMetadata(ota.url, pfMetadata)
+            try {
+                val cd = downloadCd(ota)
+                val pfMetadata = cd[OtaPaths.METADATA_NAME]!!
+                val metadata = downloadAndCheckMetadata(ota.url, pfMetadata)
 
-            if (metadata.postcondition.buildCount != 1) {
-                throw ValidationException("Metadata postcondition lists multiple fingerprints")
+                if (metadata.postcondition.buildCount != 1) {
+                    throw ValidationException("Metadata postcondition lists multiple fingerprints")
+                }
+                val fingerprint = metadata.postcondition.getBuild(0)
+
+                updates.add(CheckUpdateResult(
+                    ota.version,
+                    fingerprint,
+                    ota.url.toString(),
+                    cd,
+                ))
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to process metadata for ${ota.version}, skipping.", e)
+                continue // Skip broken links instead of crashing the whole check
             }
-            val fingerprint = metadata.postcondition.getBuild(0)
-
-            updates.add(CheckUpdateResult(
-                ota.version,
-                fingerprint,
-                ota.url.toString(),
-                cd,
-            ))
         }
+
         val cache = Json.encodeToString(updates)
         prefs.otaCache = cache
         return updates
@@ -1392,6 +1495,8 @@ class UpdaterThread(
 
         private const val OTA_SERVER_URL = "https://developers.google.com/android/ota"
         private const val OTA_SERVER_COOKIE = "devsite_wall_acks=nexus-image-tos,nexus-ota-tos"
+        private const val ANDROID_DEVELOPER_BASE = "https://developer.android.com"
+        private const val VERSIONS_INDEX_URL = "$ANDROID_DEVELOPER_BASE/about/versions"
         private const val USER_AGENT = "${BuildConfig.APPLICATION_ID}/${BuildConfig.VERSION_NAME}"
         private val USER_AGENT_UPDATE_ENGINE = "$USER_AGENT update_engine/${Build.VERSION.SDK_INT}"
 

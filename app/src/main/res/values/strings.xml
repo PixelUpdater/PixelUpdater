@@ -89,6 +89,8 @@
     <string name="pref_show_carrier_builds_desc">Show builds from carrier devices.</string>
     <string name="pref_revert_completed_name">Revert completed update</string>
     <string name="pref_revert_completed_desc">This is only possible after an update completes, but before rebooting. This prevents the device from switching slot on the next reboot. This does not undo the operations performed on the inactive slot.</string>
+    <string name="pref_use_beta_channel_name">Use beta channel</string>
+    <string name="pref_use_beta_channel_desc">Use the beta channel when checking for updates.</string>
     <string name="pref_verity_only_name">Disable verity only</string>
     <string name="pref_verity_only_desc">Patches vbmeta with only the disable-verity flag.</string>
     <string name="pref_create_support_file_name">Create support file</string>

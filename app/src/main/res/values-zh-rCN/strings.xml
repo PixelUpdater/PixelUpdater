@@ -80,6 +80,8 @@
     <string name="pref_revert_completed_desc">仅在更新完成后但重启前可用。阻止设备下次重启时切换启动槽，但不会撤销在非活动槽上执行的操作。</string>
     <string name="pref_ota_url_name">OTA URL</string>
     <string name="pref_ota_url_desc_none">未设置 URL。</string>
+    <string name="pref_use_beta_channel_name">使用 Beta 测试通道</string>
+    <string name="pref_use_beta_channel_desc">检查更新时使用 Beta 测试通道。</string>
     <string name="pref_automatic_switch_slot_name">自动切换启动槽</string>
     <string name="pref_automatic_switch_slot_desc">更新完成后自动切换启动槽。</string>
     <string name="pref_automatic_reboot_name">自动重启</string>
