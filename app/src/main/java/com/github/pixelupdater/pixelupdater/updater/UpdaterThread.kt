@@ -42,6 +42,7 @@ import java.net.URL
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.charset.StandardCharsets
+import java.util.concurrent.CountDownLatch
 import java.util.concurrent.locks.ReentrantLock
 import java.util.regex.Pattern
 import kotlin.concurrent.withLock
@@ -356,7 +357,7 @@ class UpdaterThread(
         val doc: Document = Jsoup.parse(otaHtml)
         val deviceElements: Elements = doc.select("h2")
 
-        val buildDateMatch = Pattern.compile("\\b(\\d{6})\\b").matcher(Build.ID)
+        val buildDateMatch = BUILD_DATE_PATTERN.matcher(Build.ID)
         buildDateMatch.find()
         val buildDate: String = buildDateMatch.group(1)!!
 
@@ -384,7 +385,7 @@ class UpdaterThread(
                 val fullBuildId = parts[0]
                 val isCarrierBuild = parts.size > 2
 
-                val dateMatch = Pattern.compile("\\b(\\d{6})\\b").matcher(fullBuildId)
+                val dateMatch = BUILD_DATE_PATTERN.matcher(fullBuildId)
                 if (!dateMatch.find()) continue
                 val date: String = dateMatch.group(1)!!
 
@@ -413,95 +414,179 @@ class UpdaterThread(
         return result
     }
 
-    /**
-     * Main entry point to get Beta/Preview builds.
-     * This crawls the site to find 15, 16, and future version paths dynamically.
-     */
     private fun downloadBetaOtaPage(): List<DownloadInfo> {
         val results = mutableListOf<DownloadInfo>()
-        try {
-            val indexDoc = fetchAndParse(VERSIONS_INDEX_URL)
-            val versionPaths = indexDoc.select("a[href^=/about/versions/]")
-                .map { it.attr("href") }
-                .filter { it.matches(Regex("/about/versions/\\d+")) }
-                .distinct()
+        val currentMajorVersion = Build.VERSION.RELEASE.toIntOrNull() ?: 0
 
-            for (path in versionPaths) {
-                val versionDoc = fetchAndParse("$ANDROID_DEVELOPER_BASE$path")
-                val otaPageLinks = versionDoc.select("a[href*=download-ota]")
-                    .map { it.attr("href") }
-                    .distinct()
+        // 1. Stream Index to find relevant Android versions (e.g. 15, 16)
+        val versionPaths = scanIndexStream(currentMajorVersion)
 
-                for (otaPath in otaPageLinks) {
-                    val fullOtaUrl = if (otaPath.startsWith("http")) otaPath else "$ANDROID_DEVELOPER_BASE$otaPath"
-                    val otaPageHtml = fetchHtmlString(fullOtaUrl)
-                    results.addAll(scrapeBetaOtaHtml(otaPageHtml))
+        for (path in versionPaths) {
+            try {
+                // 2. Stream Version Page to find all OTA page links
+                val otaUrls = scanForOtaLinks(path)
+
+                for (otaUrl in otaUrls) {
+                    try {
+                        // 3. Stream specific OTA page to extract the zip link for this device
+                        results.addAll(streamSpecificOtaPage(otaUrl))
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Failed to stream OTA page: $otaUrl", e)
+                    }
                 }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to process path $path", e)
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to crawl for beta builds", e)
         }
+
         return results.distinctBy { it.url }.sortedByDescending { it.date }
     }
 
     /**
-     * Parses the specific "Download OTA" page layout used for Previews/Betas.
+     * Reads the Index page stream line-by-line.
+     * Aborts connection immediately after "Older releases"
      */
-    private fun scrapeBetaOtaHtml(html: String): List<DownloadInfo> {
-        val result = mutableListOf<DownloadInfo>()
-        val doc: Document = Jsoup.parse(html)
+    private fun scanIndexStream(currentMajor: Int): List<String> {
+        val foundPaths = mutableSetOf<String>()
+        val connection = openAndConnectWithVpnFallback(URL(VERSIONS_INDEX_URL))
 
-        val buildDateMatch = Pattern.compile("\\b(\\d{6})\\b").matcher(Build.ID)
-        if (!buildDateMatch.find()) return result
-        val currentBuildDate = buildDateMatch.group(1)!!
+        try {
+            connection.inputStream.bufferedReader().use { reader ->
+                var line = reader.readLine()
+                while (line != null) {
+                    val match = VERSION_PATH_REGEX.find(line)
+                    if (match != null) {
+                        val version = match.groupValues[1].toIntOrNull()
+                        if (version != null && version >= currentMajor) {
+                            foundPaths.add(match.value)
+                        }
+                    }
 
-        val deviceRow = doc.select("tr#${Build.DEVICE}").first() ?: return result
-        val button = deviceRow.select("button[data-modal-dialog-id]").first() ?: return result
-        val modalId = button.attr("data-modal-dialog-id")
-        val buttonText = button.text().trim()
-
-        // Extract Build ID from filenames like: oriole_beta-ota-bp11.241210.004-14938039.zip
-        val fullBuildId = buttonText.substringAfter("-ota-").substringBeforeLast("-")
-        val dateMatch = Pattern.compile("\\b(\\d{6})\\b").matcher(fullBuildId)
-        if (!dateMatch.find()) return result
-        val date = dateMatch.group(1)!!
-
-        // Carrier logic for beta: check for typical alpha-numeric carrier suffixes
-        val isCarrierBuild = fullBuildId.contains(Regex("\\.[A-Z][0-9]"))
-        if (isCarrierBuild && !prefs.showCarrierBuilds) return result
-
-        val isNewerDate = date.toInt() > currentBuildDate.toInt()
-        val isSameMonthDifferentBuild = (date == currentBuildDate && fullBuildId != Build.ID)
-        val isExactSameBuild = (fullBuildId == Build.ID)
-
-        val shouldAdd = when {
-            isNewerDate -> true
-            isSameMonthDifferentBuild -> true
-            isExactSameBuild && prefs.allowReinstall -> true
-            date == currentBuildDate -> prefs.allowReinstall
-            else -> false
-        }
-
-        if (shouldAdd) {
-            val modalDialog = doc.select("div#$modalId").first()
-            val downloadUrl = modalDialog?.select("a[href^=https://dl.google.com]")?.attr("href")
-            if (!downloadUrl.isNullOrEmpty()) {
-                result.add(DownloadInfo(buttonText.removeSuffix(".zip"), URL(downloadUrl), date))
+                    // Abort stream when reaching older releases
+                    if (line.contains("id=\"older-releases\"")) {
+                        break
+                    }
+                    line = reader.readLine()
+                }
             }
+        } catch (e: Exception) {
+            Log.w(TAG, "Stream scan warning: ${e.message}")
         }
-        return result
+        return foundPaths.toList()
     }
 
     /**
-     * Helper to fetch HTML and parse with Jsoup
+     * Scans the Version page stream for ALL "download-ota" links (QPR1, QPR2, etc.).
+     * Returns a list of full URLs.
+     * Aborts downloading once it hits the "App compatibility" section or Main Content.
      */
-    private fun fetchAndParse(url: String): Document {
-        return Jsoup.parse(fetchHtmlString(url), url)
+    private fun scanForOtaLinks(path: String): List<String> {
+        val foundLinks = mutableSetOf<String>()
+        val urlStr = "$ANDROID_DEVELOPER_BASE$path"
+        val connection = openAndConnectWithVpnFallback(URL(urlStr))
+
+        try {
+            connection.inputStream.bufferedReader().use { reader ->
+                var line = reader.readLine()
+                while (line != null) {
+                    if (line.contains("download-ota")) {
+                        val match = OTA_LINK_REGEX.find(line)
+                        if (match != null) {
+                            val rawLink = match.groupValues[1]
+                            val fullLink = if (rawLink.startsWith("http")) rawLink else "$ANDROID_DEVELOPER_BASE$rawLink"
+                            if (foundLinks.add(fullLink)) {
+                                Log.d(TAG, "Found OTA link: $fullLink")
+                            }
+                        }
+                    }
+
+                    // Abort if we hit the next menu section or main content
+                    if (line.contains(">App compatibility<") || line.contains("id=\"main-content\"")) {
+                        break
+                    }
+                    line = reader.readLine()
+                }
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to scan version page $path: ${e.message}")
+        }
+        return foundLinks.toList()
     }
 
-    private fun fetchHtmlString(url: String): String {
-        val connection = openAndConnectWithVpnFallback(URL(url), emptyMap())
-        return connection.inputStream.bufferedReader().readText()
+    /**
+     * Streams the specific OTA download page.
+     */
+    private fun streamSpecificOtaPage(url: String): List<DownloadInfo> {
+        val result = mutableListOf<DownloadInfo>()
+        val connection = openAndConnectWithVpnFallback(URL(url))
+
+        var foundDeviceRow = false
+        var modalId: String? = null
+        var insideTargetModal = false
+        var targetLink: String?
+        val deviceId = Build.DEVICE
+
+        try {
+            connection.inputStream.bufferedReader().use { reader ->
+                var line = reader.readLine()
+                while (line != null) {
+
+                    if (!foundDeviceRow) {
+                        if (line.contains("id=\"$deviceId\"")) {
+                            foundDeviceRow = true
+                        } else if (line.contains("</table>")) {
+                            // Device not in this table, abort early
+                            break
+                        }
+                    } else if (modalId == null) {
+                        if (line.contains("data-modal-dialog-id")) {
+                            val match = MODAL_ID_REGEX.find(line)
+                            if (match != null) {
+                                modalId = match.groupValues[1]
+                            }
+                        }
+                    } else if (!insideTargetModal) {
+                        // Scan for strict start of our specific modal
+                        if (line.contains("id=\"$modalId\"")) {
+                            insideTargetModal = true
+                        }
+                    } else {
+                        if (line.contains(".zip") && line.contains("href")) {
+                            val match = ZIP_LINK_REGEX.find(line)
+                            if (match != null) {
+                                targetLink = match.groupValues[1]
+
+                                val filename = targetLink.substringAfterLast("/")
+                                val dateMatch = BUILD_DATE_PATTERN.matcher(filename)
+
+                                if (dateMatch.find()) {
+                                    val date = dateMatch.group(1)!!
+                                    val currentBuildDate = BUILD_DATE_PATTERN.matcher(Build.ID).let {
+                                        if (it.find()) it.group(1)!! else "0"
+                                    }
+
+                                    if (date.toInt() > currentBuildDate.toInt() || prefs.allowReinstall) {
+                                        result.add(DownloadInfo(filename.removeSuffix(".zip"), URL(targetLink), date))
+                                    }
+                                }
+                                // Success: Abort stream
+                                break
+                            }
+                        }
+
+                        // Fail-safe: Abort if we hit the start of the next modal
+                        if (line.contains("class=\"devsite-dialog") && line.contains("id=")) {
+                            break
+                        }
+                    }
+                    line = reader.readLine()
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to stream specific OTA page: ${e.message}")
+        }
+
+        return result
     }
 
     /**
@@ -1500,6 +1585,13 @@ class UpdaterThread(
         private const val USER_AGENT = "${BuildConfig.APPLICATION_ID}/${BuildConfig.VERSION_NAME}"
         private val USER_AGENT_UPDATE_ENGINE = "$USER_AGENT update_engine/${Build.VERSION.SDK_INT}"
 
+        // Pre-compile regex to avoid overhead in loops
+        private val BUILD_DATE_PATTERN = Pattern.compile("\\b(\\d{6})\\b")
+        private val VERSION_PATH_REGEX = Regex("/about/versions/(\\d+)")
+        private val OTA_LINK_REGEX = Regex("href=\"([^\"]*download-ota[^\"]*)\"")
+        private val MODAL_ID_REGEX = Regex("data-modal-dialog-id=\"([^\"]+)\"")
+        private val ZIP_LINK_REGEX = Regex("href\\s*=\\s*\"([^\"]+\\.zip)\"")
+
         private const val EOCD_MIN_SIZE = 22
         private const val EOCD_OFFSET = 3072L
         private const val TIMEOUT_MS = 30_000
@@ -1557,7 +1649,7 @@ class UpdaterThread(
          */
         fun getCurrentEngineStatus(updateEngine: IUpdateEngine): Int {
             // Using a CountDownLatch to wait for the status callback
-            val latch = java.util.concurrent.CountDownLatch(1)
+            val latch = CountDownLatch(1)
             val statusHolder = AtomicInteger(-1)
 
             val callback = object : IUpdateEngineCallback.Stub() {
