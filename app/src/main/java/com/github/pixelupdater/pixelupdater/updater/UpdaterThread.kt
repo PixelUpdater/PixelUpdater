@@ -456,8 +456,9 @@ class UpdaterThread(
                 while (line != null) {
                     val match = VERSION_PATH_REGEX.find(line)
                     if (match != null) {
-                        val version = match.groupValues[1].toIntOrNull()
-                        if (version != null && version >= currentMajor) {
+                        val versionString = match.groupValues[1]
+                        val versionInt = versionString.toIntOrNull()
+                        if (versionInt == null || versionInt >= currentMajor) {
                             foundPaths.add(match.value)
                         }
                     }
@@ -520,75 +521,91 @@ class UpdaterThread(
         val result = mutableListOf<DownloadInfo>()
         val connection = openAndConnectWithVpnFallback(URL(url))
 
-        var foundDeviceRow = false
-        var modalId: String? = null
-        var insideTargetModal = false
-        var targetLink: String?
         val deviceId = Build.DEVICE
 
         try {
             connection.inputStream.bufferedReader().use { reader ->
                 var line = reader.readLine()
+                var insideTargetRegion = false
+                val htmlChunk = StringBuilder()
+                var linesCaptured = 0
+
+                // We look for either the table row OR the modal dialog
+                val tableRowMarker = "id=\"$deviceId\""
+                val modalDivMarker = "id=\"${deviceId}_ota_zip\""
+
                 while (line != null) {
-
-                    if (!foundDeviceRow) {
-                        if (line.contains("id=\"$deviceId\"")) {
-                            foundDeviceRow = true
-                        } else if (line.contains("</table>")) {
-                            // Device not in this table, abort early
-                            break
+                    if (!insideTargetRegion) {
+                        // Check for either the table row (stable) or the modal div (beta)
+                        if (line.contains(tableRowMarker) || line.contains(modalDivMarker)) {
+                            insideTargetRegion = true
+                            // Start chunk with a div to help Jsoup parse fragments correctly
+                            htmlChunk.append("<div>")
                         }
-                    } else if (modalId == null) {
-                        if (line.contains("data-modal-dialog-id")) {
-                            val match = MODAL_ID_REGEX.find(line)
-                            if (match != null) {
-                                modalId = match.groupValues[1]
-                            }
-                        }
-                    } else if (!insideTargetModal) {
-                        // Scan for strict start of our specific modal
-                        if (line.contains("id=\"$modalId\"")) {
-                            insideTargetModal = true
-                        }
-                    } else {
-                        if (line.contains(".zip") && line.contains("href")) {
-                            val match = ZIP_LINK_REGEX.find(line)
-                            if (match != null) {
-                                targetLink = match.groupValues[1]
+                    }
 
-                                val filename = targetLink.substringAfterLast("/")
-                                val dateMatch = BUILD_DATE_PATTERN.matcher(filename)
+                    if (insideTargetRegion) {
+                        htmlChunk.append(line).append("\n")
+                        linesCaptured++
 
-                                if (dateMatch.find()) {
-                                    val date = dateMatch.group(1)!!
-                                    val currentBuildDate = BUILD_DATE_PATTERN.matcher(Build.ID).let {
-                                        if (it.find()) it.group(1)!! else "0"
-                                    }
+                        // If we captured enough context (row or modal content), parse it
+                        // 150 lines is enough to cover a table row OR a modal definition
+                        if (linesCaptured > 150) {
+                            htmlChunk.append("</div>")
 
-                                    if (date.toInt() > currentBuildDate.toInt() || prefs.allowReinstall) {
-                                        result.add(DownloadInfo(filename.removeSuffix(".zip"), URL(targetLink), date))
+                            val doc = Jsoup.parseBodyFragment(htmlChunk.toString())
+                            val linkElement = doc.selectFirst("a[href$='.zip']")
+
+                            if (linkElement != null) {
+                                val downloadUrl = linkElement.attr("href")
+                                val fullUrl = if (downloadUrl.startsWith("http")) downloadUrl else "$ANDROID_DEVELOPER_BASE$downloadUrl"
+                                val filename = fullUrl.substringAfterLast("/").removeSuffix(".zip")
+
+                                // Try filename first, then text content
+                                var date = "0"
+                                val nameMatch = BUILD_DATE_PATTERN.matcher(filename)
+                                if (nameMatch.find()) {
+                                    date = nameMatch.group(1)!!
+                                } else {
+                                    // Fallback: Check the text in the fragment for a date string
+                                    val rowText = doc.text()
+                                    val textMatch = BUILD_DATE_PATTERN.matcher(rowText)
+                                    if (textMatch.find()) {
+                                        date = textMatch.group(1)!!
                                     }
                                 }
-                                // Success: Abort stream
-                                break
-                            }
-                        }
 
-                        // Fail-safe: Abort if we hit the start of the next modal
-                        if (line.contains("class=\"devsite-dialog") && line.contains("id=")) {
-                            break
+                                val currentBuildDate = BUILD_DATE_PATTERN.matcher(Build.ID).let {
+                                    if (it.find()) it.group(1)!! else "0"
+                                }
+
+                                if (date.toInt() > currentBuildDate.toInt() || prefs.allowReinstall) {
+                                    result.add(DownloadInfo(filename, URL(fullUrl), date))
+                                }
+
+                                // We found the link! Stop streaming.
+                                return result
+                            } else {
+                                // If we found the Table Row but NO link (it was a button),
+                                // we must reset and keep searching for the Modal further down.
+                                // If we found the Modal and no link, we are probably out of luck.
+                                if (htmlChunk.toString().contains(tableRowMarker)) {
+                                    insideTargetRegion = false
+                                    htmlChunk.clear()
+                                    linesCaptured = 0
+                                }
+                            }
                         }
                     }
                     line = reader.readLine()
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to stream specific OTA page: ${e.message}")
+            Log.e(TAG, "Hybrid scraping failed for $url: ${e.message}")
         }
 
         return result
     }
-
     /**
      * Download content length with proper HEAD request
      */
@@ -1587,10 +1604,8 @@ class UpdaterThread(
 
         // Pre-compile regex to avoid overhead in loops
         private val BUILD_DATE_PATTERN = Pattern.compile("\\b(\\d{6})\\b")
-        private val VERSION_PATH_REGEX = Regex("/about/versions/(\\d+)")
+        private val VERSION_PATH_REGEX = Regex("/about/versions/([a-zA-Z0-9-]+)")
         private val OTA_LINK_REGEX = Regex("href=\"([^\"]*download-ota[^\"]*)\"")
-        private val MODAL_ID_REGEX = Regex("data-modal-dialog-id=\"([^\"]+)\"")
-        private val ZIP_LINK_REGEX = Regex("href\\s*=\\s*\"([^\"]+\\.zip)\"")
 
         private const val EOCD_MIN_SIZE = 22
         private const val EOCD_OFFSET = 3072L
