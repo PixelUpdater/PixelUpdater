@@ -175,6 +175,13 @@
             app:iconSpaceReserved="false" />
 
         <SwitchPreferenceCompat
+            app:key="use_beta_channel"
+            app:defaultValue="false"
+            app:title="@string/pref_use_beta_channel_name"
+            app:summary="@string/pref_use_beta_channel_desc"
+            app:iconSpaceReserved="false" />
+
+        <SwitchPreferenceCompat
             app:key="automatic_switch_slot"
             app:defaultValue="true"
             app:title="@string/pref_automatic_switch_slot_name"

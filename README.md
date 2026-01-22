@@ -87,6 +87,20 @@ When reporting bugs, please include the log files as it is extremely helpful for
 
 (To monitor `update_engine`'s own logs, run `adb logcat '*:S' update_engine`.)
 
+### Beta Channel Support & Risks
+
+Pixel Updater includes an option to scrape and install Beta builds. However, **enabling beta builds means that you accept that you are adventuring into uncharted territory.**
+
+Please understand the following risks before enabling this feature:
+
+* **Potential Root Access Loss & Boot Issues:** Magisk may not work for a beta build immediately upon release. **Users should ensure that the Beta is supported by the version of Magisk they are using before updating.**
+  * **Root access loss or bootloops are usually not caused by Pixel Updater**, but by the fact that Magisk has not yet been updated to support the kernel or security changes in the new Beta OS.
+  * **CRITICAL:** If Magisk attempts to patch the boot image incorrectly due to beta incompatibilities, **the patched slot may become unbootable.**
+  * *Note:* While Android's A/B partition system is designed to automatically fall back to the previous working slot if the new one fails to boot, this mechanism is not guaranteed to work in all failure scenarios. You may need to manually switch slots or manually flash the stock boot image via Fastboot to recover.
+* **App Stability:** Android Betas often introduce strict SELinux policy changes (e.g., Android 16 QPR2) that may cause Pixel Updater to crash or fail to launch until an update is released.
+* **Limited Support & Compatibility:** Beta builds are not officially supported. As the developers may not run Beta OS versions on their daily drivers, debugging issues is often done "flying blind," and fixes for Pixel Updater may be delayed until they can be reproduced or until the changes reach the stable channel. **Additionally, the wider root ecosystem often lags behind Betas.** You should expect broken Magisk modules and loss of Play Integrity.
+* **No Downgrades:** Once you update to a Beta, Android Verified Boot rollback protection usually prevents you from returning to the Stable channel without wiping your data (factory reset).
+
 ### Reinstallation
 
 For testing, Pixel Updater can allow the current OS version (i.e. matching build fingerprint) to be reinstalled. To do so, enable debug mode and then enable the `Allow reinstall` toggle.

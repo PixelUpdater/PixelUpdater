@@ -42,6 +42,7 @@ import java.net.URL
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.charset.StandardCharsets
+import java.util.concurrent.CountDownLatch
 import java.util.concurrent.locks.ReentrantLock
 import java.util.regex.Pattern
 import kotlin.concurrent.withLock
@@ -356,7 +357,7 @@ class UpdaterThread(
         val doc: Document = Jsoup.parse(otaHtml)
         val deviceElements: Elements = doc.select("h2")
 
-        val buildDateMatch = Pattern.compile("\\b(\\d{6})\\b").matcher(Build.ID)
+        val buildDateMatch = BUILD_DATE_PATTERN.matcher(Build.ID)
         buildDateMatch.find()
         val buildDate: String = buildDateMatch.group(1)!!
 
@@ -384,7 +385,7 @@ class UpdaterThread(
                 val fullBuildId = parts[0]
                 val isCarrierBuild = parts.size > 2
 
-                val dateMatch = Pattern.compile("\\b(\\d{6})\\b").matcher(fullBuildId)
+                val dateMatch = BUILD_DATE_PATTERN.matcher(fullBuildId)
                 if (!dateMatch.find()) continue
                 val date: String = dateMatch.group(1)!!
 
@@ -413,6 +414,198 @@ class UpdaterThread(
         return result
     }
 
+    private fun downloadBetaOtaPage(): List<DownloadInfo> {
+        val results = mutableListOf<DownloadInfo>()
+        val currentMajorVersion = Build.VERSION.RELEASE.toIntOrNull() ?: 0
+
+        // 1. Stream Index to find relevant Android versions (e.g. 15, 16)
+        val versionPaths = scanIndexStream(currentMajorVersion)
+
+        for (path in versionPaths) {
+            try {
+                // 2. Stream Version Page to find all OTA page links
+                val otaUrls = scanForOtaLinks(path)
+
+                for (otaUrl in otaUrls) {
+                    try {
+                        // 3. Stream specific OTA page to extract the zip link for this device
+                        results.addAll(streamSpecificOtaPage(otaUrl))
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Failed to stream OTA page: $otaUrl", e)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to process path $path", e)
+            }
+        }
+
+        return results.distinctBy { it.url }.sortedByDescending { it.date }
+    }
+
+    /**
+     * Reads the Index page stream line-by-line.
+     * Aborts connection immediately after "Older releases"
+     */
+    private fun scanIndexStream(currentMajor: Int): List<String> {
+        val foundPaths = mutableSetOf<String>()
+        val connection = openAndConnectWithVpnFallback(URL(VERSIONS_INDEX_URL))
+
+        try {
+            connection.inputStream.bufferedReader().use { reader ->
+                var line = reader.readLine()
+                while (line != null) {
+                    val match = VERSION_PATH_REGEX.find(line)
+                    if (match != null) {
+                        val versionString = match.groupValues[1]
+                        val versionInt = versionString.toIntOrNull()
+                        if (versionInt == null || versionInt >= currentMajor) {
+                            foundPaths.add(match.value)
+                        }
+                    }
+
+                    // Abort stream when reaching older releases
+                    if (line.contains("id=\"older-releases\"")) {
+                        break
+                    }
+                    line = reader.readLine()
+                }
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Stream scan warning: ${e.message}")
+        }
+        return foundPaths.toList()
+    }
+
+    /**
+     * Scans the Version page stream for ALL "download-ota" links (QPR1, QPR2, etc.).
+     * Returns a list of full URLs.
+     * Aborts downloading once it hits the "App compatibility" section or Main Content.
+     */
+    private fun scanForOtaLinks(path: String): List<String> {
+        val foundLinks = mutableSetOf<String>()
+        val urlStr = "$ANDROID_DEVELOPER_BASE$path"
+        val connection = openAndConnectWithVpnFallback(URL(urlStr))
+
+        try {
+            connection.inputStream.bufferedReader().use { reader ->
+                var line = reader.readLine()
+                while (line != null) {
+                    if (line.contains("download-ota")) {
+                        val match = OTA_LINK_REGEX.find(line)
+                        if (match != null) {
+                            val rawLink = match.groupValues[1]
+                            val fullLink = if (rawLink.startsWith("http")) rawLink else "$ANDROID_DEVELOPER_BASE$rawLink"
+                            if (foundLinks.add(fullLink)) {
+                                Log.d(TAG, "Found OTA link: $fullLink")
+                            }
+                        }
+                    }
+
+                    // Abort if we hit the next menu section or main content
+                    if (line.contains(">App compatibility<") || line.contains("id=\"main-content\"")) {
+                        break
+                    }
+                    line = reader.readLine()
+                }
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to scan version page $path: ${e.message}")
+        }
+        return foundLinks.toList()
+    }
+
+    /**
+     * Streams the specific OTA download page.
+     */
+    private fun streamSpecificOtaPage(url: String): List<DownloadInfo> {
+        val result = mutableListOf<DownloadInfo>()
+        val connection = openAndConnectWithVpnFallback(URL(url))
+
+        val deviceId = Build.DEVICE
+
+        try {
+            connection.inputStream.bufferedReader().use { reader ->
+                var line = reader.readLine()
+                var insideTargetRegion = false
+                val htmlChunk = StringBuilder()
+                var linesCaptured = 0
+
+                // We look for either the table row OR the modal dialog
+                val tableRowMarker = "id=\"$deviceId\""
+                val modalDivMarker = "id=\"${deviceId}_ota_zip\""
+
+                while (line != null) {
+                    if (!insideTargetRegion) {
+                        // Check for either the table row (stable) or the modal div (beta)
+                        if (line.contains(tableRowMarker) || line.contains(modalDivMarker)) {
+                            insideTargetRegion = true
+                            // Start chunk with a div to help Jsoup parse fragments correctly
+                            htmlChunk.append("<div>")
+                        }
+                    }
+
+                    if (insideTargetRegion) {
+                        htmlChunk.append(line).append("\n")
+                        linesCaptured++
+
+                        // If we captured enough context (row or modal content), parse it
+                        // 150 lines is enough to cover a table row OR a modal definition
+                        if (linesCaptured > 150) {
+                            htmlChunk.append("</div>")
+
+                            val doc = Jsoup.parseBodyFragment(htmlChunk.toString())
+                            val linkElement = doc.selectFirst("a[href$='.zip']")
+
+                            if (linkElement != null) {
+                                val downloadUrl = linkElement.attr("href")
+                                val fullUrl = if (downloadUrl.startsWith("http")) downloadUrl else "$ANDROID_DEVELOPER_BASE$downloadUrl"
+                                val filename = fullUrl.substringAfterLast("/").removeSuffix(".zip")
+
+                                // Try filename first, then text content
+                                var date = "0"
+                                val nameMatch = BUILD_DATE_PATTERN.matcher(filename)
+                                if (nameMatch.find()) {
+                                    date = nameMatch.group(1)!!
+                                } else {
+                                    // Fallback: Check the text in the fragment for a date string
+                                    val rowText = doc.text()
+                                    val textMatch = BUILD_DATE_PATTERN.matcher(rowText)
+                                    if (textMatch.find()) {
+                                        date = textMatch.group(1)!!
+                                    }
+                                }
+
+                                val currentBuildDate = BUILD_DATE_PATTERN.matcher(Build.ID).let {
+                                    if (it.find()) it.group(1)!! else "0"
+                                }
+
+                                if (date.toInt() > currentBuildDate.toInt() || prefs.allowReinstall) {
+                                    result.add(DownloadInfo(filename, URL(fullUrl), date))
+                                }
+
+                                // We found the link! Stop streaming.
+                                return result
+                            } else {
+                                // If we found the Table Row but NO link (it was a button),
+                                // we must reset and keep searching for the Modal further down.
+                                // If we found the Modal and no link, we are probably out of luck.
+                                if (htmlChunk.toString().contains(tableRowMarker)) {
+                                    insideTargetRegion = false
+                                    htmlChunk.clear()
+                                    linesCaptured = 0
+                                }
+                            }
+                        }
+                    }
+                    line = reader.readLine()
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Hybrid scraping failed for $url: ${e.message}")
+        }
+
+        return result
+    }
     /**
      * Download content length with proper HEAD request
      */
@@ -796,8 +989,14 @@ class UpdaterThread(
             mutableListOf(DownloadInfo(uri.lastPathSegment!!, prefs.otaUrl!!))
         } else {
             try {
-                downloadOtaPage()
+                // Check preference to decide which scraping logic to use
+                if (prefs.useBetaChannel) {
+                    downloadBetaOtaPage()
+                } else {
+                    downloadOtaPage()
+                }
             } catch (e: Exception) {
+                Log.e(TAG, "Update check failed", e)
                 throw IOException("Failed to download update info", e)
             }
         }
@@ -805,22 +1004,28 @@ class UpdaterThread(
         val updates = mutableListOf<CheckUpdateResult>()
         for (ota in downloads) {
             Log.d(TAG, "OTA URL: ${ota.url}")
-            val cd = downloadCd(ota)
-            val pfMetadata = cd[OtaPaths.METADATA_NAME]!!
-            val metadata = downloadAndCheckMetadata(ota.url, pfMetadata)
+            try {
+                val cd = downloadCd(ota)
+                val pfMetadata = cd[OtaPaths.METADATA_NAME]!!
+                val metadata = downloadAndCheckMetadata(ota.url, pfMetadata)
 
-            if (metadata.postcondition.buildCount != 1) {
-                throw ValidationException("Metadata postcondition lists multiple fingerprints")
+                if (metadata.postcondition.buildCount != 1) {
+                    throw ValidationException("Metadata postcondition lists multiple fingerprints")
+                }
+                val fingerprint = metadata.postcondition.getBuild(0)
+
+                updates.add(CheckUpdateResult(
+                    ota.version,
+                    fingerprint,
+                    ota.url.toString(),
+                    cd,
+                ))
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to process metadata for ${ota.version}, skipping.", e)
+                continue // Skip broken links instead of crashing the whole check
             }
-            val fingerprint = metadata.postcondition.getBuild(0)
-
-            updates.add(CheckUpdateResult(
-                ota.version,
-                fingerprint,
-                ota.url.toString(),
-                cd,
-            ))
         }
+
         val cache = Json.encodeToString(updates)
         prefs.otaCache = cache
         return updates
@@ -1392,8 +1597,15 @@ class UpdaterThread(
 
         private const val OTA_SERVER_URL = "https://developers.google.com/android/ota"
         private const val OTA_SERVER_COOKIE = "devsite_wall_acks=nexus-image-tos,nexus-ota-tos"
+        private const val ANDROID_DEVELOPER_BASE = "https://developer.android.com"
+        private const val VERSIONS_INDEX_URL = "$ANDROID_DEVELOPER_BASE/about/versions"
         private const val USER_AGENT = "${BuildConfig.APPLICATION_ID}/${BuildConfig.VERSION_NAME}"
         private val USER_AGENT_UPDATE_ENGINE = "$USER_AGENT update_engine/${Build.VERSION.SDK_INT}"
+
+        // Pre-compile regex to avoid overhead in loops
+        private val BUILD_DATE_PATTERN = Pattern.compile("\\b(\\d{6})\\b")
+        private val VERSION_PATH_REGEX = Regex("/about/versions/([a-zA-Z0-9-]+)")
+        private val OTA_LINK_REGEX = Regex("href=\"([^\"]*download-ota[^\"]*)\"")
 
         private const val EOCD_MIN_SIZE = 22
         private const val EOCD_OFFSET = 3072L
@@ -1452,7 +1664,7 @@ class UpdaterThread(
          */
         fun getCurrentEngineStatus(updateEngine: IUpdateEngine): Int {
             // Using a CountDownLatch to wait for the status callback
-            val latch = java.util.concurrent.CountDownLatch(1)
+            val latch = CountDownLatch(1)
             val statusHolder = AtomicInteger(-1)
 
             val callback = object : IUpdateEngineCallback.Stub() {

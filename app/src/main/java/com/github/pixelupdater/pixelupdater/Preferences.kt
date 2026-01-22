@@ -38,6 +38,7 @@ class Preferences(context: Context) {
         const val PREF_VERSION = "version"
         const val PREF_OPEN_LOG_DIR = "open_log_dir"
         const val PREF_OTA_URL = "ota_url"
+        const val PREF_BETA_CHANNEL = "use_beta_channel"
         const val PREF_ALLOW_REINSTALL = "allow_reinstall"
         const val PREF_SHOW_CARRIER_BUILDS = "show_carrier_builds"
         const val PREF_REVERT_COMPLETED = "revert_completed"
@@ -157,6 +158,11 @@ class Preferences(context: Context) {
                 putString(PREF_OTA_URL, url.toString())
             }
         }
+
+    /** Whether to use beta channel. */
+    var useBetaChannel: Boolean
+        get() = prefs.getBoolean(PREF_BETA_CHANNEL, false)
+        set(enabled) = prefs.edit { putBoolean(PREF_BETA_CHANNEL, enabled) }
 
     /** Whether to force switch slot on update. */
     var automaticSwitchSlot: Boolean
