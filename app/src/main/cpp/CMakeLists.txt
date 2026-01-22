@@ -8,7 +8,5 @@ project(pixelupdater CXX C)
 
 include(cmake/CompilerFlags.cmake)
 
-add_compile_options(-Wno-double-promotion -Wno-unused-function)
-
 add_subdirectory(external)
 add_subdirectory(pixelupdater_selinux)
