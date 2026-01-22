@@ -394,7 +394,7 @@ class UpdaterThread(
                 }
 
                 val isNewerDate = date.toInt() > buildDate.toInt()
-                val isSameMonthDifferentBuild = (date == buildDate && fullBuildId != Build.ID)
+                val isSameMonthDifferentBuild = (date == buildDate && fullBuildId > Build.ID)
                 val isExactSameBuild = (fullBuildId == Build.ID)
 
                 val shouldAdd = when {
