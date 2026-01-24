@@ -119,6 +119,8 @@ target_compile_options(
     $<$<C_COMPILER_ID:GNU>:-Wno-jump-misses-init>
     -Wno-missing-declarations
     -Wno-missing-prototypes
+    -Wno-double-promotion
+    -Wno-unused-function
 )
 
 target_link_libraries(
