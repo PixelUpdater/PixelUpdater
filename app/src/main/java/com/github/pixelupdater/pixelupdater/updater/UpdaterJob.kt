@@ -172,58 +172,6 @@ class UpdaterJob: JobService() {
                     }
                 }
 
-                // Check network constraint manually
-                val hasUnmeteredNetworkRequirement = hasUnmeteredNetworkRequirement(jobInfo)
-
-                if (!constraintsFailed && hasUnmeteredNetworkRequirement && action == UpdaterThread.Action.INSTALL) {
-                    // Use system service to check if we have unmetered network
-                    val connectivityIntent = context.registerReceiver(null,
-                        android.content.IntentFilter(android.net.ConnectivityManager.CONNECTIVITY_ACTION))
-
-                    if (connectivityIntent == null) {
-                        constraintsFailed = true
-                        errorReason = "network_unavailable"
-                        Log.d(TAG, "Network constraint not met: no connectivity info available")
-                    } else {
-                        val noConnectivity = connectivityIntent.getBooleanExtra(
-                            android.net.ConnectivityManager.EXTRA_NO_CONNECTIVITY, false)
-
-                        if (noConnectivity) {
-                            constraintsFailed = true
-                            errorReason = "network_unavailable"
-                            Log.d(TAG, "Network constraint not met: no connectivity")
-                        } else {
-                            // Check if connection is metered
-                            val netInfo = connectivityIntent.getParcelableExtra<android.net.NetworkInfo>(
-                                android.net.ConnectivityManager.EXTRA_NETWORK_INFO)
-
-                            if (netInfo == null || !netInfo.isConnected) {
-                                constraintsFailed = true
-                                errorReason = "network_unavailable"
-                                Log.d(TAG, "Network constraint not met: no active network")
-                            } else {
-                                // On newer Android versions, we need to use a system service
-                                // to check if the network is metered
-                                try {
-                                    val service = context.getSystemService("connectivity")
-                                    val isMeteredMethod = service.javaClass.getMethod(
-                                        "isActiveNetworkMetered")
-                                    val isMetered = isMeteredMethod.invoke(service) as Boolean
-
-                                    if (isMetered) {
-                                        constraintsFailed = true
-                                        errorReason = "network_metered"
-                                        Log.d(TAG, "Network constraint not met: network is metered")
-                                    }
-                                } catch (e: Exception) {
-                                    Log.e(TAG, "Failed to check if network is metered", e)
-                                    // Fall back to assume network is unmetered to avoid blocking updates
-                                }
-                            }
-                        }
-                    }
-                }
-
                 if (constraintsFailed && action != null) {
                     // Show an immediate toast message to provide feedback to the user
                     val toastText = when (errorReason) {

@@ -78,7 +78,8 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
 
                     val messageResId = when (failureReason) {
                         "battery_low" -> R.string.notification_job_failed_battery_message
-                        "network_metered", "network_unavailable" -> R.string.notification_job_failed_network_message
+                        "network_metered" -> R.string.notification_job_failed_network_message
+                        "network_unavailable" -> R.string.notification_update_network_unavailable_message
                         else -> {
                             if (extraAction == UpdaterThread.Action.INSTALL && prefs.requireUnmetered && prefs.requireBatteryNotLow) {
                                 R.string.notification_job_failed_both_message
