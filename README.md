@@ -27,8 +27,8 @@ Pixel Updater was forked from [Custota](https://github.com/chenxiaolong/Custota)
 * The device must be rooted with Magisk. KernelSU/APatch is not supported.
 * The device must be a Google Pixel and support A/B updates.
 * Incremental updates are not supported.
-* Pre-downloading an update to install later is not supported.
-  * Pixel Updater runs `update_engine` in streaming mode, which downloads and installs OTAs at the same time.
+* Pixel Updater does not download an update for later installation.
+  * Pixel Updater runs `update_engine` in streaming mode, which downloads and installs OTAs at the same time. A full OTA zip that was already downloaded from Google's OTA page can be installed with `Install from file`; it is streamed from storage the same way.
 * The stock OS' Settings app on Pixel devices always launches the builtin OTA updater.
   * These shortcuts in the Settings app are loaded from GmsCore (part of Google Play Services) via a mechanism called "settings slices" and cannot be overridden. Apps that launch the OTA updater via the standard `android.settings.SYSTEM_UPDATE_SETTINGS` intent will show a prompt to pick between Pixel Updater or the builtin OTA updater.
 
@@ -135,6 +135,8 @@ When the user chooses to install an update, Pixel Updater will repeat the first 
 1. Download the `payload_metadata.bin` entry (`payload.bin`'s header), write it to `/data/ota_package/payload_metadata.bin`, and ask `update_engine` to verify that the listed partition operations are suitable to be performed on the current device.
 2. Download `care_map.pb` and write it to `/data/ota_package/care_map.pb`. This is unused for devices with virtual A/B partitioning (ie. snapuserd).
 3. Download `payload_properties.txt`, parse the payload digests, and ask `update_engine` to download and install `payload.bin`.
+
+When installing from a local file, the same entries are read directly from the zip and `update_engine` is handed a file descriptor instead of a URL. It still applies the payload as it reads it.
 
 ## Verifying digital signatures
 

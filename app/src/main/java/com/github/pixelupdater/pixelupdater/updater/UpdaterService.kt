@@ -118,6 +118,7 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
 
                     if (extraAction == UpdaterThread.Action.INSTALL && target != null) {
                         prefs.targetOta = target
+                        prefs.localOta = null
 
                         // Immediately show a preparing notification and dismiss other notifications
                         Log.d(TAG, "Dismissing alert notifications and showing preparing notification")
@@ -177,7 +178,7 @@ class UpdaterService : Service(), UpdaterThread.UpdaterThreadListener {
                 notifications.dismissNotifications()
             }
 
-            if (action != UpdaterThread.Action.REVERT && action != UpdaterThread.Action.NO_ROOT && network == null) {
+            if (action != UpdaterThread.Action.REVERT && action != UpdaterThread.Action.NO_ROOT && !action.isLocal(prefs) && network == null) {
                 if (!silent) {
                     notifyAlert(UpdaterThread.NetworkUnavailable)
                 }

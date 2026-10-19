@@ -102,7 +102,9 @@ class UpdaterJob: JobService() {
 
             val builder = JobInfo.Builder(jobId, ComponentName(context, UpdaterJob::class.java))
 
-            val networkType = if (action == UpdaterThread.Action.INSTALL && prefs.requireUnmetered) {
+            val networkType = if (action?.isLocal(prefs) == true) {
+                JobInfo.NETWORK_TYPE_NONE
+            } else if (action == UpdaterThread.Action.INSTALL && prefs.requireUnmetered) {
                 JobInfo.NETWORK_TYPE_UNMETERED
             } else {
                 JobInfo.NETWORK_TYPE_ANY

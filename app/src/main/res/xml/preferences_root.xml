@@ -16,6 +16,13 @@
             app:title="@string/pref_check_for_updates_name"
             app:summary="@string/pref_check_for_updates_desc"
             app:iconSpaceReserved="false" />
+
+        <Preference
+            app:key="install_local"
+            app:persistent="false"
+            app:title="@string/pref_install_local_name"
+            app:summary="@string/pref_install_local_desc"
+            app:iconSpaceReserved="false" />
     </PreferenceCategory>
 
     <PreferenceCategory

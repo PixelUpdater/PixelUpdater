@@ -869,6 +869,21 @@ static bool apply_patches(
     ff(add_rule(pdb, target_type, "update_engine", "fd", "use", errors));
     ff(add_rule(pdb, "update_engine", target_type, "fd", "use", errors));
 
+    // A local OTA zip reaches update_engine as a file descriptor opened by the documents
+    // provider behind the file picker: MediaProvider for internal storage, DownloadProvider
+    // (legacy mediaprovider domain) for the Downloads root.
+    // allow update_engine { mediaprovider_app mediaprovider }:fd use;
+    ff(add_rule(pdb, "update_engine", "mediaprovider_app", "fd", "use", errors));
+    add_safe("update_engine", "mediaprovider", "fd", "use");
+
+    // allow update_engine fuse:file { getattr read };
+    // sdcardfs and media_rw_data_file only exist on devices still using sdcardfs.
+    for (auto const &perm : {"getattr", "read"}) {
+        ff(add_rule(pdb, "update_engine", "fuse", "file", perm, errors));
+        add_safe("update_engine", "sdcardfs", "file", perm);
+        add_safe("update_engine", "media_rw_data_file", "file", perm);
+    }
+
     // allow pixelupdater_app update_engine_service:service_manager find;
     add_safe(target_type, "update_engine_service", "service_manager", "find");
     add_safe(target_type, "power_service", "service_manager", "find"); // For reboot

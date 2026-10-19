@@ -17,6 +17,8 @@
     <!-- General preferences -->
     <string name="pref_check_for_updates_name">Check for updates</string>
     <string name="pref_check_for_updates_desc">Schedule a check for new OTA updates.</string>
+    <string name="pref_install_local_name">Install from file</string>
+    <string name="pref_install_local_desc">Install a full OTA zip downloaded from Google\'s OTA page.</string>
     <string name="pref_notification_frequency_name">Notification frequency</string>
     <string name="pref_notification_frequency_desc">How frequently to send notifications about pending updates.</string>
     <string name="pref_ota_url_name">OTA URL</string>
