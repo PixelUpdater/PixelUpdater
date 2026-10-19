@@ -8,7 +8,9 @@
 package com.github.pixelupdater.pixelupdater
 
 import android.content.Context
+import android.net.Uri
 import androidx.core.content.edit
+import androidx.core.net.toUri
 import androidx.preference.PreferenceManager
 import com.github.pixelupdater.pixelupdater.updater.UpdaterThread
 import java.net.URL
@@ -19,6 +21,7 @@ class Preferences(context: Context) {
         const val CATEGORY_DEBUG = "debug"
 
         const val PREF_CHECK_FOR_UPDATES = "check_for_updates"
+        const val PREF_INSTALL_LOCAL = "install_local"
         const val PREF_NOTIFICATION_FREQUENCY = "notification_frequency"
         const val PREF_AUTOMATIC_CHECK = "automatic_check"
         const val PREF_UNMETERED_ONLY = "unmetered_only"
@@ -48,6 +51,7 @@ class Preferences(context: Context) {
         // Not associated with a UI preference
         private const val PREF_OTA_CACHE = "ota_cache"
         private const val PREF_TARGET_OTA = "target_ota"
+        private const val PREF_LOCAL_OTA = "local_ota"
         private const val PREF_PAYLOAD_PROPERTIES_CACHE = "payload_properties_cache"
         private const val PREF_ALERT_CACHE = "alert_cache"
         private const val PREF_HAS_ROOT = "has_root"
@@ -72,6 +76,17 @@ class Preferences(context: Context) {
     var targetOta: String
         get() = prefs.getString(PREF_TARGET_OTA, "")!!
         set(target) = prefs.edit { putString(PREF_TARGET_OTA, target) }
+
+    /** OTA zip picked from local storage. While set, install and switch slot read it instead of the OTA server. */
+    var localOta: Uri?
+        get() = prefs.getString(PREF_LOCAL_OTA, null)?.toUri()
+        set(uri) = prefs.edit {
+            if (uri == null) {
+                remove(PREF_LOCAL_OTA)
+            } else {
+                putString(PREF_LOCAL_OTA, uri.toString())
+            }
+        }
 
     // TODO: Clear this somewhere?
     var payloadPropertiesCache: String

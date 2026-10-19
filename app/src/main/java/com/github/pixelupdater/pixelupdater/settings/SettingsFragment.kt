@@ -89,6 +89,7 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceClic
     private lateinit var categoryCertificates: PreferenceCategory
     private lateinit var categoryDebug: PreferenceCategory
     private lateinit var prefCheckForUpdates: Preference
+    private lateinit var prefInstallLocal: Preference
     private lateinit var prefAndroidVersion: Preference
     private lateinit var prefFingerprint: Preference
     private lateinit var prefBootSlot: Preference
@@ -125,6 +126,14 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceClic
     ) { uri ->
         uri?.let {
             createSupportFile(it)
+        }
+    }
+
+    private val openDocumentLauncher = registerForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        uri?.let {
+            installLocalOta(it)
         }
     }
 
@@ -171,6 +180,9 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceClic
 
         prefCheckForUpdates = findPreference(Preferences.PREF_CHECK_FOR_UPDATES)!!
         prefCheckForUpdates.onPreferenceClickListener = this
+
+        prefInstallLocal = findPreference(Preferences.PREF_INSTALL_LOCAL)!!
+        prefInstallLocal.onPreferenceClickListener = this
 
         prefAndroidVersion = findPreference(Preferences.PREF_ANDROID_VERSION)!!
         prefAndroidVersion.summary = Build.VERSION.RELEASE
@@ -498,6 +510,10 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceClic
                 performAction()
                 return true
             }
+            prefInstallLocal -> {
+                openDocumentLauncher.launch(arrayOf("application/zip"))
+                return true
+            }
             prefOtaUrl -> {
                 OtaUrlDialogFragment().show(parentFragmentManager.beginTransaction(),
                     OtaUrlDialogFragment.TAG)
@@ -655,6 +671,17 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceClic
 
             categoryCertificates.addPreference(p)
         }
+    }
+
+    private fun installLocalOta(uri: Uri) {
+        // The install runs in a job later, and switch slot may reopen the file after a restart.
+        requireContext().contentResolver.takePersistableUriPermission(
+            uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+
+        prefs.localOta = uri
+        prefs.targetOta = uri.lastPathSegment ?: uri.toString()
+        scheduledAction = UpdaterThread.Action.INSTALL
+        performAction()
     }
 
     // Function to create the support file

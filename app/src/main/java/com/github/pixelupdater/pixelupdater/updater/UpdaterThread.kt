@@ -8,6 +8,7 @@
 package com.github.pixelupdater.pixelupdater.updater
 
 import android.annotation.SuppressLint
+import android.content.ContentResolver
 import android.content.Context
 import android.net.Network
 import android.net.Uri
@@ -15,9 +16,11 @@ import android.os.Build
 import android.os.IUpdateEngine
 import android.os.IUpdateEngineCallback
 import android.os.Parcelable
+import android.os.ParcelFileDescriptor
 import android.os.PowerManager
 import android.ota.OtaPackageMetadata.OtaMetadata
 import android.util.Log
+import androidx.core.net.toUri
 import com.github.pixelupdater.pixelupdater.BuildConfig
 import com.github.pixelupdater.pixelupdater.Preferences
 import com.github.pixelupdater.pixelupdater.extension.toSingleLineString
@@ -145,7 +148,7 @@ class UpdaterThread(
     }
 
     init {
-        if (action != Action.REVERT && action != Action.NO_ROOT && network == null) {
+        if (action != Action.REVERT && action != Action.NO_ROOT && !action.isLocal(prefs) && network == null) {
             throw IllegalStateException("Network is required for check and install related actions")
         }
 
@@ -407,7 +410,7 @@ class UpdaterThread(
                 }
 
                 if (shouldAdd) {
-                    result.add(DownloadInfo(version, URL(downloadUrl), date))
+                    result.add(DownloadInfo(version, downloadUrl.toUri(), date))
                 }
             }
         }
@@ -580,7 +583,7 @@ class UpdaterThread(
                                 }
 
                                 if (date.toInt() > currentBuildDate.toInt() || prefs.allowReinstall) {
-                                    result.add(DownloadInfo(filename, URL(fullUrl), date))
+                                    result.add(DownloadInfo(filename, fullUrl.toUri(), date))
                                 }
 
                                 // We found the link! Stop streaming.
@@ -610,7 +613,12 @@ class UpdaterThread(
      * Download content length with proper HEAD request
      */
     private fun downloadOtaContentLength(downloadInfo: DownloadInfo): Long {
-        val connection = openUrlWithVpnFallback(downloadInfo.url)
+        if (downloadInfo.url.scheme == ContentResolver.SCHEME_CONTENT) {
+            return openLocalOta(downloadInfo.url).use { it.statSize }
+        }
+
+        val url = URL(downloadInfo.url.toString())
+        val connection = openUrlWithVpnFallback(url)
         @Suppress("UsePropertyAccessSyntax")
         connection.requestMethod = "HEAD"
 
@@ -620,7 +628,7 @@ class UpdaterThread(
         } catch (e: Exception) {
             if (e.message?.contains("EPERM") == true || e.message?.contains("Operation not permitted") == true) {
                 Log.w(TAG, "HEAD request failed due to VPN, retrying with default connection", e)
-                val fallbackConnection = downloadInfo.url.openConnection() as HttpURLConnection
+                val fallbackConnection = url.openConnection() as HttpURLConnection
                 fallbackConnection.connectTimeout = TIMEOUT_MS
                 fallbackConnection.readTimeout = TIMEOUT_MS
                 fallbackConnection.setRequestProperty("User-Agent", USER_AGENT)
@@ -650,24 +658,9 @@ class UpdaterThread(
     private fun downloadEocd(downloadInfo: DownloadInfo): Eocd {
         val contentLength = downloadOtaContentLength(downloadInfo)
 
-        // Use VPN fallback connection with headers
-        val connection = openAndConnectWithVpnFallback(downloadInfo.url, mapOf(
-            "Range" to "bytes=${contentLength - EOCD_OFFSET}-${contentLength - 1}"
-        ))
-
-        if (connection.responseCode / 100 != 2) {
-            throw IOException("Got ${connection.responseCode} (${connection.responseMessage}) for ${downloadInfo.url}")
-        }
-
-        if (connection.getHeaderField("Accept-Ranges") != "bytes") {
-            throw IOException("Server does not support byte ranges")
-        }
-
-        if (connection.contentLengthLong != EOCD_OFFSET) {
-            throw IOException("Expected $EOCD_OFFSET bytes, but Content-Length is ${connection.contentLengthLong}")
-        }
-
-        val responseBody = connection.inputStream.readBytes()
+        val responseBody = ByteArrayOutputStream().also {
+            readRange(downloadInfo.url, contentLength - EOCD_OFFSET, EOCD_OFFSET, it)
+        }.toByteArray()
         val eocdHeader = byteArrayOf(0x50, 0x4b, 0x05, 0x06)
         var eocdIndex = -1
         for (i in responseBody.size - EOCD_MIN_SIZE downTo 0) {
@@ -702,29 +695,14 @@ class UpdaterThread(
     }
 
     /**
-     * Download CD (Central Directory) of the OTA zip with proper headers set before connecting
+     * Download CD (Central Directory) of the OTA zip
      */
     private fun downloadCd(downloadInfo: DownloadInfo): Map<String, PropertyFile> {
         val eocd = downloadEocd(downloadInfo)
 
-        // Create a connection with all headers set and connect with VPN fallback
-        val connection = openAndConnectWithVpnFallback(downloadInfo.url, mapOf(
-            "Range" to "bytes=${eocd.offset}-${eocd.offset + eocd.size - 1}"
-        ))
-
-        if (connection.responseCode / 100 != 2) {
-            throw IOException("Got ${connection.responseCode} (${connection.responseMessage}) for ${downloadInfo.url}")
-        }
-
-        if (connection.getHeaderField("Accept-Ranges") != "bytes") {
-            throw IOException("Server does not support byte ranges")
-        }
-
-        if (connection.contentLengthLong != eocd.size) {
-            throw IOException("Expected ${eocd.size} bytes, but Content-Length is ${connection.contentLengthLong}")
-        }
-
-        val responseBody = connection.inputStream.readBytes()
+        val responseBody = ByteArrayOutputStream().also {
+            readRange(downloadInfo.url, eocd.offset, eocd.size, it)
+        }.toByteArray()
         val propertyFiles = mutableMapOf<String, PropertyFile>()
         var offset = 0
 
@@ -754,35 +732,45 @@ class UpdaterThread(
     }
 
     /**
-     * Download a property file entry from the OTA zip. The server must support byte ranges.
-     * Uses proper headers setting before connection is made.
+     * Read exactly [size] bytes at [offset] of the OTA zip into [output]. HTTP servers must
+     * support byte ranges.
      *
      * @param output Not closed by this function
      */
-    private fun downloadPropertyFile(url: URL, pf: PropertyFile, output: OutputStream) {
-        // Use VPN fallback approach with headers set and connect
-        val connection = openAndConnectWithVpnFallback(url, mapOf(
-            "Range" to "bytes=${pf.offset}-${pf.offset + pf.size - 1}"
-        ))
+    private fun readRange(uri: Uri, offset: Long, size: Long, output: OutputStream) {
+        val isLocal = uri.scheme == ContentResolver.SCHEME_CONTENT
 
-        if (connection.responseCode / 100 != 2) {
-            throw IOException("Got ${connection.responseCode} (${connection.responseMessage}) for $url")
+        val input = if (isLocal) {
+            ParcelFileDescriptor.AutoCloseInputStream(openLocalOta(uri)).apply {
+                channel.position(offset)
+            }
+        } else {
+            // Use VPN fallback approach with headers set and connect
+            val connection = openAndConnectWithVpnFallback(URL(uri.toString()), mapOf(
+                "Range" to "bytes=$offset-${offset + size - 1}"
+            ))
+
+            if (connection.responseCode / 100 != 2) {
+                throw IOException("Got ${connection.responseCode} (${connection.responseMessage}) for $uri")
+            }
+
+            if (connection.getHeaderField("Accept-Ranges") != "bytes") {
+                throw IOException("Server does not support byte ranges")
+            }
+
+            if (connection.contentLengthLong != size) {
+                throw IOException("Expected $size bytes, but Content-Length is ${connection.contentLengthLong}")
+            }
+
+            connection.inputStream
         }
 
-        if (connection.getHeaderField("Accept-Ranges") != "bytes") {
-            throw IOException("Server does not support byte ranges")
-        }
-
-        if (connection.contentLengthLong != pf.size) {
-            throw IOException("Expected ${pf.size} bytes, but Content-Length is ${connection.contentLengthLong}")
-        }
-
-        connection.inputStream.use { input ->
+        input.use {
             val buf = ByteArray(16384)
             var downloaded = 0L
 
-            while (downloaded < pf.size) {
-                val toRead = java.lang.Long.min(buf.size.toLong(), pf.size - downloaded).toInt()
+            while (downloaded < size) {
+                val toRead = java.lang.Long.min(buf.size.toLong(), size - downloaded).toInt()
                 val n = input.read(buf, 0, toRead)
                 if (n <= 0) {
                     break
@@ -792,12 +780,28 @@ class UpdaterThread(
                 downloaded += n.toLong()
             }
 
-            if (downloaded != pf.size) {
-                throw IOException("Unexpected EOF after downloading $downloaded bytes (expected ${pf.size} bytes)")
-            } else if (input.read() != -1) {
-                throw IOException("Server returned more data than expected (expected ${pf.size} bytes)")
+            if (downloaded != size) {
+                throw IOException("Unexpected EOF after downloading $downloaded bytes (expected $size bytes)")
+            } else if (!isLocal && input.read() != -1) {
+                throw IOException("Server returned more data than expected (expected $size bytes)")
             }
         }
+    }
+
+    /**
+     * Open the OTA zip picked by the user. update_engine seeks within the zip, so providers that
+     * hand out pipes instead of files are rejected.
+     */
+    private fun openLocalOta(uri: Uri): ParcelFileDescriptor {
+        val pfd = context.contentResolver.openFileDescriptor(uri, "r")
+            ?: throw IOException("Failed to open $uri")
+
+        if (pfd.statSize < 0) {
+            pfd.close()
+            throw IOException("Not a seekable file: $uri")
+        }
+
+        return pfd
     }
 
     /**
@@ -828,97 +832,21 @@ class UpdaterThread(
     }
 
     /**
-     * Download and parse key/value pairs file with proper headers
+     * Download and parse key/value pairs file
      */
-    private fun downloadKeyValueFile(url: URL, pf: PropertyFile): Map<String, String> {
+    private fun downloadKeyValueFile(uri: Uri, pf: PropertyFile): Map<String, String> {
         val outputStream = ByteArrayOutputStream()
-
-        // Use VPN fallback approach with headers set and connect
-        val connection = openAndConnectWithVpnFallback(url, mapOf(
-            "Range" to "bytes=${pf.offset}-${pf.offset + pf.size - 1}"
-        ))
-
-        if (connection.responseCode / 100 != 2) {
-            throw IOException("Got ${connection.responseCode} (${connection.responseMessage}) for $url")
-        }
-
-        if (connection.getHeaderField("Accept-Ranges") != "bytes") {
-            throw IOException("Server does not support byte ranges")
-        }
-
-        if (connection.contentLengthLong != pf.size) {
-            throw IOException("Expected ${pf.size} bytes, but Content-Length is ${connection.contentLengthLong}")
-        }
-
-        connection.inputStream.use { input ->
-            val buf = ByteArray(16384)
-            var downloaded = 0L
-
-            while (downloaded < pf.size) {
-                val toRead = java.lang.Long.min(buf.size.toLong(), pf.size - downloaded).toInt()
-                val n = input.read(buf, 0, toRead)
-                if (n <= 0) {
-                    break
-                }
-
-                outputStream.write(buf, 0, n)
-                downloaded += n.toLong()
-            }
-
-            if (downloaded != pf.size) {
-                throw IOException("Unexpected EOF after downloading $downloaded bytes (expected ${pf.size} bytes)")
-            } else if (input.read() != -1) {
-                throw IOException("Server returned more data than expected (expected ${pf.size} bytes)")
-            }
-        }
+        readRange(uri, pf.offset, pf.size, outputStream)
 
         return parseKeyValuePairs(outputStream.toString(Charsets.UTF_8))
     }
 
     /**
-     * Download metadata protobuf file with proper headers
+     * Download and validate metadata protobuf file
      */
-    private fun downloadAndCheckMetadata(url: URL, pf: PropertyFile): OtaMetadata {
+    private fun downloadAndCheckMetadata(uri: Uri, pf: PropertyFile): OtaMetadata {
         val outputStream = ByteArrayOutputStream()
-
-        // Use VPN fallback approach with headers set and connect
-        val connection = openAndConnectWithVpnFallback(url, mapOf(
-            "Range" to "bytes=${pf.offset}-${pf.offset + pf.size - 1}"
-        ))
-
-        if (connection.responseCode / 100 != 2) {
-            throw IOException("Got ${connection.responseCode} (${connection.responseMessage}) for $url")
-        }
-
-        if (connection.getHeaderField("Accept-Ranges") != "bytes") {
-            throw IOException("Server does not support byte ranges")
-        }
-
-        if (connection.contentLengthLong != pf.size) {
-            throw IOException("Expected ${pf.size} bytes, but Content-Length is ${connection.contentLengthLong}")
-        }
-
-        connection.inputStream.use { input ->
-            val buf = ByteArray(16384)
-            var downloaded = 0L
-
-            while (downloaded < pf.size) {
-                val toRead = java.lang.Long.min(buf.size.toLong(), pf.size - downloaded).toInt()
-                val n = input.read(buf, 0, toRead)
-                if (n <= 0) {
-                    break
-                }
-
-                outputStream.write(buf, 0, n)
-                downloaded += n.toLong()
-            }
-
-            if (downloaded != pf.size) {
-                throw IOException("Unexpected EOF after downloading $downloaded bytes (expected ${pf.size} bytes)")
-            } else if (input.read() != -1) {
-                throw IOException("Server returned more data than expected (expected ${pf.size} bytes)")
-            }
-        }
+        readRange(uri, pf.offset, pf.size, outputStream)
 
         val metadata = OtaMetadata.newBuilder().mergeFrom(outputStream.toByteArray()).build()
         Log.d(TAG, "OTA metadata: $metadata")
@@ -962,12 +890,12 @@ class UpdaterThread(
      * Returns the path to the written file.
      */
     @SuppressLint("SetWorldReadable")
-    private fun downloadCareMap(url: URL, pf: PropertyFile): File {
+    private fun downloadCareMap(uri: Uri, pf: PropertyFile): File {
         val file = File(OtaPaths.OTA_PACKAGE_DIR, OtaPaths.CARE_MAP_NAME)
 
         try {
             file.outputStream().use { out ->
-                downloadPropertyFile(url, pf, out)
+                readRange(uri, pf.offset, pf.size, out)
             }
             file.setReadable(true, false)
         } catch (e: Exception) {
@@ -980,13 +908,17 @@ class UpdaterThread(
 
     /** Synchronously check for updates. */
     private fun checkForUpdates(): List<CheckUpdateResult> {
-        if (prefs.otaCache.isNotEmpty()) {
-            return Json.decodeFromString(prefs.otaCache)
-        }
+        val isLocal = action.isLocal(prefs)
 
-        val downloads = if (prefs.otaUrl != null) {
+        val downloads = if (isLocal) {
+            // Never served from the cache: a periodic check in between would have replaced it
+            // with the OTA server's listing.
+            mutableListOf(DownloadInfo(prefs.targetOta, prefs.localOta!!))
+        } else if (prefs.otaCache.isNotEmpty()) {
+            return Json.decodeFromString(prefs.otaCache)
+        } else if (prefs.otaUrl != null) {
             val uri = Uri.parse(prefs.otaUrl.toString())
-            mutableListOf(DownloadInfo(uri.lastPathSegment!!, prefs.otaUrl!!))
+            mutableListOf(DownloadInfo(uri.lastPathSegment!!, uri))
         } else {
             try {
                 // Check preference to decide which scraping logic to use
@@ -1021,35 +953,42 @@ class UpdaterThread(
                     cd,
                 ))
             } catch (e: Exception) {
+                if (isLocal) {
+                    // The user picked this file, so report why it was rejected.
+                    throw e
+                }
                 Log.e(TAG, "Failed to process metadata for ${ota.version}, skipping.", e)
                 continue // Skip broken links instead of crashing the whole check
             }
         }
 
-        val cache = Json.encodeToString(updates)
-        prefs.otaCache = cache
+        if (!isLocal) {
+            prefs.otaCache = Json.encodeToString(updates)
+        }
         return updates
     }
 
     /** Asynchronously trigger the update_engine payload application. */
-    private fun startInstallation(otaUrl: URL, cd: Map<String, PropertyFile>) {
+    private fun startInstallation(otaUri: Uri, cd: Map<String, PropertyFile>) {
         val pfPayload = cd[OtaPaths.PAYLOAD_NAME]!!
         val pfPayloadProperties = cd[OtaPaths.PAYLOAD_PROPERTIES_NAME]!!
         val pfCareMap = cd[OtaPaths.CARE_MAP_NAME]!!
 
         Log.i(TAG, "Downloading dm-verity care map file")
 
-        downloadCareMap(otaUrl, pfCareMap)
+        downloadCareMap(otaUri, pfCareMap)
 
         Log.i(TAG, "Downloading payload properties file")
 
-        val payloadProperties = downloadKeyValueFile(otaUrl, pfPayloadProperties)
+        val payloadProperties = downloadKeyValueFile(otaUri, pfPayloadProperties)
         prefs.payloadPropertiesCache = Json.encodeToString(payloadProperties)
 
         Log.i(TAG, "Passing payload information to update_engine")
 
         val engineProperties = HashMap(payloadProperties).apply {
-            put("NETWORK_ID", network!!.networkHandle.toString())
+            if (network != null) {
+                put("NETWORK_ID", network.networkHandle.toString())
+            }
             put("USER_AGENT", USER_AGENT_UPDATE_ENGINE)
 
             if (authorization != null) {
@@ -1066,15 +1005,10 @@ class UpdaterThread(
             }
         }
 
-        updateEngine.applyPayload(
-            otaUrl.toString(),
-            pfPayload.offset,
-            pfPayload.size,
-            engineProperties.map { "${it.key}=${it.value}" }.toTypedArray(),
-        )
+        applyPayload(otaUri, pfPayload, engineProperties)
     }
 
-    private fun switchSlot(otaUrl: URL, cd: Map<String, PropertyFile>) {
+    private fun switchSlot(otaUri: Uri, cd: Map<String, PropertyFile>) {
         // https://android.googlesource.com/platform/bootable/recovery/+/refs/tags/android-13.0.0_r82/updater_sample/src/com/example/android/systemupdatersample/UpdateManager.java#406
         val pfPayload = cd[OtaPaths.PAYLOAD_NAME]!!
         val payloadProperties = Json.decodeFromString<Map<String, String>>(prefs.payloadPropertiesCache)
@@ -1087,13 +1021,20 @@ class UpdaterThread(
             put("SWITCH_SLOT_ON_REBOOT", "1")
         }
 
-        updateEngine.applyPayload(
-            otaUrl.toString(),
-            pfPayload.offset,
-            pfPayload.size,
-            engineProperties.map { "${it.key}=${it.value}" }.toTypedArray(),
-        )
+        applyPayload(otaUri, pfPayload, engineProperties)
+    }
 
+    private fun applyPayload(otaUri: Uri, pfPayload: PropertyFile, engineProperties: Map<String, String>) {
+        val headers = engineProperties.map { "${it.key}=${it.value}" }.toTypedArray()
+
+        if (otaUri.scheme == ContentResolver.SCHEME_CONTENT) {
+            // update_engine dups the descriptor, so ours can be closed as soon as the call returns.
+            openLocalOta(otaUri).use { pfd ->
+                updateEngine.applyPayloadFd(pfd, pfPayload.offset, pfPayload.size, headers)
+            }
+        } else {
+            updateEngine.applyPayload(otaUri.toString(), pfPayload.offset, pfPayload.size, headers)
+        }
     }
 
     // https://github.com/topjohnwu/Magisk/blob/v26.3/app/src/main/java/com/topjohnwu/magisk/core/tasks/MagiskInstaller.kt#L537-L538
@@ -1393,12 +1334,12 @@ class UpdaterThread(
                     } else {
                         if (action == Action.INSTALL) {
                             startInstallation(
-                                URL(targetUpdate.otaUrl),
+                                targetUpdate.otaUrl.toUri(),
                                 targetUpdate.cd,
                             )
                         } else if (action == Action.SWITCH_SLOT) {
                             switchSlot(
-                                URL(targetUpdate.otaUrl),
+                                targetUpdate.otaUrl.toUri(),
                                 targetUpdate.cd,
                             )
                         }
@@ -1486,7 +1427,11 @@ class UpdaterThread(
         REVERT,
         SWITCH_SLOT,
         NO_ROOT,
-        REBOOT,
+        REBOOT;
+
+        /** Whether the OTA is read from the file picked by the user instead of the OTA server. */
+        fun isLocal(prefs: Preferences) =
+            prefs.localOta != null && (this == INSTALL || this == SWITCH_SLOT)
     }
 
     private fun List<CheckUpdateResult>.available() = filter { it.fingerprint != Build.FINGERPRINT || prefs.allowReinstall }
@@ -1494,7 +1439,7 @@ class UpdaterThread(
 
     private data class DownloadInfo(
         val version: String,
-        val url: URL,
+        val url: Uri,
         val date: String? = null,
     )
 
